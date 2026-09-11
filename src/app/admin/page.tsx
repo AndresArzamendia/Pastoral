@@ -16,6 +16,7 @@ import {
 import { buildGoogleCalendarCreateUrl } from '@/lib/googleCalendar';
 import { fetchStoreValue, upsertStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
 import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingProfiles, approveProfile, signInProfile, signUpProfile, subscribeProfileChanges, deleteProfile, resendVerificationEmail, updateProfile } from '@/lib/supabaseProfiles';
+import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
   ssr: false,
@@ -760,6 +761,20 @@ function AdminContent() {
   const [form, setForm] = useState<any>({});
   const [activeProfileTeam, setActiveProfileTeam] = useState('coordinacion');
   const [activeContentTab, setActiveContentTab] = useState('institucional');
+  const [evgAdmin, setEvgAdmin] = useState<EvgHoyResponse | null>(null);
+  const [evgAdminLoading, setEvgAdminLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeContentTab !== 'evangelio' || evgAdmin) return;
+    let cancel = false;
+    setEvgAdminLoading(true);
+    fetch('/api/evangelio', { headers: { Accept: 'application/json' } })
+      .then(r => r.json())
+      .then((j: EvgHoyResponse) => { if (!cancel && j?.ok && Array.isArray(j.paragraphs)) setEvgAdmin(j); })
+      .catch(() => { /* sin conexión con Vatican News */ })
+      .finally(() => { if (!cancel) setEvgAdminLoading(false); });
+    return () => { cancel = true; };
+  }, [activeContentTab, evgAdmin]);
 
   // --- NEWS VIEW STATE ---
   const [newsView, setNewsView] = useState<'list' | 'article' | 'event'>('list');
@@ -3725,29 +3740,21 @@ function AdminContent() {
                             <span className="sec-ic">✝️</span>
                             <div>
                               <h4 className="serif">Evangelio del día</h4>
-                              <p>Lo ven automáticamente tras la animación inicial y desde el menú principal.</p>
+                              <p>El texto llega solo, directo de Vatican News. Vos solo elegís la imagen.</p>
                             </div>
                           </div>
-                          <div className="ctx-field">
-                            <label className="ctx-label">EVANGELIO (CAPÍTULO Y VERSÍCULO)</label>
-                            <input
-                              className="pjl-input"
-                              value={content.evangelioRef || ''}
-                              onChange={e => setContent({ ...content, evangelioRef: e.target.value })}
-                              placeholder="Ej: Lucas 15, 11-24 · El hijo pródigo"
-                              style={{ fontFamily: 'var(--font-display), serif', fontSize: '16px' }}
-                            />
-                          </div>
-                          <div className="ctx-field">
-                            <label className="ctx-label">TEXTO DEL EVANGELIO</label>
-                            <textarea
-                              className="pjl-input"
-                              rows={8}
-                              value={content.evangelioTexto || ''}
-                              onChange={e => setContent({ ...content, evangelioTexto: e.target.value })}
-                              placeholder="Pegá aquí el texto del Evangelio de hoy... (versión popular recomendada)"
-                              style={{ fontSize: '14.5px' }}
-                            />
+                          <div className="ctx-field" style={{ marginBottom: '18px' }}>
+                            <label className="ctx-label"><span className="ctx-chip">📡</span> FUENTE AUTOMÁTICA · VATICAN NEWS</label>
+                            <div className="ctx-info">
+                              <p>No se edita texto a mano: cada día se trae automáticamente el Evangelio oficial con sus lecturas:</p>
+                              <ul>
+                                <li>Primera lectura</li>
+                                <li>Salmo responsorial</li>
+                                <li>Evangelio</li>
+                                <li>Pensamiento del día</li>
+                              </ul>
+                              <p className="ctx-info-note">Al entrar a la página, los peregrinos ven hoy la Palabra del día con la foto que subís abajo.</p>
+                            </div>
                           </div>
                           <div className="ctx-field" style={{ marginBottom: 0 }}>
                             <label className="ctx-label">IMAGEN DEL EVANGELIO</label>
@@ -3766,7 +3773,7 @@ function AdminContent() {
                                 </label>
                               </div>
                             </div>
-                            <p className="ctx-hint">Se adapta a todas las pantallas (foto representativa del Evangelio del día).</p>
+                            <p className="ctx-hint">Foto representativa que encabeza la tarjeta del Evangelio que ven los peregrinos al entrar.</p>
                           </div>
                         </div>
 
@@ -3775,9 +3782,17 @@ function AdminContent() {
                             {!content.evangelioFoto && <span className="pv-banner-ico">🙏</span>}
                           </div>
                           <div className="pv-body">
-                            <span className="pv-kicker">✝️ EVANGELIO DEL DÍA</span>
-                            <h4 className="serif pv-title">{content.evangelioRef || 'Evangelio del día'}</h4>
-                            <p className="pv-text" style={{ maxHeight: '220px', overflow: 'hidden' }}>{content.evangelioTexto || 'El texto del Evangelio se mostrará aquí en forma de tarjeta...'}</p>
+                            <span className="pv-kicker">✝️ EVANGELIO DEL DÍA · HOY</span>
+                            <h4 className="serif pv-title">{evgAdmin?.title || 'Evangelio del día'}</h4>
+                            {evgAdminLoading && <p className="pv-text"><span className="evh-spin" aria-hidden="true"></span> Consultando Vatican News…</p>}
+                            {!evgAdminLoading && evgAdmin && evgHoyClassify(evgAdmin.paragraphs).map((sec, i) => (
+                              <div key={i} style={{ marginTop: '10px' }}>
+                                <span className="pv-kicker" style={{ fontSize: '10px' }}>{sec.label}</span>
+                                {sec.reference && <p className="pv-text" style={{ fontSize: '12px', margin: '2px 0 0' }}><b>{sec.reference}</b></p>}
+                                <p className="pv-text" style={{ fontSize: '12.5px', marginTop: '4px' }}>{sec.body.join(' ').slice(0, 160)}{sec.body.join(' ').length > 160 ? '…' : ''}</p>
+                              </div>
+                            ))}
+                            {!evgAdminLoading && !evgAdmin && <p className="pv-text">Las lecturas de hoy se mostrarán aquí automáticamente al elegir la foto.</p>}
                             <p className="pv-app">💡 Al copiar o compartir se agrega automáticamente la firma:<br /><em>Pastoral Juvenil Luqueña «Avivando la llama de Cristo en tu corazón»</em></p>
                           </div>
                         </div>

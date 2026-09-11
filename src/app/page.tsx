@@ -16,6 +16,7 @@ import NavDownloadButton from '@/components/NavDownloadButton';
 import NotificationBell from '@/components/NotificationBell';
 import ShareButton from '@/components/ShareButton';
 import { buildIcs, IcsItem } from '@/lib/ics';
+import { evgHoyClassify, EVH_BASE_URL, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 
 type PublicNewsItem = Omit<NewsItem, 'id'> & {
   id: number | string;
@@ -34,56 +35,6 @@ type NewsResource = {
   detail: string;
   icon: string;
   tone: 'gold' | 'blue' | 'neutral';
-};
-
-type EvgHoyResponse = {
-  ok: boolean;
-  title?: string;
-  link?: string;
-  pubDate?: string;
-  paragraphs?: string[];
-};
-
-type EvgHoySection = {
-  label: string;
-  heading: string;
-  reference: string;
-  body: string[];
-};
-
-const evgHoyDecode = (s: string): string => {
-  if (typeof DOMParser === 'undefined') {
-    return s.replace(/<[^>]*>/g, '').trim();
-  }
-  const doc = new DOMParser().parseFromString(`<div>${s}</div>`, 'text/html');
-  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
-};
-
-const evgHoyClassify = (paragraphs?: string[]): EvgHoySection[] => {
-  if (!paragraphs) return [];
-  const txts = paragraphs.map(evgHoyDecode).filter(Boolean);
-  const out: EvgHoySection[] = [];
-  let cur: EvgHoySection | null = null;
-  for (const para of txts) {
-    const short = para.length <= 120;
-    if (short && /^(lectura de la|lectura del santo evangelio|salmo|lectio)/i.test(para)) {
-      const label = /^salmo/i.test(para) ? 'Salmo' : /^lectura del santo evangelio/i.test(para) ? 'Evangelio' : 'Lectura';
-      cur = { label, heading: para, reference: '', body: [] };
-      out.push(cur);
-    } else if (cur && cur.body.length === 0 && cur.reference === '' && short) {
-      cur.reference = para;
-    } else if (cur && cur.label === 'Evangelio' && cur.body.length > 0 && /(francisco|homil[íi]a|santa marta|catequesis del santo padre)/i.test(para)) {
-      const pens: EvgHoySection = { label: 'Pensamiento del día', heading: '', reference: '', body: [para] };
-      out.push(pens);
-      cur = pens;
-    } else if (cur) {
-      cur.body.push(para);
-    }
-  }
-  if (out.length === 0 && txts.length) {
-    out.push({ label: 'Lectura', heading: '', reference: '', body: txts });
-  }
-  return out;
 };
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { ssr: false, loading: () => <div style={{ height: '500px', background: 'var(--cream)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Cargando mapa...</div> });
@@ -555,9 +506,8 @@ const [newsSearch, setNewsSearch] = useState('');
   const [evangelioOpen, setEvangelioOpen] = useState(false);
   const [evangelioToast, setEvangelioToast] = useState(false);
   const evangelioShownRef = useRef(false);
-  const hasEvangelio = !!(siteContent.evangelioRef || siteContent.evangelioTexto || siteContent.evangelioFoto);
+  const hasEvangelio = true;
   const EVANGELIO_SIG = 'Pastoral Juvenil Luque\u00f1a \u00abAvivando la llama de Cristo en tu coraz\u00f3n\u00bb';
-  const evangelioTextForCopy = (siteContent.evangelioRef || 'Evangelio del d\u00eda') + '\n\n' + (siteContent.evangelioTexto || '') + '\n\n' + EVANGELIO_SIG;
 
   const dataUrlToBlob = async (url: string): Promise<Blob> => {
     const res = await fetch(url);
@@ -623,8 +573,7 @@ const [newsSearch, setNewsSearch] = useState('');
     return () => { document.body.style.overflow = prevOverflow; };
   }, [evangelioOpen]);
 
-  // --- EVANGELIO DE HOY · Vatican News (acordeón bajo el widget del Vaticano) ---
-  const [evgHoyOpen, setEvgHoyOpen] = useState<string | null>(null);
+  // --- EVANGELIO DE HOY · Vatican News (fuente oficial automática) ---
   const [evgHoyData, setEvgHoyData] = useState<EvgHoyResponse | null>(null);
   const [evgHoyLoading, setEvgHoyLoading] = useState(false);
   const [evgHoyError, setEvgHoyError] = useState(false);
@@ -645,11 +594,7 @@ const [newsSearch, setNewsSearch] = useState('');
     }
   };
 
-  const toggleEvgHoy = (key: string) => {
-    if (evgHoyOpen === key) { setEvgHoyOpen(null); return; }
-    setEvgHoyOpen(key);
-    void loadEvgHoy();
-  };
+  useEffect(() => { void loadEvgHoy(); }, []);
 
   // Descarga la agenda completa en formato .ics para añadirla a Google Calendar
   const downloadAgendaIcs = () => {
@@ -1120,59 +1065,62 @@ window.setTimeout(() => {
     return <MaintenanceScreen message={siteContent.maintenanceMessage} email={siteContent.contactEmail} />;
   }
 
-  const EVH_BASE_URL = 'https://www.vaticannews.va/es/evangelio-de-hoy.html';
   const evgHoySections = evgHoyClassify(evgHoyData?.paragraphs);
   const evgHoyDate = evgHoyData?.pubDate
     ? new Date(evgHoyData.pubDate).toLocaleDateString('es', { day: '2-digit', month: 'long', year: 'numeric' })
     : '';
 
-  const renderEvangelioHoy = (key: string, variant: 'compact' | 'full') => {
-    const open = evgHoyOpen === key;
+  const evangelioTextForCopy = [evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día', evgHoySections.map(s => s.body.join('\n\n')).join('\n\n') || siteContent.evangelioTexto || '', EVANGELIO_SIG].filter(Boolean).join('\n\n');
+
+  const renderEvangelioSections = () => {
+    const link = evgHoyData?.link || EVH_BASE_URL;
+    if (evgHoyLoading) {
+      return (
+        <div className="evh-load" role="status"><span className="evh-spin" aria-hidden="true"></span>Trayendo la Palabra del día…</div>
+      );
+    }
+    if (evgHoyError || !evgHoySections.length) {
+      return (
+        <div className="evh-err">
+          <p>No pudimos conectar con Vatican News ahora mismo.</p>
+          <a className="evh-open-btn" href={link} target="_blank" rel="noreferrer">Abrir el Evangelio en Vatican News ↗</a>
+        </div>
+      );
+    }
+    return (
+      <div className="evh-secs">
+        {evgHoySections.map((sec, i) => (
+          <section key={i} className={`evh-sec${sec.label === 'Pensamiento del día' ? ' evh-pens' : ''}`}>
+            <div className="evh-sec-head">
+              {sec.label === 'Lectura' ? <span className="evh-kicker">Primera lectura</span> : sec.label === 'Evangelio' ? <span className="evh-kicker">Evangelio</span> : sec.label === 'Salmo' ? <span className="evh-kicker">Salmo responsorial</span> : <span className="evh-kicker">Pensamiento del día</span>}
+              {sec.heading && <h5>{sec.heading}</h5>}
+              {sec.reference && <span className="evh-ref">{sec.reference}</span>}
+            </div>
+            {sec.body.map((p, j) => <p key={j}>{p}</p>)}
+          </section>
+        ))}
+        <div className="evh-foot">
+          <span className="evh-src">Fuente: Vatican News</span>
+          <a className="evh-open-btn" href={link} target="_blank" rel="noreferrer">Leer completo en Vatican News ↗</a>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEvangelioHoy = (variant: 'compact' | 'full') => {
     const link = evgHoyData?.link || EVH_BASE_URL;
     return (
-      <div className={`evh evh-${variant} ${open ? 'is-open' : ''}`}>
+      <div className={`evh evh-${variant}`}>
         <div className="evh-head">
-          <button type="button" className="evh-trigger" onClick={() => toggleEvgHoy(key)} aria-expanded={open} aria-controls={`evh-body-${key}`}>
-            <span className="evh-ico" aria-hidden="true">📖</span>
-            <span className="evh-txt">
-              <strong>Evangelio de hoy</strong>
-              <em>{evgHoyDate || 'La Palabra del día · Vatican News'}</em>
-            </span>
-            <span className={`evh-caret ${open ? 'open' : ''}`} aria-hidden="true">▾</span>
-          </button>
-          <a className="evh-go" href={link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="Abrir en Vatican News" aria-label="Abrir en Vatican News">↗</a>
+          <span className="evh-ico" aria-hidden="true">📖</span>
+          <span className="evh-txt">
+            <strong>Evangelio de hoy</strong>
+            <em>{evgHoyDate || 'La Palabra del día · Vatican News'}</em>
+          </span>
+          <a className="evh-go" href={link} target="_blank" rel="noreferrer" title="Abrir en Vatican News" aria-label="Abrir en Vatican News">↗</a>
         </div>
-        <div id={`evh-body-${key}`} className={`evh-body ${open ? 'open' : ''}`}>
-          {open && (evgHoyLoading ? (
-            <div className="evh-load" role="status"><span className="evh-spin" aria-hidden="true"></span>Trayendo la Palabra del día…</div>
-          ) : evgHoyError ? (
-            <div className="evh-err">
-              <p>No pudimos conectar con Vatican News ahora mismo.</p>
-              <a className="evh-open-btn" href={link} target="_blank" rel="noreferrer">Abrir el Evangelio en Vatican News ↗</a>
-            </div>
-          ) : evgHoySections.length ? (
-            <div className="evh-secs">
-              {evgHoySections.map((sec, i) => (
-                <section key={i} className={`evh-sec${sec.label === 'Pensamiento del día' ? ' evh-pens' : ''}`}>
-                  <div className="evh-sec-head">
-                    {sec.label === 'Lectura' ? <span className="evh-kicker">Primera lectura</span> : sec.label === 'Evangelio' ? <span className="evh-kicker">Evangelio</span> : sec.label === 'Salmo' ? <span className="evh-kicker">Salmo responsorial</span> : <span className="evh-kicker">Pensamiento del día</span>}
-                    {sec.heading && <h5>{sec.heading}</h5>}
-                    {sec.reference && <span className="evh-ref">{sec.reference}</span>}
-                  </div>
-                  {sec.body.map((p, j) => <p key={j}>{p}</p>)}
-                </section>
-              ))}
-              <div className="evh-foot">
-                <span className="evh-src">Fuente: Vatican News</span>
-                <a className="evh-open-btn" href={link} target="_blank" rel="noreferrer">Leer completo en Vatican News ↗</a>
-              </div>
-            </div>
-          ) : (
-            <div className="evh-err">
-              <p>La Palabra del día aún no está disponible.</p>
-              <a className="evh-open-btn" href={link} target="_blank" rel="noreferrer">Abrir en Vatican News ↗</a>
-            </div>
-          ))}
+        <div className="evh-body">
+          {renderEvangelioSections()}
         </div>
       </div>
     );
@@ -1382,7 +1330,7 @@ window.setTimeout(() => {
               <div className="dropdown-pjl dropdown-pjl-vatican" style={{ minWidth: '240px', padding: '15px' }}>
                 {/* @ts-ignore */}
                 <vaticannews-widget lang="es" fontSize="18"></vaticannews-widget>
-                {renderEvangelioHoy('nav', 'compact')}
+                {renderEvangelioHoy('compact')}
               </div>
             </li>
 
@@ -1527,7 +1475,7 @@ window.setTimeout(() => {
                 <div className="drawer-vatican-widget" style={{ padding: '10px 15px' }}>
                   {/* @ts-ignore */}
                   <vaticannews-widget lang="es" fontSize="16"></vaticannews-widget>
-                  {renderEvangelioHoy('drawer', 'full')}
+                  {renderEvangelioHoy('full')}
                 </div>
               )}
             </li>
@@ -1941,7 +1889,7 @@ window.setTimeout(() => {
                      {/* @ts-ignore */}
                      <vaticannews-widget lang="es" fontSize="18"></vaticannews-widget>
                   </div>
-                  {renderEvangelioHoy('news', 'full')}
+                  {renderEvangelioHoy('full')}
 
                   <div className="section-head reveal">
                     <span style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '2px', color: 'var(--gold)', textTransform: 'uppercase' }}>{siteContent.newsTag}</span>
@@ -3067,7 +3015,7 @@ window.setTimeout(() => {
                   {/* @ts-ignore */}
                   <vaticannews-widget lang="es" fontSize="18"></vaticannews-widget>
                 </div>
-                {renderEvangelioHoy('footer', 'full')}
+                {renderEvangelioHoy('full')}
               </div>
             </div>
           </section>
@@ -3737,8 +3685,9 @@ window.setTimeout(() => {
             )}
             <div className="evg-body">
               <span className="evg-badge">✝️ Evangelio del día</span>
-              <h3 className="serif evg-ref">{siteContent.evangelioRef || 'Evangelio del día'}</h3>
-              {siteContent.evangelioTexto && <p className="evg-text">{siteContent.evangelioTexto}</p>}
+              <h3 className="serif evg-ref">{evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día'}</h3>
+              {evgHoyDate && <p className="evg-date">{evgHoyDate}</p>}
+              <div className="evg-sections">{renderEvangelioSections()}</div>
               <div className="evg-actions">
                 <button type="button" className="evg-btn evg-btn-copy" onClick={copyEvangelio}>Copiar el texto</button>
                 <button type="button" className="evg-btn evg-btn-wa" onClick={shareEvangelio}>
@@ -3877,6 +3826,10 @@ window.setTimeout(() => {
         .evg-body { padding: 24px 28px 30px; }
         .evg-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gold); color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; padding: 6px 13px; border-radius: 999px; margin-bottom: 14px; box-shadow: 0 8px 20px rgba(200,151,58,.35); }
         .evg-ref { margin: 0 0 14px; color: var(--navy); font-size: clamp(1.35rem, 4.5vw, 1.85rem); line-height: 1.22; }
+        .evg-date { margin: -6px 0 14px; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold); }
+        .evg-sections .evh-secs { max-height: 44vh; padding-right: 6px; }
+        .evg-sections .evh-sec p { font-size: 14px; }
+        .evg-sections .evh-kicker { font-size: 10px; padding: 4px 10px; }
         .evg-text { margin: 0; font-size: 15.5px; line-height: 1.85; color: #2c3450; white-space: pre-line; }
         .evg-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; padding-top: 22px; border-top: 1px dashed rgba(200,151,58,.4); }
         .evg-btn { display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; padding: 13px 20px; border-radius: 14px; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: .3px; transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s; }
