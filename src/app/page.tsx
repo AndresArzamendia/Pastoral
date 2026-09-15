@@ -1113,25 +1113,6 @@ window.setTimeout(() => {
     );
   };
 
-  const renderEvangelioHoy = (variant: 'compact' | 'full') => {
-    const link = evgHoyData?.link || EVH_BASE_URL;
-    return (
-      <div className={`evh evh-${variant}`}>
-        <div className="evh-head">
-          <span className="evh-ico" aria-hidden="true">📖</span>
-          <span className="evh-txt">
-            <strong>Evangelio de hoy</strong>
-            <em>{evgHoyDate || 'La Palabra del día · Vatican News'}</em>
-          </span>
-          <a className="evh-go" href={link} target="_blank" rel="noreferrer" title="Abrir en Vatican News" aria-label="Abrir en Vatican News">↗</a>
-        </div>
-        <div className="evh-body">
-          {renderEvangelioSections()}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className={isHighContrast ? 'high-contrast' : ''} style={{ '--font-size-base': `${fontSize}px` } as React.CSSProperties}>
       
@@ -1336,7 +1317,6 @@ window.setTimeout(() => {
               <div className="dropdown-pjl dropdown-pjl-vatican" style={{ minWidth: '240px', padding: '15px' }}>
                 {/* @ts-ignore */}
                 <vaticannews-widget lang="es" fontSize="18"></vaticannews-widget>
-                {renderEvangelioHoy('compact')}
               </div>
             </li>
 
@@ -1481,7 +1461,6 @@ window.setTimeout(() => {
                 <div className="drawer-vatican-widget" style={{ padding: '10px 15px' }}>
                   {/* @ts-ignore */}
                   <vaticannews-widget lang="es" fontSize="16"></vaticannews-widget>
-                  {renderEvangelioHoy('full')}
                 </div>
               )}
             </li>
@@ -1895,7 +1874,6 @@ window.setTimeout(() => {
                      {/* @ts-ignore */}
                      <vaticannews-widget lang="es" fontSize="18"></vaticannews-widget>
                   </div>
-                  {renderEvangelioHoy('full')}
 
                   <div className="section-head reveal">
                     <span style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '2px', color: 'var(--gold)', textTransform: 'uppercase' }}>{siteContent.newsTag}</span>
@@ -3021,7 +2999,6 @@ window.setTimeout(() => {
                   {/* @ts-ignore */}
                   <vaticannews-widget lang="es" fontSize="18"></vaticannews-widget>
                 </div>
-                {renderEvangelioHoy('full')}
               </div>
             </div>
           </section>
