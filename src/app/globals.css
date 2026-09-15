@@ -3348,12 +3348,36 @@ input:checked + .pjl-slider:before {
   margin-top: 14px;
   padding-top: 12px;
 }
-.evh-pens .evh-kicker {
+.evh-pens .evh-kicker,
+.evh-sec--pens .evh-kicker {
   background: linear-gradient(120deg, #a07d3b, var(--gold, #C8973A));
 }
-.evh-pens p {
+.evh-pens p,
+.evh-sec--pens p {
   font-style: italic;
   color: #6b5630;
+}
+.evh-sec--lectura .evh-kicker {
+  background: linear-gradient(120deg, var(--navy, #1A2744), #2d4368);
+}
+.evh-sec--segunda .evh-kicker {
+  background: linear-gradient(120deg, #7a2540, #b04a63);
+}
+.evh-sec--salmo .evh-kicker {
+  background: linear-gradient(120deg, #2e5e4a, #3f8066);
+}
+.evh-sec--evangelio .evh-kicker {
+  background: linear-gradient(120deg, #9c3d1f, #c05d30);
+}
+.evh-sec--lectura .evh-sec-head h5,
+.evh-sec--segunda .evh-sec-head h5 {
+  font-size: 16px;
+  color: #3b2540;
+}
+.evh-sec--lectura .evh-sec-head h5::before,
+.evh-sec--segunda .evh-sec-head h5::before {
+  content: '✠ ';
+  color: var(--gold, #C8973A);
 }
 .evh-foot {
   display: flex;
@@ -3416,6 +3440,11 @@ input:checked + .pjl-slider:before {
 
 @media (max-width: 760px) {
   .evh-full { margin-top: 14px; }
+  .evh-secs { padding: 4px 10px 12px; }
+  .evh-sec-head h5 { font-size: 13.5px; }
+  .evh-kicker { max-width: 100%; white-space: normal; line-height: 1.35; }
+  .evh-sec--lectura .evh-sec-head h5,
+  .evh-sec--segunda .evh-sec-head h5 { font-size: 14.5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .evh-spin { animation-duration: 1.4s; }

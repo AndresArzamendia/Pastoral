@@ -16,7 +16,7 @@ import NavDownloadButton from '@/components/NavDownloadButton';
 import NotificationBell from '@/components/NotificationBell';
 import ShareButton from '@/components/ShareButton';
 import { buildIcs, IcsItem } from '@/lib/ics';
-import { evgHoyClassify, EVH_BASE_URL, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
+import { evgHoyClassify, evgHoyDateLabel, EVH_BASE_URL, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 
 type PublicNewsItem = Omit<NewsItem, 'id'> & {
   id: number | string;
@@ -1066,11 +1066,17 @@ window.setTimeout(() => {
   }
 
   const evgHoySections = evgHoyClassify(evgHoyData?.paragraphs);
-  const evgHoyDate = evgHoyData?.pubDate
-    ? new Date(evgHoyData.pubDate).toLocaleDateString('es', { day: '2-digit', month: 'long', year: 'numeric' })
-    : '';
+  const evgHoyDate = evgHoyDateLabel(evgHoyData?.title, evgHoyData?.pubDate);
 
-  const evangelioTextForCopy = [evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día', evgHoySections.map(s => s.body.join('\n\n')).join('\n\n') || siteContent.evangelioTexto || '', EVANGELIO_SIG].filter(Boolean).join('\n\n');
+  const evgLabelOf = (label: string): string => (
+    label === 'Segunda' ? 'Segunda lectura'
+      : label === 'Evangelio' ? 'Evangelio'
+      : label === 'Salmo' ? 'Salmo responsorial'
+      : label === 'Pensamiento del día' ? 'Las palabras del Papa'
+      : 'Primera lectura'
+  );
+
+  const evangelioTextForCopy = [evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día', evgHoySections.map(s => [evgLabelOf(s.label), s.reference, s.body.join('\n\n')].filter(Boolean).join('\n')).join('\n\n') || siteContent.evangelioTexto || '', EVANGELIO_SIG].filter(Boolean).join('\n\n');
 
   const renderEvangelioSections = () => {
     const link = evgHoyData?.link || EVH_BASE_URL;
@@ -1090,9 +1096,9 @@ window.setTimeout(() => {
     return (
       <div className="evh-secs">
         {evgHoySections.map((sec, i) => (
-          <section key={i} className={`evh-sec${sec.label === 'Pensamiento del día' ? ' evh-pens' : ''}`}>
+          <section key={i} className={`evh-sec evh-sec--${sec.label === 'Pensamiento del día' ? 'pens' : sec.label === 'Segunda' ? 'segunda' : sec.label === 'Evangelio' ? 'evangelio' : sec.label === 'Salmo' ? 'salmo' : 'lectura'}`}>
             <div className="evh-sec-head">
-              {sec.label === 'Lectura' ? <span className="evh-kicker">Primera lectura</span> : sec.label === 'Evangelio' ? <span className="evh-kicker">Evangelio</span> : sec.label === 'Salmo' ? <span className="evh-kicker">Salmo responsorial</span> : <span className="evh-kicker">Pensamiento del día</span>}
+              <span className="evh-kicker">{evgLabelOf(sec.label)}</span>
               {sec.heading && <h5>{sec.heading}</h5>}
               {sec.reference && <span className="evh-ref">{sec.reference}</span>}
             </div>
