@@ -1076,7 +1076,9 @@ window.setTimeout(() => {
       : 'Primera lectura'
   );
 
-  const evangelioTextForCopy = [evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día', evgHoySections.map(s => [evgLabelOf(s.label), s.reference, s.body.join('\n\n')].filter(Boolean).join('\n')).join('\n\n') || siteContent.evangelioTexto || '', EVANGELIO_SIG].filter(Boolean).join('\n\n');
+  const evgHoyTitle = evgHoyData?.commemoration || evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día';
+
+  const evangelioTextForCopy = [evgHoyTitle, evgHoySections.map(s => [evgLabelOf(s.label), s.reference, s.body.join('\n\n')].filter(Boolean).join('\n')).join('\n\n') || siteContent.evangelioTexto || '', EVANGELIO_SIG].filter(Boolean).join('\n\n');
 
   const renderEvangelioSections = () => {
     const link = evgHoyData?.link || EVH_BASE_URL;
@@ -3668,7 +3670,7 @@ window.setTimeout(() => {
             )}
             <div className="evg-body">
               <span className="evg-badge">✝️ Evangelio del día</span>
-              <h3 className="serif evg-ref">{evgHoyData?.title || siteContent.evangelioRef || 'Evangelio del día'}</h3>
+              <h3 className="serif evg-ref">{evgHoyTitle}</h3>
               {evgHoyDate && <p className="evg-date">{evgHoyDate}</p>}
               <div className="evg-sections">{renderEvangelioSections()}</div>
               <div className="evg-actions">
@@ -3808,7 +3810,7 @@ window.setTimeout(() => {
 
         .evg-body { padding: 24px 28px 30px; }
         .evg-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gold); color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; padding: 6px 13px; border-radius: 999px; margin-bottom: 14px; box-shadow: 0 8px 20px rgba(200,151,58,.35); }
-        .evg-ref { margin: 0 0 14px; color: var(--navy); font-size: clamp(1.35rem, 4.5vw, 1.85rem); line-height: 1.22; }
+        .evg-ref { margin: 0 0 14px; color: var(--navy); font-size: clamp(1.2rem, 4.5vw, 1.7rem); line-height: 1.28; overflow-wrap: break-word; text-wrap: balance; }
         .evg-date { margin: -6px 0 14px; font-size: 12px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--gold); }
         .evg-sections .evh-secs { max-height: 44vh; padding-right: 6px; }
         .evg-sections .evh-sec p { font-size: 14px; }

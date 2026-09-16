@@ -4,6 +4,7 @@ export type EvgHoyResponse = {
   link?: string;
   pubDate?: string;
   paragraphs?: string[];
+  commemoration?: string;
 };
 
 export type EvgHoySectionLabel = 'Lectura' | 'Segunda' | 'Salmo' | 'Evangelio' | 'Pensamiento del día';
