@@ -6,7 +6,7 @@ function toHttps(value: string): string {
 
 const SITE_URL = toHttps(process.env.NEXT_PUBLIC_SITE_URL || '');
 const VERCEL_PRODUCTION_URL = toHttps(process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || '');
-const DEFAULT_SITE_URL = toHttps('pastoral-kappa.vercel.app');
+const DEFAULT_SITE_URL = toHttps('pastoral.arzamendiaandres-6d2.workers.dev');
 
 export function getSiteUrl(): string {
   if (SITE_URL) return SITE_URL;

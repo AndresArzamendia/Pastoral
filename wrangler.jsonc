@@ -1,8 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pastoral",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
+  },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "SUPABASE_URL": "https://rtqzphmqnsaxirifdzvu.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_89BBzim5CKpxFWpj2qvuLQ_nVir3Jpv",
+    "SITE_URL": "https://pastoral.arzamendiaandres-6d2.workers.dev"
   }
 }
