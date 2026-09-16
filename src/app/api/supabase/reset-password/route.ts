@@ -11,7 +11,11 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const email = body?.email;
-  const redirectTo = body?.redirectTo;
+  const origin = new URL(request.url).origin;
+  const redirectTo =
+    typeof body?.redirectTo === 'string' && body.redirectTo.startsWith(origin)
+      ? body.redirectTo
+      : `${origin}/reset-password/recover`;
 
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ success: false, message: 'Ingresa un correo electrónico válido.' }, { status: 400 });

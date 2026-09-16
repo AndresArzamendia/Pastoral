@@ -331,7 +331,7 @@ export async function requestPasswordReset(email: string, redirectTo?: string) {
     const response = await fetch('/api/supabase/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, redirectTo: redirectTo || window.location.origin }),
+      body: JSON.stringify({ email, redirectTo: redirectTo || `${window.location.origin}/reset-password/recover` }),
     });
     const result = await response.json();
 

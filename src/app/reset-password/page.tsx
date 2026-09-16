@@ -18,7 +18,10 @@ export default function ResetPasswordPage() {
       const response = await fetch('/api/supabase/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          redirectTo: `${window.location.origin}/reset-password/recover`,
+        }),
       });
       const result = await response.json();
 
@@ -93,10 +96,16 @@ export default function ResetPasswordPage() {
             <ol style={stepsList}>
               <li>Escribe tu correo y envía el formulario.</li>
               <li>Abre el mensaje que recibirás en tu bandeja de entrada.</li>
-              <li>Sigue el enlace seguro para cambiar tu contraseña.</li>
-              <li>Regresa al panel y accede con tu nueva contraseña.</li>
+              <li>Sigue el enlace seguro para crear tu nueva contraseña.</li>
+              <li>Regresa al panel y accede con tu contraseña renovada.</li>
             </ol>
           </div>
+
+          <p style={verseStyle}>
+            “Yo sé los planes que tengo para ustedes: planes de bienestar y no de mal, para darles un futuro y una esperanza.”
+            <br />
+            <span style={verseCiteStyle}>Jeremías 29, 11</span>
+          </p>
         </div>
       </div>
     </main>
@@ -216,6 +225,28 @@ const stepsCardStyle: React.CSSProperties = {
   borderRadius: '22px',
   background: 'rgba(249, 250, 251, 0.96)',
   border: '1px solid rgba(226, 232, 240, 0.9)',
+};
+
+const verseStyle: React.CSSProperties = {
+  marginTop: '24px',
+  padding: '18px 22px',
+  borderRadius: '18px',
+  background: 'linear-gradient(160deg, #fffbea, #fdf4dd)',
+  border: '1px solid rgba(200, 151, 58, 0.3)',
+  fontFamily: "'Playfair Display', Georgia, serif",
+  fontStyle: 'italic',
+  color: '#5b4626',
+  lineHeight: 1.7,
+  fontSize: '1rem',
+};
+
+const verseCiteStyle: React.CSSProperties = {
+  fontStyle: 'normal',
+  fontWeight: 800,
+  fontSize: '0.8rem',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  color: '#a07d3b',
 };
 
 const stepsTitle: React.CSSProperties = {
