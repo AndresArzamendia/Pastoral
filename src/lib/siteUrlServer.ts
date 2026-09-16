@@ -4,7 +4,7 @@ function toHttps(value: string): string {
   return /^https?:\/\//i.test(cleaned) ? cleaned.replace(/^http:\/\//i, 'https://') : `https://${cleaned}`;
 }
 
-const DEFAULT_SITE_URL = toHttps('pastoral-henna.vercel.app');
+const DEFAULT_SITE_URL = toHttps('pastoral-kappa.vercel.app');
 
 export function siteOrigin(requestUrl?: string): string {
   const custom = toHttps(process.env.NEXT_PUBLIC_SITE_URL || '');
