@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { siteOrigin } from '@/lib/siteUrlServer';
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,7 +16,11 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const email = body?.email;
-  const redirectTo = body?.redirectTo;
+  const origin = siteOrigin(request.url);
+  const redirectTo =
+    typeof body?.redirectTo === 'string' && body.redirectTo.startsWith(origin)
+      ? body.redirectTo
+      : `${origin}/confirmation?success=true`;
 
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ success: false, message: 'Falta el correo electrónico.' }, { status: 400 });

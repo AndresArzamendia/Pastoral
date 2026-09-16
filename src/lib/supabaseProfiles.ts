@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase';
+import { siteUrlOf } from './siteUrl';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const PROFILE_TABLES = ['user_profiles', 'profiles'] as const;
@@ -310,7 +311,7 @@ export async function resendVerificationEmail(email: string, redirectTo?: string
     const response = await fetch('/api/supabase/resend-verification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, redirectTo: redirectTo || window.location.origin + '/confirmation?success=true' }),
+      body: JSON.stringify({ email, redirectTo: redirectTo || siteUrlOf('/confirmation?success=true') }),
     });
     const result = await response.json();
 
@@ -331,7 +332,7 @@ export async function requestPasswordReset(email: string, redirectTo?: string) {
     const response = await fetch('/api/supabase/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, redirectTo: redirectTo || `${window.location.origin}/reset-password/recover` }),
+      body: JSON.stringify({ email, redirectTo: redirectTo || siteUrlOf('/reset-password/recover') }),
     });
     const result = await response.json();
 

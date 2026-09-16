@@ -16,6 +16,7 @@ import {
 import { buildGoogleCalendarCreateUrl } from '@/lib/googleCalendar';
 import { fetchStoreValue, upsertStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
 import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingProfiles, approveProfile, signInProfile, signUpProfile, subscribeProfileChanges, deleteProfile, resendVerificationEmail, updateProfile } from '@/lib/supabaseProfiles';
+import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
@@ -1313,7 +1314,7 @@ function AdminContent() {
 
     setIsRegistering(true);
     try {
-      const redirectTo = window.location.origin + '/confirmation?success=true';
+      const redirectTo = siteUrlOf('/confirmation?success=true');
       const { error } = await signUpProfile(registerForm.name, registerForm.email, registerForm.password, redirectTo);
       if (error) {
         setRegisterErr(error.message || 'Error al solicitar acceso.');

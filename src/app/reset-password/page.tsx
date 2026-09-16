@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { siteUrlOf } from '@/lib/siteUrl';
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export default function ResetPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          redirectTo: `${window.location.origin}/reset-password/recover`,
+          redirectTo: siteUrlOf('/reset-password/recover'),
         }),
       });
       const result = await response.json();
