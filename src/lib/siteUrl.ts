@@ -6,10 +6,12 @@ function toHttps(value: string): string {
 
 const SITE_URL = toHttps(process.env.NEXT_PUBLIC_SITE_URL || '');
 const VERCEL_PRODUCTION_URL = toHttps(process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || '');
+const DEFAULT_SITE_URL = toHttps('pastoral-henna.vercel.app');
 
 export function getSiteUrl(): string {
   if (SITE_URL) return SITE_URL;
   if (VERCEL_PRODUCTION_URL) return VERCEL_PRODUCTION_URL;
+  if (DEFAULT_SITE_URL) return DEFAULT_SITE_URL;
   if (typeof window !== 'undefined') return window.location.origin;
   return '';
 }
