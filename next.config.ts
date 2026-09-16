@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /* Las variables publicas se leen con nombres privados (sin NEXT_PUBLIC_) en
+     Vercel para evitar su bloqueo; aquí se re-mapean en tiempo de compilación
+     para que el navegador y el servidor las sigan viendo con el prefijo. */
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL:
+      process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY:
+      process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SITE_URL:
+      process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL,
+  },
+
   /* config options here */
 
   async headers() {
