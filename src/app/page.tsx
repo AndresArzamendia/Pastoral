@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import NavDownloadButton from '@/components/NavDownloadButton';
 import NotificationBell from '@/components/NotificationBell';
+import FactWidget from '@/components/FactWidget';
 import ShareButton from '@/components/ShareButton';
 import { buildIcs, IcsItem } from '@/lib/ics';
 import { evgHoyClassify, evgHoyDateLabel, EVH_BASE_URL, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
@@ -1194,6 +1195,9 @@ window.setTimeout(() => {
           zIndex: -1
         }}></div>
       )}
+
+      {/* DATO DEL DÍA — curiosidades católicas de fuentes oficiales (vatican.va) */}
+      <FactWidget />
 
       {/* 1. NAVBAR REFINADA */}
       <nav className={`top-nav ${navScrolled ? 'nav-scrolled' : ''} ${navEntered ? 'nav-entered' : ''}`}>
