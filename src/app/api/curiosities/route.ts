@@ -60,6 +60,31 @@ const ymdOf = (d: Date): string =>
 const dayAgo = (days: number): Date =>
   new Date(Date.now() - days * 86400000);
 
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+const dayLabel = (d: Date): string =>
+  `Se recuerda el ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+
+const dayLabelFromYmd = (ymd: string): string => {
+  const [y, m, dd] = ymd.split('-').map(Number);
+  return `Se recuerda el ${dd} de ${MESES[m - 1]} de ${y}`;
+};
+
+/** Título del santo a partir de la conmemoración ("Fiesta de san Mateo, Apóstol
+ *  y evangelista" → "San Mateo"; "XXV Domingo Ordinario" → sin cambios). */
+const saintTitle = (comm: string): string => {
+  let t = comm
+    .replace(/^(?:Solemnidad|Fiesta|Memoria|Conmemoración|Dedicación)\s+(?:de|del|de la)?\s*/i, '')
+    .trim();
+  if (/^(nuestra\s+señora|virgen)/i.test(t)) return t.split(',')[0].trim();
+  t = t
+    .replace(/^(san|santo|santa)\s+/i, (w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .split(',')[0]
+    .trim();
+  return t;
+};
+
 /** Saca de una página de archivo de Vatican News: santo/fiesta, referencia del
  *  evangelio y un fragmento de la lectura. Devuelve todo vacío si no hay dato. */
 async function parseArchivedPage(d: Date): Promise<{
@@ -173,7 +198,8 @@ export async function GET() {
       cat: 'Santos',
       ico: '🙏',
       color: '#7B5CD6',
-      title: 'Santo del día',
+      title: saintTitle(today.comm) || 'Santo del día',
+      day: dayLabel(now),
       body: parts.join('\n\n'),
       comm: today.comm,
       src: 'vaticannews.va · Liturgia del día',
@@ -206,7 +232,8 @@ export async function GET() {
       cat: 'Santos',
       ico: '🙏',
       color: '#7B5CD6',
-      title: `Santo del día · ${p.ymd.split('-').reverse().join('-')}`,
+      title: saintTitle(p.comm) || 'Santo del día',
+      day: dayLabelFromYmd(p.ymd),
       body: parts.join('\n\n'),
       comm: p.comm,
       src: 'vaticannews.va · Liturgia del día',

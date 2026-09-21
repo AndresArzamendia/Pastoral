@@ -57,6 +57,27 @@ function saintName(comm: string): string {
 
 const bioCache: Record<string, string> = {};
 
+function shuffleArr<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Una "curiosidad" con sabor a ¿Sabías que?: una frase con números, fechas o
+ *  datos biográficos; si no hay, una frase larga; si no, la intro completa. */
+function funFact(extract: string): string {
+  const sentences = extract.match(/[^.!?\n]+[.!?]+/g) ?? [];
+  if (!sentences.length) return extract;
+  const long = sentences.filter(s => s.trim().length > 60);
+  const hits = long.filter(s => /\d|nac[íi]|mur[íi]|considerad|patr[óo]n|milagr|escrib[íi]|concilio|bas[íi]lic|canoniz/i.test(s));
+  const pool = hits.length ? hits : (long.length ? long : sentences);
+  const pick = pool[Math.floor(Math.random() * pool.length)] ?? sentences[0] ?? extract;
+  return pick.trim().replace(/[.,;:]+\s*$/, '') + '…';
+}
+
 async function fetchSaintBio(comm: string): Promise<string> {
   const name = saintName(comm);
   if (!name) return '';
@@ -116,6 +137,7 @@ export default function FactWidget() {
   const [hydrated, setHydrated] = useState(false);
   const [bio, setBio] = useState('');          /* biografía del santo visible */
   const [bioLoading, setBioLoading] = useState(false);
+  const [variant, setVariant] = useState(0);  /* 0 mini bio · 1 curiosidad · 2 datos */
 
   /* Precarga el pool (contenido automático del Vaticano + selección base). */
   useEffect(() => {
@@ -149,22 +171,39 @@ export default function FactWidget() {
     setHydrated(true);
   }, []);
 
-  /* Baraja de hoy: máx. MAX_PER_DAY curiosidades distintas, sin repetir vistas. */
+  /* Baraja de hoy: mezcla equilibrada (máx. 1 por tema), nunca repite vistas,
+     y aleatoria por dispositivo (PC ≠ móvil/tablet). */
   useEffect(() => {
     if (!hydrated || !ready) return;
     let list = readSeen();
     if (list.size >= pool.length) list = new Set();
 
-    const seed = dailySeed();
-    const stride = 5 + (seed % 3);                 // 5, 6 o 7; cambia cada día
-    const start = seed % pool.length;
+    // Un candidato no visto por categoría, en orden de temas aleatorio.
+    const byCat: Record<string, Curiosity[]> = {};
+    pool.forEach((c) => {
+      if (!list.has(c.id)) {
+        (byCat[c.cat] ??= []).push(c);
+      }
+    });
+    const cats = shuffleArr(Object.keys(byCat));
 
     const today: Curiosity[] = [];
-    for (let k = 0; today.length < MAX_PER_DAY && k <= pool.length * stride; k += stride) {
-      const item = pool[(start + k) % pool.length];
-      if (!list.has(item.id) && !today.some(c => c.id === item.id)) today.push(item);
+    for (const cat of cats) {
+      if (today.length >= MAX_PER_DAY) break;
+      const arr = shuffleArr(byCat[cat]);
+      today.push(arr[0]); // uno por tema
     }
-    if (today.length === 0) today.push(pool[start % pool.length]); // todo visto: ciclo nuevo
+
+    // Relleno (si hay pocos temas): otros no vistos, evitando repetir tema.
+    const usedCats = new Set(today.map(c => c.cat));
+    const rest = shuffleArr(pool.filter(c => !list.has(c.id) && !today.some(d => d.id === c.id)));
+    for (const c of rest) {
+      if (today.length >= MAX_PER_DAY) break;
+      if (usedCats.has(c.cat) && Object.keys(byCat).length > today.length) continue;
+      today.push(c);
+      usedCats.add(c.cat);
+    }
+    if (today.length === 0) today.push(pool[Math.floor(Math.random() * pool.length)]);
 
     setDeck(today);
     setDeckIdx(0);
@@ -184,10 +223,18 @@ export default function FactWidget() {
     } catch { /* sin almacenamiento local */ }
   }, [open, hydrated]);
 
-  /* Biografía del santo visible (solo si la tarjeta es de un santo). */
+  /* Contenido variable del santo visible: elige al azar (por dispositivo) entre
+     Mini biografía (0), Curiosidad/¿Sabías que? (1) o Datos (2). */
   useEffect(() => {
     const current = deck[deckIdx];
-    if (!current || current.cat !== 'Santos' || !current.comm) {
+    const v = Math.floor(Math.random() * 3);
+    setVariant(v);
+    if (!current || current.cat !== 'Santos') {
+      setBio('');
+      setBioLoading(false);
+      return;
+    }
+    if (!current.comm || v === 2) { // "Datos" no necesita Wikipedia
       setBio('');
       setBioLoading(false);
       return;
@@ -269,12 +316,25 @@ export default function FactWidget() {
           ) : (
             <div className="fact-body" key={fact.id}>
               <h4 className="fact-title">{fact.title}</h4>
-              <p className="fact-text">{fact.body}</p>
-              {fact.cat === 'Santos' && bioLoading && (
-                <p className="fact-bio" aria-live="polite">Cargando biografía del santo…</p>
+              {fact.cat === 'Santos' && fact.day && (
+                <p className="fact-sub">{fact.day}</p>
               )}
-              {fact.cat === 'Santos' && !bioLoading && bio && (
-                <p className="fact-bio">{bio}</p>
+              {fact.cat !== 'Santos' ? (
+                <p className="fact-text">{fact.body}</p>
+              ) : variant !== 2 && (bio || bioLoading) ? (
+                <>
+                  <span className="fact-vlabel">{variant === 0 ? 'Mini biografía' : '¿Sabías que?'}</span>
+                  {bioLoading ? (
+                    <p className="fact-bio" aria-live="polite">Cargando…</p>
+                  ) : (
+                    <p className="fact-bio">{variant === 0 ? bio : funFact(bio)}</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="fact-vlabel">Datos</span>
+                  <p className="fact-text">{fact.body}</p>
+                </>
               )}
             </div>
           )}
