@@ -12731,3 +12731,121 @@ html:not(.splash-ready) .splash-moon {
   .notif-badge, .notif-dot, .notif-panel,
   .notif-item, .notif-item::after, .notif-empty-ico, .notif-skeleton { animation: none !important; transition: none !important; }
 }
+
+/* ============================================================
+   NAVBAR PJL — PULIDO VISUAL DE UI/UX
+   Solo estética estática (colores, sombras, radios, espaciado, jerarquía).
+   NO toca animaciones, @keyframes ni transiciones existentes:
+   - Las animaciones únicas por sección ([data-nav], píldoras) quedan intactas.
+   - Hover/active de .nav-btn, dropdown y hamburguesa conservan sus efectos.
+   ============================================================ */
+
+/* ---------- Marca: más aire y lema más presente ---------- */
+.logo-area {
+  padding: 4px 10px 4px 8px;
+}
+.logo-area p {
+  letter-spacing: 2.1px;
+}
+
+/* ---------- Enlaces: rail sutil que agrupa las píldoras ---------- */
+.nav-links {
+  gap: clamp(4px, 0.5vw, 8px);
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(26, 39, 68, 0.045) 0%, rgba(26, 39, 68, 0.02) 100%);
+  box-shadow: inset 0 1px 2px rgba(26, 39, 68, 0.05);
+}
+
+/* ---------- Botón base: píldora blanca con luz interior ---------- */
+.nav-btn {
+  min-height: 46px;
+  padding: 10px clamp(9px, 0.75vw, 15px);
+  border-radius: 999px;
+  border: 1px solid rgba(200, 151, 58, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.58) 100%);
+  box-shadow:
+    0 1px 1.5px rgba(26, 39, 68, 0.05),
+    0 8px 20px rgba(26, 39, 68, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(26, 39, 68, 0.045);
+  letter-spacing: 0.02em;
+}
+
+/* Ícono dentro de una pequeña placa dorada (igual lenguaje que dropdown/drawer) */
+.nav-ico {
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+  background: rgba(200, 151, 58, 0.13);
+  border: 1px solid rgba(200, 151, 58, 0.18);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Flecha de dropdown con presencia sutil */
+.nav-caret {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* Estado activo: píldora navy con anillo dorado definido */
+.nav-btn.is-active {
+  background: linear-gradient(135deg, var(--navy) 0%, #2c3d67 100%);
+  border-color: rgba(200, 151, 58, 0.6);
+  box-shadow:
+    0 14px 30px rgba(26, 39, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+.nav-btn.is-active .nav-ico {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(228, 183, 102, 0.5);
+  color: #f3d48a;
+  box-shadow: none;
+}
+
+/* ---------- Dropdown: panel más nítido ---------- */
+.dropdown-pjl {
+  padding: 14px;
+  border-radius: 20px;
+  border-color: rgba(200, 151, 58, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.995) 0%, rgba(251, 247, 240, 0.995) 100%);
+  box-shadow:
+    0 30px 60px rgba(15, 23, 42, 0.24),
+    0 2px 0 rgba(200, 151, 58, 0.32) inset,
+    0 0 0 1px rgba(200, 151, 58, 0.08);
+}
+.dropdown-link {
+  min-height: 48px;
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* ---------- Hamburguesa: badge navy con anillo dorado, mantiene su X ---------- */
+.mobile-menu-toggle {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, var(--navy) 0%, #23345c 100%);
+  border: 1.5px solid rgba(200, 151, 58, 0.6);
+  box-shadow:
+    0 6px 16px rgba(26, 39, 68, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.mobile-menu-toggle span {
+  background: var(--gold);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.mobile-menu-toggle.active {
+  border-color: rgba(200, 151, 58, 0.85);
+}
+
+/* ---------- Barra móvil: blanco pulido con filo dorado fino ---------- */
+@media (max-width: 768px) {
+  .top-nav {
+    background: linear-gradient(180deg, #fff 0%, #fdfbf6 100%);
+    border-bottom: 1px solid rgba(200, 151, 58, 0.32);
+    box-shadow: 0 6px 22px rgba(26, 39, 68, 0.06);
+  }
+}
