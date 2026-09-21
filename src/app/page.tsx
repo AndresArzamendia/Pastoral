@@ -1001,6 +1001,16 @@ window.setTimeout(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // El panel de notificaciones pide navegar a una sección (evento externo).
+  useEffect(() => {
+    const onNavReq = (e: Event) => {
+      const detail = (e as CustomEvent<{ id?: string }>).detail;
+      if (detail?.id) navigate(detail.id);
+    };
+    window.addEventListener('pjl_navigate', onNavReq);
+    return () => window.removeEventListener('pjl_navigate', onNavReq);
+  }, [navigate]);
+
   const toggleContrast = () => setIsHighContrast(!isHighContrast);
   const changeFont = (delta: number) => setFontSize((prev) => Math.max(12, Math.min(24, prev + delta)));
 
@@ -1345,9 +1355,9 @@ window.setTimeout(() => {
               </li>
             )}
 
-            <NotificationBell />
             <NavDownloadButton />
           </ul>
+          <NotificationBell />
         </div>
       </nav>
 
@@ -1481,7 +1491,6 @@ window.setTimeout(() => {
               )}
             </li>
 
-            <NotificationBell variant="mobile" />
             <NavDownloadButton variant="mobile" />
           </ul>
         </div>

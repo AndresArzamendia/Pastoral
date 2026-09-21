@@ -194,6 +194,7 @@ export interface MemberProfile {
   quote: string;   // personal message shown on card
   photo?: string;
   cvUrl?: string;
+  birthday?: string; // YYYY-MM-DD (opcional) → notificación de cumpleaños
 }
 
 const TEAM_KEYS = ['coordinacion', 'efo', 'ecomu', 'eli', 'mmpjl', 'zona1', 'zona2', 'zona3', 'zona4'];
@@ -464,8 +465,29 @@ export const TEAM_LABELS: Record<string, string> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STORE_KEYS = [
   'news', 'activities', 'faq', 'docs', 'gallery', 'content', 'social', 'sections', 'profiles',
-  'branding', 'theme', 'users', 'hero', 'heroInterval', 'chapels', 'stats', 'logs'
+  'branding', 'theme', 'users', 'hero', 'heroInterval', 'chapels', 'stats', 'logs', 'meta_updated'
 ];
+
+// Journal de "última actualización" por clave del store. Cada save() registra
+// cuándo cambió cada clave; el panel de notificaciones lo usa para avisar
+// "se actualizó X" de manera global (sin importar desde qué navegador).
+const META_KEY = 'meta_updated';
+const META_COALESCE_MS = 45_000;
+
+function journalUpdate(key: string) {
+  try {
+    const prevRaw = localStorage.getItem('pjl_' + META_KEY);
+    const prev: Record<string, string> = prevRaw ? JSON.parse(prevRaw) : {};
+    const last = prev[key];
+    // Evita martillar Supabase: un cambio por clave cada 45 s, máximo.
+    if (last && Date.now() - new Date(last).getTime() < META_COALESCE_MS) return;
+    prev[key] = new Date().toISOString();
+    localStorage.setItem('pjl_' + META_KEY, JSON.stringify(prev));
+    upsertStoreValue(META_KEY, prev).catch(() => {
+      // Si Supabase no está disponible, seguimos guardando localmente.
+    });
+  } catch { /* ignore */ }
+}
 
 function save<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
@@ -474,6 +496,7 @@ function save<T>(key: string, value: T): void {
   upsertStoreValue(key, value).catch(() => {
     // Si Supabase no está disponible, seguimos guardando localmente.
   });
+  journalUpdate(key);
 }
 
 async function syncRemoteValues() {

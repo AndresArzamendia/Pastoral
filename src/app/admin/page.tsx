@@ -5287,7 +5287,8 @@ function AdminContent() {
                       bio: 'Biografía',
                       quote: '',
                       teamKey: activeProfileTeam,
-                      photo: ''
+                      photo: '',
+                      birthday: ''
                     };
                     setProfiles([...profiles, newProfile]);
                     showToast('Miembro agregado ✔');
@@ -5360,6 +5361,15 @@ function AdminContent() {
                           placeholder="Rol o Cargo"
                         />
                       </div>
+                      <label className="profile-birthday-label" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', margin: '12px 0 5px', fontWeight: 700, letterSpacing: '0.4px' }}>
+                        🎂 CUMPLEAÑOS <em style={{ fontStyle: 'normal', fontWeight: 500, color: '#9aa4ba' }}>(aparece como aviso en la campana)</em>
+                      </label>
+                      <input
+                        type="date"
+                        className="pjl-input profile-birthday-input"
+                        value={p.birthday || ''}
+                        onChange={e => setProfiles(profiles.map(x => x.id === p.id ? { ...x, birthday: e.target.value } : x))}
+                      />
                       <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', margin: '14px 0 5px', fontWeight: 700, letterSpacing: '0.4px' }}>HISTORIAL PASTORAL</label>
                       <textarea
                         className="pjl-input profile-bio-input"
