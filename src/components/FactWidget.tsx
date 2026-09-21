@@ -1,17 +1,19 @@
 'use client';
 
-import { CSSProperties, useCallback, useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useState } from 'react';
 import { CURIOSITIES, type Curiosity } from '@/lib/facts';
 
 const LS_OPEN = 'pjl_fact_open';
 const LS_SEEN = 'pjl_fact_seen';
+const MAX_PER_DAY = 6;
 
-/* "Dato del día": se actualiza solo. Cada día cambia (rotación por fecha) y
-   se alimenta en parte con contenido automático de fuentes oficiales del
-   Vaticano (santo del día, evangelio y palabra del Papa vía /api/curiosities).
-   Nunca repite uno ya visto hasta completar el conjunto. */
+/* "Dato del día": se actualiza solo. Cada día se arma una baraja pequeña
+   (máx. MAX_PER_DAY) de curiosidades distintas, sacadas del pool que crece
+   solo con contenido oficial del Vaticano (/api/curiosities). La baraja cambia
+   cada día y nunca repite una curiosidad ya vista (vistas en días anteriores
+   no vuelven a entrar). */
 
-/** Índice determinista según la fecha local: distinto cada día y año. */
+/** Semilla determinista según la fecha local: distinta cada día y cada año. */
 function dailySeed(): number {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
@@ -40,20 +42,12 @@ function readSeen(): Set<string> {
 export default function FactWidget() {
   const [open, setOpen] = useState(false);
   const [pool, setPool] = useState<Curiosity[]>(CURIOSITIES);
-  const [ready, setReady] = useState(false);      /* pool resuelto (fetch o fallback) */
-  const [loading, setLoading] = useState(true);   /* fetch en curso */
-  const [idx, setIdx] = useState(0);
+  const [ready, setReady] = useState(false);        /* pool resuelto */
+  const [loading, setLoading] = useState(true);     /* fetch en curso */
+  const [deck, setDeck] = useState<Curiosity[]>([]); /* baraja de hoy */
+  const [deckIdx, setDeckIdx] = useState(0);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
-
-  const markSeen = useCallback((id: string) => {
-    setSeen(prev => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, []);
 
   /* Precarga el pool (contenido automático del Vaticano + selección base). */
   useEffect(() => {
@@ -87,70 +81,59 @@ export default function FactWidget() {
     setHydrated(true);
   }, []);
 
-  /* Elige el dato de hoy una vez que el pool está listo. */
+  /* Baraja de hoy: máx. MAX_PER_DAY curiosidades distintas, sin repetir vistas. */
   useEffect(() => {
-    if (!ready) return;
+    if (!hydrated || !ready) return;
     let list = readSeen();
     if (list.size >= pool.length) list = new Set();
 
-    let pick = dailySeed() % pool.length;
-    if (list.has(pool[pick].id)) {
-      const unseenIdxs = pool.map((_, i) => i).filter(i => !list.has(pool[i].id));
-      if (unseenIdxs.length > 0) pick = unseenIdxs[Math.floor(Math.random() * unseenIdxs.length)];
-    }
-    setIdx(pick);
-    setSeen(prev => {
-      const next = new Set(prev.size >= pool.length ? [] : prev);
-      next.add(pool[pick].id);
-      return next;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+    const seed = dailySeed();
+    const stride = 5 + (seed % 3);                 // 5, 6 o 7; cambia cada día
+    const start = seed % pool.length;
 
+    const today: Curiosity[] = [];
+    for (let k = 0; today.length < MAX_PER_DAY && k <= pool.length * stride; k += stride) {
+      const item = pool[(start + k) % pool.length];
+      if (!list.has(item.id) && !today.some(c => c.id === item.id)) today.push(item);
+    }
+    if (today.length === 0) today.push(pool[start % pool.length]); // todo visto: ciclo nuevo
+
+    setDeck(today);
+    setDeckIdx(0);
+    const mark = new Set([...list, ...today.map(c => c.id)]);
+    setSeen(mark);
+    try {
+      localStorage.setItem(LS_SEEN, JSON.stringify([...mark]));
+    } catch { /* sin almacenamiento local */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, hydrated]);
+
+  /* Guarda la preferencia de panel abierto/cerrado. */
   useEffect(() => {
     if (!hydrated) return;
     try {
       localStorage.setItem(LS_OPEN, open ? '1' : '0');
-      localStorage.setItem(LS_SEEN, JSON.stringify([...seen]));
     } catch { /* sin almacenamiento local */ }
-  }, [open, seen, hydrated]);
+  }, [open, hydrated]);
 
   if (!hydrated) return null;
 
+  const fact = deck[deckIdx];
+  if (!fact) return null;
+
+  const remaining = Math.max(0, pool.length - seen.size);
+
   const step = (dir: 1 | -1) => {
-    for (let k = 1; k < pool.length; k++) {
-      const j = (idx + dir * k + pool.length * 2) % pool.length;
-      if (!seen.has(pool[j].id)) {
-        setIdx(j);
-        markSeen(pool[j].id);
-        return;
-      }
-    }
-    // Todas vistas: nuevo ciclo, sin mostrar la misma actual.
-    let fresh = dailySeed() % pool.length;
-    if (pool[fresh].id === pool[idx].id) fresh = (idx + 1) % pool.length;
-    setIdx(fresh);
-    setSeen(new Set([pool[fresh].id]));
+    if (deck.length < 2) return;
+    setDeckIdx(i => (i + dir + deck.length) % deck.length);
   };
 
   const shuffle = () => {
-    const unseen = pool.map((_, i) => i).filter(i => !seen.has(pool[i].id) && i !== idx);
-    if (unseen.length > 0) {
-      const j = unseen[Math.floor(Math.random() * unseen.length)];
-      setIdx(j);
-      markSeen(pool[j].id);
-      return;
-    }
-    let fresh = dailySeed() % pool.length;
-    if (pool[fresh].id === pool[idx].id) fresh = (idx + 1) % pool.length;
-    setIdx(fresh);
-    setSeen(new Set([pool[fresh].id]));
+    if (deck.length < 2) return;
+    let j: number;
+    do { j = Math.floor(Math.random() * deck.length); } while (j === deckIdx);
+    setDeckIdx(j);
   };
-
-  const fact = pool[idx];
-  if (!fact) return null;
-
-  const remaining = pool.length - seen.size;
 
   return (
     <div className={`fact-widget ${open ? 'is-open' : ''} is-hydrated`}>
@@ -178,9 +161,9 @@ export default function FactWidget() {
         <header className="fact-head">
           <span className="fact-badge" aria-hidden="true">{fact.ico} {fact.cat}</span>
           <div className="fact-ctrl">
-            <button type="button" className="fact-nav" onClick={() => step(-1)} aria-label="Curiosidad previa sin ver">‹</button>
-            <button type="button" className="fact-nav fact-nav-rand" onClick={shuffle} aria-label="Otra curiosidad sin ver" title="Otra sin ver">⤮</button>
-            <button type="button" className="fact-nav" onClick={() => step(1)} aria-label="Curiosidad siguiente sin ver">›</button>
+            <button type="button" className="fact-nav" onClick={() => step(-1)} aria-label="Curiosidad anterior de hoy">‹</button>
+            <button type="button" className="fact-nav fact-nav-rand" onClick={shuffle} aria-label="Otra curiosidad de hoy" title="Otra de hoy">⤮</button>
+            <button type="button" className="fact-nav" onClick={() => step(1)} aria-label="Curiosidad siguiente de hoy">›</button>
           </div>
         </header>
 
@@ -199,9 +182,13 @@ export default function FactWidget() {
         </div>
 
         <footer className="fact-foot">
-          <span className="fact-count" title={remaining > 0 ? 'Curiosidades aún sin ver' : 'Colección completada: mañana vuelve a empezar'}>
-            {remaining > 0 ? `${remaining} sin ver` : `¡Completaste las ${pool.length}! 🔄`}
-          </span>
+          {remaining > 0 ? (
+            <span className="fact-count">
+              Hoy {deckIdx + 1}/{deck.length} · {remaining} sin ver
+            </span>
+          ) : (
+            <span className="fact-count">¡Completaste las {pool.length}! 🔄 Vuelvo a empezar</span>
+          )}
           {fact.link ? (
             <a className="fact-src" href={fact.link} target="_blank" rel="noreferrer">
               Fuente: {fact.src} <span aria-hidden="true">↗</span>
