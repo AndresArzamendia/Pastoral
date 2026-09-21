@@ -39,6 +39,72 @@ function readSeen(): Set<string> {
   }
 }
 
+/* ---- Biografía de santos (Wikipedia ES): se resuelve en el navegador. ---- */
+
+const RE_WEEKDAY = /domingo|lunes|martes|miércoles|jueves|viernes|sábado|sabado/i;
+
+function saintName(comm: string): string {
+  if (!comm || RE_WEEKDAY.test(comm)) return '';
+  let t = comm
+    .replace(/^(?:Solemnidad|Fiesta|Memoria|Conmemoración|Dedicación)\s+(?:de|del|de la)?\s*/i, '')
+    .trim();
+  if (/^(nuestra\s+señora|virgen)/i.test(t)) return /maría/i.test(t) ? 'Virgen María' : (t.split(',')[0].trim() || '');
+  t = t.replace(/^\s*(?:san|santo|santa)\s+/i, '');
+  t = t.split(',')[0].trim();
+  if (!t || t.length > 40 || /^\d/.test(t)) return '';
+  return t;
+}
+
+const bioCache: Record<string, string> = {};
+
+async function fetchSaintBio(comm: string): Promise<string> {
+  const name = saintName(comm);
+  if (!name) return '';
+  if (bioCache[comm]) return bioCache[comm];
+  const hint = (comm.match(/ap[óo]stol|evangelista|v[íi]rgen|m[áa]rtir|doctora?\b|confesor|abad[a]?\b|obispo|presb[íi]tero|fundador|reina/i) || [])[0] ?? 'santo';
+  try {
+    const osRes = await fetch(
+      `https://es.wikipedia.org/w/api.php?action=opensearch&format=json&limit=10&namespace=0&origin=*&search=${encodeURIComponent(`${name} ${hint}`)}`,
+      { cache: 'force-cache' },
+    );
+    if (!osRes.ok) return '';
+    const list = (await osRes.json()) as { [1]?: unknown };
+    const titles: string[] = Array.isArray(list?.[1]) ? list[1] as string[] : [];
+    if (!titles.length) return '';
+
+    const lower = name.toLowerCase();
+    const hintL = hint.toLowerCase();
+    let best = '';
+    let bestScore = -1;
+    titles.forEach((raw) => {
+      const t = raw.replace(/_/g, ' ').trim();
+      const tl = t.toLowerCase();
+      let score = 0;
+      if (/^san(t[oa])?\s+/.test(tl)) score += 3;
+      if (/\(santo\)|\(santa\)$/.test(tl)) score += 4;
+      if (tl.includes('evangelista') || tl.includes('apóstol') || (hint !== 'santo' && tl.includes(hintL))) score += 2;
+      if (tl.includes(lower)) score += 1;
+      if (tl === lower) score += 5;
+      if (score > bestScore) { bestScore = score; best = t; }
+    });
+    if (!best) return '';
+
+    const sumRes = await fetch(
+      `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(best)}`,
+      { cache: 'force-cache' },
+    );
+    if (!sumRes.ok) return '';
+    const sum = (await sumRes.json()) as { extract?: unknown };
+    const ex = typeof sum?.extract === 'string' ? sum.extract.trim() : '';
+    if (ex.length < 60) return '';
+    const out = ex.length > 420 ? ex.slice(0, 420).trimEnd().replace(/[.,;:–—-]*$/, '') + '…' : ex;
+    bioCache[comm] = out;
+    return out;
+  } catch {
+    return '';
+  }
+}
+
 export default function FactWidget() {
   const [open, setOpen] = useState(false);
   const [pool, setPool] = useState<Curiosity[]>(CURIOSITIES);
@@ -48,6 +114,8 @@ export default function FactWidget() {
   const [deckIdx, setDeckIdx] = useState(0);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
+  const [bio, setBio] = useState('');          /* biografía del santo visible */
+  const [bioLoading, setBioLoading] = useState(false);
 
   /* Precarga el pool (contenido automático del Vaticano + selección base). */
   useEffect(() => {
@@ -116,6 +184,31 @@ export default function FactWidget() {
     } catch { /* sin almacenamiento local */ }
   }, [open, hydrated]);
 
+  /* Biografía del santo visible (solo si la tarjeta es de un santo). */
+  useEffect(() => {
+    const current = deck[deckIdx];
+    if (!current || current.cat !== 'Santos' || !current.comm) {
+      setBio('');
+      setBioLoading(false);
+      return;
+    }
+    if (bioCache[current.comm]) {
+      setBio(bioCache[current.comm]);
+      setBioLoading(false);
+      return;
+    }
+    let live = true;
+    setBio('');
+    setBioLoading(true);
+    fetchSaintBio(current.comm).then((b) => {
+      if (!live) return;
+      setBio(b);
+      setBioLoading(false);
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckIdx, deck, hydrated]);
+
   if (!hydrated) return null;
 
   const fact = deck[deckIdx];
@@ -177,6 +270,12 @@ export default function FactWidget() {
             <div className="fact-body" key={fact.id}>
               <h4 className="fact-title">{fact.title}</h4>
               <p className="fact-text">{fact.body}</p>
+              {fact.cat === 'Santos' && bioLoading && (
+                <p className="fact-bio" aria-live="polite">Cargando biografía del santo…</p>
+              )}
+              {fact.cat === 'Santos' && !bioLoading && bio && (
+                <p className="fact-bio">{bio}</p>
+              )}
             </div>
           )}
         </div>

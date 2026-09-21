@@ -13114,6 +13114,24 @@ html:not(.splash-ready) .splash-moon {
   color: rgba(26, 39, 68, 0.55);
   text-transform: uppercase;
 }
+.fact-bio {
+  margin: 13px 0 6px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(200, 151, 58, 0.35);
+  font-size: 12.3px;
+  line-height: 1.68;
+  color: #565c7d;
+}
+.fact-bio::before {
+  content: 'Biografía';
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(26, 39, 68, 0.4);
+}
 .fact-loading-spin {
   width: 18px;
   height: 18px;

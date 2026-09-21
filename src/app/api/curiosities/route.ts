@@ -5,17 +5,20 @@ import { evgHoyClassify, evgHoyDecode } from '@/lib/vaticanEvangelio';
 export const dynamic = 'force-dynamic';
 
 /* Fuentes oficiales del Vaticano (mismo feed ya usado por "Evangelio del día"
-   + su archivo histórico por día). El pool crece solo cada día. */
+   + su archivo histórico por día). El pool crece solo cada día. Las fichas de
+   santos llevan su conmemoración y las lecturas; la biografía se resuelve en
+   el navegador (Wikipedia ES, CORS público) en FactWidget. */
 const FEED_URL = 'https://www.vaticannews.va/content/vaticannews/es/evangelio-de-hoy.rss.xml';
 const SITE_URL = 'https://www.vaticannews.va/es/evangelio-de-hoy.html';
 const ARCHIVE_URL = 'https://www.vaticannews.va/es/evangelio-de-hoy';
-const PAST_DAYS = 40;
+const PAST_DAYS = 30;
 
 const CONTENT_RE = { next: { revalidate: 1800 } };
 const ARCHIVE_RE = { next: { revalidate: 2592000 } };
 
 const decodeEntities = (s: string): string => s
   .replace(/&nbsp;/gi, ' ')
+  .replace(/&not;|&shy;|&Enot;/gi, '')
   .replace(/&#39;|&apos;/g, "'")
   .replace(/&quot;/g, '"')
   .replace(/&laquo;/g, '«')
@@ -95,134 +98,121 @@ async function parseArchivedPage(d: Date): Promise<{
   return out;
 }
 
+/* Extra: "Palabras del Papa" del día (cuando el texto viene atribuido). */
+type TodayInfo = {
+  comm: string; ref: string; excerpt: string; pensamiento: string; link: string;
+};
+
+async function readToday(): Promise<TodayInfo> {
+  const info: TodayInfo = { comm: '', ref: '', excerpt: '', pensamiento: '', link: SITE_URL };
+  try {
+    const res = await fetch(FEED_URL, CONTENT_RE);
+    if (!res.ok) return info;
+    const xml = await res.text();
+    const itemSeg = (xml.match(/<item>([\s\S]*?)<\/item>/) || [])[1] ?? '';
+    if (!itemSeg) return info;
+
+    const guid = (itemSeg.match(/^\s*<guid>(.*?)<\/guid>/m)?.[1] ?? '').trim();
+    info.link = (guid && guid.startsWith('http')) ? guid : SITE_URL;
+    const desc = (itemSeg.match(/^\s*<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/m)?.[1] ?? '')
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+    const paragraphs = [...desc.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)]
+      .map((m) => decodeEntities(m[1]))
+      .filter((t) => t.length > 0);
+
+    try {
+      const pageRes = await fetch(guid, CONTENT_RE);
+      if (pageRes.ok) {
+        const html = await pageRes.text();
+        const m = html.match(/<div class="indicazioneLiturgica">\s*<span[^>]*>([\s\S]*?)<\/span>/);
+        if (m) info.comm = stripTags(m[1]);
+      }
+    } catch { /* opcional */ }
+
+    const sections = evgHoyClassify(paragraphs.map(evgHoyDecode));
+
+    const thoughtSec = sections.find((s) => s.label === 'Pensamiento del día');
+    if (thoughtSec && thoughtSec.body.length) info.pensamiento = thoughtSec.body.join(' ');
+    if (!info.pensamiento) {
+      const evgSec = [...sections].reverse().find((s) => s.label === 'Evangelio');
+      if (evgSec && evgSec.body.length) {
+        const lastP = evgHoyDecode(evgSec.body[evgSec.body.length - 1]);
+        if (lastP.length > 120 && /^[«"“]/.test(lastP)) info.pensamiento = lastP;
+      }
+    }
+
+    const evgSec = [...sections].reverse().find((s) => s.label === 'Evangelio');
+    info.ref = evgSec?.reference ?? '';
+    if (evgSec && evgSec.body.length) {
+      info.excerpt = evgHoyDecode(evgSec.body[0]).slice(0, 220).trim() + '…';
+    }
+  } catch { /* si la fuente falla, solo base */ }
+  return info;
+}
+
 export async function GET() {
-  /* Pool base: selección de siempre + contenido automático que crece cada día. */
   const items: Curiosity[] = [...CURIOSITIES];
   const now = new Date();
   const todayYmd = ymdOf(now);
 
-  try {
-    const res = await fetch(FEED_URL, CONTENT_RE);
-    if (res.ok) {
-      const xml = await res.text();
-      const itemSeg = (xml.match(/<item>([\s\S]*?)<\/item>/) || [])[1] ?? '';
-      if (itemSeg) {
-        const guid = (itemSeg.match(/^\s*<guid>(.*?)<\/guid>/m)?.[1] ?? '').trim();
-        const desc = (itemSeg.match(/^\s*<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/m)?.[1] ?? '')
-          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
-        const paragraphs = [...desc.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)]
-          .map((m) => decodeEntities(m[1]))
-          .filter((t) => t.length > 0);
+  const today = await readToday();
 
-        /* Santo / fiesta de hoy (bloque litúrgico de la página oficial). */
-        let commemoration = '';
-        if (guid) {
-          try {
-            const pageRes = await fetch(guid, CONTENT_RE);
-            if (pageRes.ok) {
-              const html = await pageRes.text();
-              const m = html.match(/<div class="indicazioneLiturgica">\s*<span[^>]*>([\s\S]*?)<\/span>/);
-              if (m) commemoration = stripTags(m[1]);
-            }
-          } catch { /* opcional */ }
-        }
-
-        const sections = evgHoyClassify(paragraphs.map(evgHoyDecode));
-
-        /* Pensamiento del día (palabras del Papa cuando vienen atribuidas). */
-        let pensamiento = '';
-        const thoughtSec = sections.find((s) => s.label === 'Pensamiento del día');
-        if (thoughtSec && thoughtSec.body.length) pensamiento = thoughtSec.body.join(' ');
-        if (!pensamiento) {
-          const evgSec = [...sections].reverse().find((s) => s.label === 'Evangelio');
-          if (evgSec && evgSec.body.length) {
-            const lastP = evgHoyDecode(evgSec.body[evgSec.body.length - 1]);
-            if (lastP.length > 120 && /^[«"“]/.test(lastP)) pensamiento = lastP;
-          }
-        }
-
-        /* Evangelio del día: referencia + breve párrafo de la lectura. */
-        const evgSec = [...sections].reverse().find((s) => s.label === 'Evangelio');
-        const evgRef = evgSec?.reference ?? '';
-        let evgExcerpt = '';
-        if (evgSec && evgSec.body.length) {
-          evgExcerpt = evgHoyDecode(evgSec.body[0]).slice(0, 220).trim() + '…';
-        }
-        const evgLink = (guid || SITE_URL).startsWith('http') ? (guid || SITE_URL) : SITE_URL;
-
-        if (commemoration.trim().length > 2) {
-          items.push({
-            id: `auto-santo-${todayYmd}`,
-            cat: 'Santos',
-            ico: '🙏',
-            color: '#7B5CD6',
-            title: 'Santo del día',
-            body: `Hoy la Iglesia celebra ${commemoration}.\n\nDato tomado automáticamente de la liturgia del día de Vatican News.`,
-            src: 'vaticannews.va · Liturgia del día',
-            link: evgLink,
-          });
-        }
-        if (evgRef || evgExcerpt) {
-          items.push({
-            id: `auto-evangelio-${todayYmd}`,
-            cat: 'Evangelio del día',
-            ico: '📖',
-            color: '#2E8B57',
-            title: `Evangelio del día · ${evgRef || 'lectura de hoy'}`,
-            body: [evgRef && `Lectura del día: ${evgRef}`, evgExcerpt || ''].filter(Boolean).join('\n\n'),
-            src: 'vaticannews.va · Lectura del día',
-            link: evgLink,
-          });
-        }
-        if (pensamiento) {
-          items.push({
-            id: `auto-papa-${todayYmd}`,
-            cat: 'Palabras del Papa',
-            ico: '🗣️',
-            color: '#C2443E',
-            title: 'Pensamiento del día',
-            body: pensamiento.slice(0, 420) + '…',
-            src: 'vaticannews.va · Palabra del Papa',
-            link: evgLink,
-          });
-        }
-      }
-    }
-  } catch {
-    /* Si la fuente falla, el pool queda solo con la selección base. */
-  }
-
-  /* Archivo: santos y evangelios de días anteriores (pool grande y creciente). */
   const past = (await Promise.all(
     Array.from({ length: PAST_DAYS }, (_, k) => parseArchivedPage(dayAgo(k + 1))),
   )).filter((p) => p.comm.trim().length > 2);
 
-  for (const p of past) {
-    if (p.comm.trim().length > 2) {
-      items.push({
-        id: `auto-santo-${p.ymd}`,
-        cat: 'Santos',
-        ico: '🙏',
-        color: '#7B5CD6',
-        title: `Santo del día · ${p.ymd.split('-').reverse().join('-')}`,
-        body: `Ese día la Iglesia celebra ${p.comm}.\n\nDato tomado automáticamente de la liturgia oficial de ese día (Vatican News).`,
-        src: 'vaticannews.va · Liturgia del día',
-        link: p.link,
-      });
+  if (today.comm.trim().length > 2) {
+    const parts = [`Hoy la Iglesia celebra ${today.comm}.`];
+    if (today.ref) {
+      parts.push(today.ref && today.excerpt
+        ? `Lecturas de hoy: ${today.ref} — ${today.excerpt}`
+        : `Lecturas de hoy: ${today.ref}`);
     }
-    if (p.evgRef) {
-      items.push({
-        id: `auto-evangelio-${p.ymd}`,
-        cat: 'Evangelio del día',
-        ico: '📖',
-        color: '#2E8B57',
-        title: `Evangelio · ${p.evgRef}`,
-        body: [`Lectura de ese día: ${p.evgRef}`, p.evgExcerpt || ''].filter(Boolean).join('\n\n'),
-        src: 'vaticannews.va · Lectura del día',
-        link: p.link,
-      });
-    }
+    items.push({
+      id: `auto-santo-${todayYmd}`,
+      cat: 'Santos',
+      ico: '🙏',
+      color: '#7B5CD6',
+      title: 'Santo del día',
+      body: parts.join('\n\n'),
+      comm: today.comm,
+      src: 'vaticannews.va · Liturgia del día',
+      link: today.link,
+    });
   }
+  if (today.pensamiento) {
+    items.push({
+      id: `auto-papa-${todayYmd}`,
+      cat: 'Palabras del Papa',
+      ico: '🗣️',
+      color: '#C2443E',
+      title: 'Palabra del Papa',
+      body: today.pensamiento.slice(0, 420) + '…',
+      src: 'vaticannews.va · Palabra del Papa',
+      link: today.link,
+    });
+  }
+
+  past.forEach((p) => {
+    if (p.comm.trim().length < 3) return;
+    const parts = [`Ese día la Iglesia celebra ${p.comm}.`];
+    if (p.evgRef) {
+      parts.push(p.evgRef && p.evgExcerpt
+        ? `Lecturas de ese día: ${p.evgRef} — ${p.evgExcerpt}`
+        : `Lecturas de ese día: ${p.evgRef}`);
+    }
+    items.push({
+      id: `auto-santo-${p.ymd}`,
+      cat: 'Santos',
+      ico: '🙏',
+      color: '#7B5CD6',
+      title: `Santo del día · ${p.ymd.split('-').reverse().join('-')}`,
+      body: parts.join('\n\n'),
+      comm: p.comm,
+      src: 'vaticannews.va · Liturgia del día',
+      link: p.link,
+    });
+  });
 
   return NextResponse.json({ ok: true, dateKey: todayYmd, items }, {
     headers: { 'Cache-Control': 'public, s-maxage=43200, stale-while-revalidate=604800' },

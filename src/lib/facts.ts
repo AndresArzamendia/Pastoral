@@ -14,6 +14,8 @@ export interface Curiosity {
   body: string;
   src: string;
   link?: string;
+  /** Conmemoración litúrgica (día del santo) para resolver su biografía. */
+  comm?: string;
 }
 
 export const CURIOSITIES: Curiosity[] = [
