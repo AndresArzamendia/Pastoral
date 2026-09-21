@@ -13101,7 +13101,29 @@ html:not(.splash-ready) .splash-moon {
   font-size: 13.8px;
   line-height: 1.72;
   color: #3a4060;
+  white-space: pre-line;
 }
+.fact-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: rgba(26, 39, 68, 0.55);
+  text-transform: uppercase;
+}
+.fact-loading-spin {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(200, 151, 58, 0.25);
+  border-top-color: var(--gold);
+  animation: factSpin 0.9s linear infinite;
+}
+@keyframes factSpin { to { transform: rotate(360deg); } }
 
 .fact-foot {
   display: flex;
@@ -13147,5 +13169,6 @@ html:not(.splash-ready) .splash-moon {
   .fact-panel,
   .fact-close,
   .fact-nav,
-  .fact-body { animation: none !important; transition: none !important; }
+  .fact-body,
+  .fact-loading-spin { animation: none !important; transition: none !important; }
 }
