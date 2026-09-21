@@ -12849,3 +12849,38 @@ html:not(.splash-ready) .splash-moon {
     box-shadow: 0 6px 22px rgba(26, 39, 68, 0.06);
   }
 }
+
+/* ============================================================
+   NAVBAR PJL — COMPACTACIÓN ANTI-SOLAPAMIENTO
+   Ajusta tamaños para que las píldoras encajen sin pisarse en
+   escritorio estrecho. Solo medidas estáticas (sin animaciones).
+   ============================================================ */
+.nav-content { gap: clamp(8px, 1vw, 16px); }
+.nav-links {
+  gap: clamp(3px, 0.35vw, 6px);
+  padding: 4px 5px;
+}
+.nav-btn {
+  padding: 10px clamp(7px, 0.6vw, 12px);
+  gap: clamp(3px, 0.3vw, 5px);
+}
+.nav-ico {
+  width: 23px;
+  height: 23px;
+  font-size: 13px;
+  border-radius: 7px;
+}
+
+/* Banda de ancho ajustado (1501-1710): compacta marca e íconos para que todo quepa */
+@media (min-width: 1501px) and (max-width: 1710px) {
+  .logo-area { gap: 10px; padding-left: 6px; }
+  .brand-divider { display: none !important; }
+  .nav-btn { padding: 9px 8px; }
+  .nav-ico { width: 21px; height: 21px; font-size: 12.5px; }
+}
+
+/* Debajo de 1500px las píldoras ya no caben: pasa a hamburguesa (era 1480px) */
+@media (max-width: 1500px) and (min-width: 769px) {
+  .nav-links { display: none !important; }
+  .mobile-menu-toggle { display: flex !important; }
+}
