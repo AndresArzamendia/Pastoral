@@ -18,6 +18,7 @@ import { fetchStoreValue, upsertStoreValue, subscribeStoreChanges } from '@/lib/
 import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingProfiles, approveProfile, signInProfile, signUpProfile, subscribeProfileChanges, deleteProfile, resendVerificationEmail, updateProfile } from '@/lib/supabaseProfiles';
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
+import { uploadFileToR2 } from '@/lib/uploadFile';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
   ssr: false,
@@ -1695,8 +1696,15 @@ function AdminContent() {
     addLog('reiniciar estadísticas', 'dashboard');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
-    const file = e.target.files?.[0]; if (!file) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const url = await uploadFileToR2(file);
+    if (url) {
+      callback(url);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => callback(ev.target?.result as string);
     reader.readAsDataURL(file);

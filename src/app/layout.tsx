@@ -56,7 +56,6 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
         <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" as="style" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" media="print" />
         {/* Favicon dinámico: SIEMPRE el logo del panel (favLogo > androidLogo > mainLogo).
@@ -65,7 +64,6 @@ export default function RootLayout({
         <link rel="icon" href="/api/favicon" sizes="any" />
         <link rel="apple-touch-icon" href="/api/favicon" />
         <script dangerouslySetInnerHTML={{ __html: "var pf=document.querySelector('link[href*=\"Playfair\"][media=\"print\"]');if(pf)pf.onload=function(){this.media='all'};" }} />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
         {/* Captura TEMPRANA del beforeinstallprompt (antes de la hidratación).
             Chrome lo dispara al cargar si la web es instalable; si React no lo
             escucha a tiempo el evento se pierde y nunca habría instalación

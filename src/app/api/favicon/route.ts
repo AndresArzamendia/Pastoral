@@ -6,6 +6,20 @@ export const dynamic = 'force-dynamic';
 const FALLBACK_PATH = '/favicon-32.png';
 const MAX_SIZE = 3_500_000;
 
+const BRAND_CACHE_TTL = 5 * 60 * 1000;
+let brandCache: { ts: number; branding: Record<string, string> | null } | null = null;
+
+async function getBranding(): Promise<Record<string, string> | null> {
+  const now = Date.now();
+  if (brandCache && now - brandCache.ts < BRAND_CACHE_TTL) return brandCache.branding;
+  let branding: Record<string, string> | null = null;
+  try {
+    branding = await fetchStoreValue<Record<string, string>>('branding');
+  } catch { /* sin branding configurado */ }
+  brandCache = { ts: now, branding };
+  return branding;
+}
+
 function imageHeaders(contentType: string): Record<string, string> {
   return {
     'Content-Type': contentType,
@@ -31,11 +45,8 @@ async function serveLocal(request: NextRequest, path: string): Promise<NextRespo
 }
 
 export async function GET(request: NextRequest) {
-  let logo = '';
-  try {
-    const branding = await fetchStoreValue<Record<string, string>>('branding');
-    logo = (branding?.favLogo as string) || (branding?.androidLogo as string) || (branding?.mainLogo as string) || '';
-  } catch { /* sin branding configurado */ }
+  const branding = await getBranding();
+  const logo = (branding?.favLogo as string) || (branding?.androidLogo as string) || (branding?.mainLogo as string) || '';
 
   // Logo embebido como data:image/*;base64,...
   if (logo.startsWith('data:')) {

@@ -37,6 +37,9 @@ type NewsResource = {
   tone: 'gold' | 'blue' | 'neutral';
 };
 
+const EVG_SESSION_KEY = 'pjl_evangelio_cache';
+const EVG_SESSION_TTL = 6 * 60 * 60 * 1000;
+
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { ssr: false, loading: () => <div style={{ height: '500px', background: 'var(--cream)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Cargando mapa...</div> });
 
 const STAT_LABELS: Record<string, string> = {
@@ -580,6 +583,16 @@ const [newsSearch, setNewsSearch] = useState('');
 
   const loadEvgHoy = async () => {
     if (evgHoyLoading || evgHoyData) return;
+    try {
+      const raw = sessionStorage.getItem(EVG_SESSION_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw) as { ts: number; data: EvgHoyResponse };
+        if (cached?.data && cached.ts && Date.now() - cached.ts < EVG_SESSION_TTL && cached.data.ok && Array.isArray(cached.data.paragraphs)) {
+          setEvgHoyData(cached.data);
+          return;
+        }
+      }
+    } catch { /* sin sessionStorage */ }
     setEvgHoyLoading(true);
     setEvgHoyError(false);
     try {
@@ -587,6 +600,7 @@ const [newsSearch, setNewsSearch] = useState('');
       const json = await res.json() as EvgHoyResponse;
       if (!res.ok || !json.ok || !(json.paragraphs && json.paragraphs.length)) throw new Error('Datos no disponibles');
       setEvgHoyData(json);
+      try { sessionStorage.setItem(EVG_SESSION_KEY, JSON.stringify({ ts: Date.now(), data: json })); } catch { /* no persistir */ }
     } catch {
       setEvgHoyError(true);
     } finally {

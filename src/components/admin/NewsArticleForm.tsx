@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { NewsArticleWithDetails, NewsCategory } from '@/lib/newsTypes';
+import { uploadFileToR2 } from '@/lib/uploadFile';
 
 interface NewsArticleFormProps {
   article?: NewsArticleWithDetails;
@@ -72,12 +73,23 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
     });
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
     if (!file.type.startsWith('image/')) {
       setError('El archivo seleccionado debe ser una imagen.');
+      return;
+    }
+
+    const url = await uploadFileToR2(file);
+    if (url) {
+      setFormData(prev => ({
+        ...prev,
+        featured_image_url: url,
+      }));
+      setError(null);
       return;
     }
 
