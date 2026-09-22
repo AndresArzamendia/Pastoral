@@ -72,17 +72,26 @@ const dayLabelFromYmd = (ymd: string): string => {
 };
 
 /** Título del santo a partir de la conmemoración ("Fiesta de san Mateo, Apóstol
- *  y evangelista" → "San Mateo"; "XXV Domingo Ordinario" → sin cambios). */
+ *  y evangelista" → "San Mateo"; "XXV Domingo Ordinario" → "XXV Domingo Ordinario"). */
 const saintTitle = (comm: string): string => {
-  let t = comm
+  if (/^(nuestra\s+señora|virgen)/i.test(comm)) return comm.split(',')[0].trim();
+  const t = comm
     .replace(/^(?:Solemnidad|Fiesta|Memoria|Conmemoración|Dedicación)\s+(?:de|del|de la)?\s*/i, '')
-    .trim();
-  if (/^(nuestra\s+señora|virgen)/i.test(t)) return t.split(',')[0].trim();
-  t = t
+    .replace(/^(?:la\s+)?(?:Martirio|Pasión|Conversión|Exaltación|Natividad|Tránsito)\s+(?:de|del|de la)?\s*/i, '')
     .replace(/^(san|santo|santa)\s+/i, (w) => w.charAt(0).toUpperCase() + w.slice(1))
     .split(',')[0]
     .trim();
   return t;
+};
+
+/** ¿Ese día se recuerda a un santo con nombre? (ferias, domingos y fiestas del
+ *  Señor no cuentan). */
+const isSaint = (comm: string): boolean => {
+  if (!comm) return false;
+  if (/\b(cruz|sant[íi]simo|sagrad|coraz[óo]n|sangre|cristo|eucarist[íi]a|pentecost[ée]s|navidad|epifan[íi]a|c[ée]na del? señor|resurrecci[óo]n)\b/i.test(comm)) return false;
+  const t = saintTitle(comm);
+  if (!t || /^[1-9]|^\w+\s+de la\s+semana/i.test(t)) return false;
+  return /^(san(t[oa])?|nuestra\s+señora|virgen)\s+/i.test(t);
 };
 
 /** Saca de una página de archivo de Vatican News: santo/fiesta, referencia del
@@ -184,9 +193,9 @@ export async function GET() {
 
   const past = (await Promise.all(
     Array.from({ length: PAST_DAYS }, (_, k) => parseArchivedPage(dayAgo(k + 1))),
-  )).filter((p) => p.comm.trim().length > 2);
+  )).filter((p) => isSaint(p.comm));
 
-  if (today.comm.trim().length > 2) {
+  if (isSaint(today.comm)) {
     const parts = [`Hoy la Iglesia celebra ${today.comm}.`];
     if (today.ref) {
       parts.push(today.ref && today.excerpt

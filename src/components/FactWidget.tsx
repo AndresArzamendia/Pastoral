@@ -171,37 +171,24 @@ export default function FactWidget() {
     setHydrated(true);
   }, []);
 
-  /* Baraja de hoy: mezcla equilibrada (máx. 1 por tema), nunca repite vistas,
-     y aleatoria por dispositivo (PC ≠ móvil/tablet). */
+  /* Baraja de hoy: 1 por tema (sin repetir), aleatoria por dispositivo,
+     nunca repite vistos. Si un tema se agotó, la baraja es más corta. */
   useEffect(() => {
     if (!hydrated || !ready) return;
     let list = readSeen();
     if (list.size >= pool.length) list = new Set();
 
-    // Un candidato no visto por categoría, en orden de temas aleatorio.
     const byCat: Record<string, Curiosity[]> = {};
     pool.forEach((c) => {
       if (!list.has(c.id)) {
         (byCat[c.cat] ??= []).push(c);
       }
     });
-    const cats = shuffleArr(Object.keys(byCat));
 
     const today: Curiosity[] = [];
-    for (const cat of cats) {
+    for (const cat of shuffleArr(Object.keys(byCat))) {
       if (today.length >= MAX_PER_DAY) break;
-      const arr = shuffleArr(byCat[cat]);
-      today.push(arr[0]); // uno por tema
-    }
-
-    // Relleno (si hay pocos temas): otros no vistos, evitando repetir tema.
-    const usedCats = new Set(today.map(c => c.cat));
-    const rest = shuffleArr(pool.filter(c => !list.has(c.id) && !today.some(d => d.id === c.id)));
-    for (const c of rest) {
-      if (today.length >= MAX_PER_DAY) break;
-      if (usedCats.has(c.cat) && Object.keys(byCat).length > today.length) continue;
-      today.push(c);
-      usedCats.add(c.cat);
+      today.push(shuffleArr(byCat[cat])[0]); // uno por tema, nunca dos iguales
     }
     if (today.length === 0) today.push(pool[Math.floor(Math.random() * pool.length)]);
 
@@ -260,8 +247,6 @@ export default function FactWidget() {
 
   const fact = deck[deckIdx];
   if (!fact) return null;
-
-  const remaining = Math.max(0, pool.length - seen.size);
 
   const step = (dir: 1 | -1) => {
     if (deck.length < 2) return;
@@ -341,13 +326,7 @@ export default function FactWidget() {
         </div>
 
         <footer className="fact-foot">
-          {remaining > 0 ? (
-            <span className="fact-count">
-              Hoy {deckIdx + 1}/{deck.length} · {remaining} sin ver
-            </span>
-          ) : (
-            <span className="fact-count">¡Completaste las {pool.length}! 🔄 Vuelvo a empezar</span>
-          )}
+          <span className="fact-count">Dato {deckIdx + 1} de {deck.length}</span>
           {fact.link ? (
             <a className="fact-src" href={fact.link} target="_blank" rel="noreferrer">
               Fuente: {fact.src} <span aria-hidden="true">↗</span>
