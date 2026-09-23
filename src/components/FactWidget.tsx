@@ -1,41 +1,41 @@
 'use client';
 
-import { CSSProperties, useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
 import { CURIOSITIES, type Curiosity } from '@/lib/facts';
 
 const LS_OPEN = 'pjl_fact_open';
-const LS_SEEN = 'pjl_fact_seen';
+const LS_HISTORY = 'pjl_fact_history';  /* decks de los últimos días */
+const LS_POS = 'pjl_fact_pos';          /* posición del botón arrastrado */
 const MAX_PER_DAY = 6;
+const NO_REPEAT_DAYS = 3;  /* nunca repetir un dato visto en los últimos 3 días */
 
 /* "Dato del día": se actualiza solo. Cada día se arma una baraja pequeña
-   (máx. MAX_PER_DAY) de curiosidades distintas, sacadas del pool que crece
-   solo con contenido oficial del Vaticano (/api/curiosities). La baraja cambia
-   cada día y nunca repite una curiosidad ya vista (vistas en días anteriores
-   no vuelven a entrar). */
+   (máx. MAX_PER_DAY) sacada del pool que crece solo con contenido oficial del
+   Vaticano (/api/curiosities). La baraja de hoy nunca repite los datos de los
+   últimos NO_REPEAT_DAYS días: mañana será totalmente diferente a hoy. */
 
-/** Semilla determinista según la fecha local: distinta cada día y cada año. */
-function dailySeed(): number {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const doy = Math.floor((today - startOfYear) / 86400000);
-  return doy + now.getFullYear() * 1000;
-}
-
-function localYmd(): string {
-  const d = new Date();
+function localYmd(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function readSeen(): Set<string> {
+function daysAgoYmd(days: number): string {
+  return localYmd(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - days));
+}
+
+type DayEntry = { d: string; ids: string[] };
+
+function readHistory(): DayEntry[] {
   try {
-    const raw = localStorage.getItem(LS_SEEN);
-    if (!raw) return new Set();
+    const raw = localStorage.getItem(LS_HISTORY);
+    if (!raw) return [];
     const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return new Set();
-    return new Set(arr.filter((v): v is string => typeof v === 'string'));
+    if (!Array.isArray(arr)) return [];
+    const floor = daysAgoYmd(6);
+    return arr
+      .filter((e): e is DayEntry => !!e && typeof e.d === 'string' && Array.isArray(e.ids))
+      .filter((e) => typeof e.d === 'string' && e.d >= floor); // solo la última semana
   } catch {
-    return new Set();
+    return [];
   }
 }
 
@@ -133,11 +133,17 @@ export default function FactWidget() {
   const [loading, setLoading] = useState(true);     /* fetch en curso */
   const [deck, setDeck] = useState<Curiosity[]>([]); /* baraja de hoy */
   const [deckIdx, setDeckIdx] = useState(0);
-  const [seen, setSeen] = useState<Set<string>>(() => new Set());
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [bio, setBio] = useState('');          /* biografía del santo visible */
   const [bioLoading, setBioLoading] = useState(false);
   const [variant, setVariant] = useState(0);  /* 0 mini bio · 1 curiosidad · 2 datos */
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ baseX: number; baseY: number; startX: number; startY: number } | null>(null);
+  const draggedRef = useRef(false);            /* se detiene el toggle si hubo arrastre */
+  const posRef = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => { posRef.current = pos; }, [pos]);
 
   /* Precarga el pool (contenido automático del Vaticano + selección base). */
   useEffect(() => {
@@ -158,46 +164,64 @@ export default function FactWidget() {
     return () => { live = false; };
   }, []);
 
-  /* Hidratación: preferencia abierta + registro de vistos. */
+  /* Hidratación: preferencia abierta + posición arrastrable del botón. */
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LS_OPEN);
       // En el primer ingreso se muestra la curiosidad; luego respeta lo guardado.
       setOpen(stored === null ? true : stored === '1');
+      const p = localStorage.getItem(LS_POS);
+      if (p) {
+        const o = JSON.parse(p);
+        if (o && typeof o.x === 'number' && typeof o.y === 'number') setPos(o);
+      }
     } catch {
       setOpen(true);
     }
-    setSeen(readSeen());
     setHydrated(true);
   }, []);
 
-  /* Baraja de hoy: 1 por tema (sin repetir), aleatoria por dispositivo,
-     nunca repite vistos. Si un tema se agotó, la baraja es más corta. */
+  /* Baraja de hoy: 1 por tema (sin repetir), aleatoria por dispositivo y
+     siempre distinta a los últimos NO_REPEAT_DAYS días (nunca igual a ayer). */
   useEffect(() => {
     if (!hydrated || !ready) return;
-    let list = readSeen();
-    if (list.size >= pool.length) list = new Set();
+    const today = localYmd();
+    const hist = readHistory();
+
+    // Excluye lo mostrado en los últimos NO_REPEAT_DAYS días (incluye hoy).
+    const excl = new Set<string>();
+    hist.forEach((e) => {
+      if (e.d >= daysAgoYmd(NO_REPEAT_DAYS - 1)) e.ids.forEach((id) => excl.add(id));
+    });
+    let cand = pool.filter((c) => !excl.has(c.id));
+
+    // Si no alcanzan 6 candidatos, se afloja SOLO a ayer (nunca se repite el
+    // día de hoy ni el de ayer, así mañana es totalmente diferente).
+    if (cand.length < MAX_PER_DAY) {
+      const yExcl = new Set<string>();
+      hist.forEach((e) => { if (e.d === daysAgoYmd(1)) e.ids.forEach((id) => yExcl.add(id)); });
+      cand = pool.filter((c) => !yExcl.has(c.id) && !excl.has(c.id));
+    }
 
     const byCat: Record<string, Curiosity[]> = {};
-    pool.forEach((c) => {
-      if (!list.has(c.id)) {
-        (byCat[c.cat] ??= []).push(c);
-      }
+    cand.forEach((c) => {
+      (byCat[c.cat] ??= []).push(c);
     });
 
-    const today: Curiosity[] = [];
+    const todayDeck: Curiosity[] = [];
     for (const cat of shuffleArr(Object.keys(byCat))) {
-      if (today.length >= MAX_PER_DAY) break;
-      today.push(shuffleArr(byCat[cat])[0]); // uno por tema, nunca dos iguales
+      if (todayDeck.length >= MAX_PER_DAY) break;
+      todayDeck.push(shuffleArr(byCat[cat])[0]); // uno por tema, nunca dos iguales
     }
-    if (today.length === 0) today.push(pool[Math.floor(Math.random() * pool.length)]);
+    if (todayDeck.length === 0) todayDeck.push(pool[Math.floor(Math.random() * pool.length)]);
 
-    setDeck(today);
+    setDeck(todayDeck);
     setDeckIdx(0);
-    const mark = new Set([...list, ...today.map(c => c.id)]);
-    setSeen(mark);
+
+    // Guarda la baraja de hoy en el historial de días.
+    const newHist = [...hist.filter((e) => e.d !== today), { d: today, ids: todayDeck.map((c) => c.id) }];
     try {
-      localStorage.setItem(LS_SEEN, JSON.stringify([...mark]));
+      localStorage.setItem(LS_HISTORY, JSON.stringify(newHist));
     } catch { /* sin almacenamiento local */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, hydrated]);
@@ -260,14 +284,56 @@ export default function FactWidget() {
     setDeckIdx(j);
   };
 
+  const startDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = widgetRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = { baseX: rect.left, baseY: rect.top, startX: e.clientX, startY: e.clientY };
+    draggedRef.current = false;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
+    setDragging(true);
+  };
+
+  const onDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const s = dragRef.current;
+    if (!s) return;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+    if (Math.hypot(dx, dy) > 6) draggedRef.current = true;
+    const w = e.currentTarget.offsetWidth;
+    const h = e.currentTarget.offsetHeight;
+    const x = Math.min(Math.max(6, s.baseX + dx), window.innerWidth - w - 6);
+    const y = Math.min(Math.max(6, s.baseY + dy), window.innerHeight - h - 6);
+    setPos({ x, y });
+  };
+
+  const endDrag = () => {
+    dragRef.current = null;
+    setDragging(false);
+    try {
+      if (posRef.current) localStorage.setItem(LS_POS, JSON.stringify(posRef.current));
+    } catch { /* sin almacenamiento local */ }
+  };
+
   return (
-    <div className={`fact-widget ${open ? 'is-open' : ''} is-hydrated`}>
+    <div
+      ref={widgetRef}
+      className={`fact-widget ${open ? 'is-open' : ''} ${dragging ? 'is-dragging' : ''} is-hydrated`}
+      style={pos ? { left: pos.x, top: pos.y, bottom: 'auto' } : undefined}
+    >
       <button
         type="button"
         className="fact-chip"
-        onClick={() => setOpen(o => !o)}
+        onPointerDown={startDrag}
+        onPointerMove={onDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClick={() => {
+          if (draggedRef.current) { draggedRef.current = false; return; }
+          setOpen(o => !o);
+        }}
         aria-expanded={open}
         aria-label={open ? 'Ocultar dato curioso' : 'Mostrar dato curioso'}
+        title="Arrastra para moverme"
       >
         <span className="fact-chip-halo" aria-hidden="true" />
         <span className="fact-chip-ico" aria-hidden="true">📜</span>
