@@ -12688,6 +12688,26 @@ html:not([data-splash-variant]) .sv-dawn {
   .notif-bell-ico { font-size: 20px; }
 }
 @media (max-width: 768px) {
+  .nav-content .logo-area {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .nav-content .notif-bell {
+    display: inline-flex !important;
+    flex: 0 0 44px;
+    order: 2;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px !important;
+    margin-left: 4px;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 3;
+  }
+  .nav-content .mobile-menu-toggle {
+    order: 3;
+    flex: 0 0 44px;
+  }
   .notif-panel {
     top: 76px;
     right: 10px;
