@@ -100,15 +100,23 @@ export default function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html: [
-              /* El navbar nace oculto (opacity:0 en globals.css) y SOLO se
-                 revela cuando 'nav-entered' dispara su animación escalonada.
-                 El velo del splash lo mantiene oculto hasta entonces, y el
-                 useLayoutEffect de page.tsx siempre añade 'nav-entered', por
-                 lo que no existe ventana sin menú: un único fundido de entrada.
-                 Nada de sobreescribir opacity a 1 aquí (causaba doble refresco:
-                 flash visible -> re-animación desde 0). */
-              'html.show-splash:not(.pjl-reveal) body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
-              'html:not(.show-splash) #splash-pjl{display:none!important}',
+              /* El splash nace VISIBLE POR DEFECTO (sin depender de ninguna
+                 clase ni de que el JS corra): el icono de notificaciones y el
+                 contenido quedan ocultos desde el primer pintado hasta que
+                 page.tsx levanta el velo con 'pjl-reveal' o elimina el nodo.
+                 Así no puede aparecer contenido (campana, navbar) antes de la
+                 intro, ni existe una carga previa de ~1s mientras el bundle se
+                 descarga/hidrata. */
+              'body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
+              /* show-splash: estado explícito (igual que el default), se mantiene
+                 para compatibilidad con el código existente. */
+              'html.show-splash body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
+              /* no-splash: rutas sin intro (admin, instalar, internas) — el
+                 splash sale de escena y el contenido se muestra al instante. */
+              'html.no-splash #splash-pjl{display:none!important}',
+              'html.no-splash body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important}',
+              /* pjl-reveal: el contenido aparece con su propio fundido suave,
+                 cruzándose con el fundido de salida del splash. */
               'html.pjl-reveal body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important;animation:pjlPageIn .55s ease-out both}',
               /* IMPORTANTE: el navbar NO debe heredar pjlPageIn. Si lo recibe,
                  entraría con el fundido del contenido y LUEGO otra vez con su
@@ -116,8 +124,10 @@ export default function RootLayout({
                  animación de pjlPageIn y queda solamente con su fundido único. */
               'html.pjl-reveal body>.top-nav{animation:none!important;visibility:visible!important}',
               '@keyframes pjlPageIn{from{opacity:0}to{opacity:1}}',
-              'html.show-splash body:not(:has(> #splash-pjl))>*{visibility:visible!important}',
-              '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}html.show-splash body>*:not(#splash-pjl){visibility:visible!important}}',
+              /* Seguridad: si el nodo del splash ya no está en el DOM, el
+                 contenido se muestra aunque el velo quedara huérfano. */
+              'body:not(:has(> #splash-pjl))>*:not(script):not(style):not(noscript){visibility:visible!important}',
+              '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important}}',
               '@media (prefers-reduced-motion:reduce){.top-nav .brand-logo-wrap,.top-nav .brand-text,.top-nav .nav-links .nav-item{opacity:1 !important}}',
             ].join(''),
           }}
@@ -140,7 +150,7 @@ export default function RootLayout({
         {/* Marca <html> ANTES de pintar el splash: solo en la home ('/').
             El velo de contenido se gestiona junto con la intro; otras rutas
             no deben depender de ella. */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){if(location.pathname!=='/'){document.documentElement.classList.add('no-splash');return;}var skip=false;try{var ne=performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation');var nt=ne&&ne[0]?ne[0].type:'';var isReload=(nt==='reload')||(performance.navigation&&performance.navigation.type===1);if(!isReload){var ts=parseInt(sessionStorage.getItem('pjl_skip_splash')||'',10);if(ts&&Date.now()-ts<8000)skip=true;}}catch(e){skip=false;}if(!skip){document.documentElement.classList.add('show-splash');}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.documentElement;if(location.pathname!=='/'){h.classList.add('no-splash');return;}var skip=false;try{var ne=performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation');var nt=ne&&ne[0]?ne[0].type:'';var isReload=(nt==='reload')||(performance.navigation&&performance.navigation.type===1);if(!isReload){var ts=parseInt(sessionStorage.getItem('pjl_skip_splash')||'',10);if(ts&&Date.now()-ts<8000)skip=true;}}catch(e){skip=false;}if(skip){h.classList.add('no-splash');return;}h.classList.add('show-splash');})();` }} />
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var h=location.hash;if(h&&h.indexOf('type=recovery')!==-1&&location.pathname.indexOf('/reset-password/recover')===-1){location.replace('/reset-password/recover'+h);}}catch(e){}})();` }} />
         {/* Pantalla de carga estática: vive FUERA del árbol que React intercambia,
             por eso se ve desde el primer pintado y sobrevive a la hidratación. */}

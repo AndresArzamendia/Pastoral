@@ -711,6 +711,7 @@ const [newsSearch, setNewsSearch] = useState('');
     if (skipSplash) {
       try { sessionStorage.removeItem('pjl_skip_splash'); } catch { /* ignore */ }
       root.classList.remove('show-splash');
+      root.classList.add('no-splash');
       splash?.remove();
       setNavEntered(true);
       setSplashDone(true);

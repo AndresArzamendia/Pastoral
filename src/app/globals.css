@@ -6674,9 +6674,11 @@ textarea:focus-visible,
     linear-gradient(160deg, var(--navy-dark) 0%, var(--navy-mid) 45%, var(--navy-dark) 100%);
   overflow: hidden;
   animation: splashIn 0.5s ease both;
-  /* Oculta por defecto: el script inline del layout la muestra solo
-     fuera de /admin, así jamás destella en el panel. */
-  visibility: hidden;
+  /* Visible POR DEFECTO (sin necesitar clase ni JS): así el splash cubre el
+     primer pintado SIEMPRE y nada del contenido (campana, navbar) puede verse
+     antes. El script inline del layout añade 'no-splash' en las rutas sin
+     intro (admin, instalar...) para sacarlo de escena de inmediato. */
+  visibility: visible;
 }
 html.show-splash .splash-screen { visibility: visible; }
 html.no-splash .splash-screen { display: none !important; }
