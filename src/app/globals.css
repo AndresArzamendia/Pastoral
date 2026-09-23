@@ -334,6 +334,7 @@ html.pjl-nav-entered .reveal {
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+  overflow: hidden;
 }
 .logo-area h1 {
   font-family: var(--font-display);
@@ -354,6 +355,9 @@ html.pjl-nav-entered .reveal {
   font-weight: 400;
   margin: 0;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* ---------- ENLACES ---------- */
@@ -882,6 +886,19 @@ html.pjl-nav-entered .reveal {
 
   .mobile-menu-toggle {
     display: flex !important;
+  }
+}
+
+/* NAVBAR — el lema "Pastoral Juvenil Luqueña" no debe desbordar ni pisar el
+   botón «Inicio»: en la banda donde el menú de escritorio y la marca compiten
+   por el ancho, mostramos solo «PJL» (el lema completo vive en el drawer móvil
+   y en el pie de página). El recorte con elipsis evita cualquier solape. */
+@media (max-width: 1560px) and (min-width: 1481px) {
+  .brand-text p {
+    display: none;
+  }
+  .brand-text h1 {
+    font-size: 24px;
   }
 }
 
