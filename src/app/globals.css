@@ -335,38 +335,6 @@ html.pjl-nav-entered .reveal {
   gap: 3px;
   min-width: 0;
 }
-/* Divisor + lema que acompañan a la marca y rellenan el espacio izquierdo */
-.brand-divider {
-  display: none;
-  width: 1.5px;
-  height: 36px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, transparent, rgba(200, 151, 58, 0.6), transparent);
-  flex-shrink: 0;
-}
-.brand-tagline {
-  display: none;
-  font-family: var(--font-accent);
-  font-size: 12px;
-  letter-spacing: 2.6px;
-  text-transform: uppercase;
-  color: rgba(26, 39, 68, 0.52);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-@media (min-width: 1481px) {
-  .brand-divider { display: block; }
-}
-@media (min-width: 1680px) {
-  .brand-tagline {
-    display: block;
-    animation: brandTextSlide 1.15s cubic-bezier(0.4, 0, 0.15, 1) both 0.7s;
-  }
-}
-@media (max-width: 768px) {
-  .brand-divider,
-  .brand-tagline { display: none !important; }
-}
 .logo-area h1 {
   font-family: var(--font-display);
   font-size: 23px;
@@ -376,19 +344,6 @@ html.pjl-nav-entered .reveal {
   line-height: 1;
   margin: 0;
   white-space: nowrap;
-}
-/* Destello dorado que recorre "LUQUE" en bucle lento */
-.brand-title-gold {
-  background: linear-gradient(110deg, #b98a2f 20%, var(--gold) 40%, #f3dc9e 50%, var(--gold) 60%, #b98a2f 80%);
-  background-size: 220% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: brandGoldSheen 5.5s ease-in-out infinite;
-}
-@keyframes brandGoldSheen {
-  0%, 100% { background-position: 0% center; }
-  50% { background-position: 100% center; }
 }
 .logo-area p {
   font-family: var(--font-accent);
@@ -2817,7 +2772,6 @@ input, textarea { cursor: text; }
 
   /* En móvil el halo respira más sutil para no competir con el contenido */
   .brand-logo-halo { animation-duration: 5.5s; opacity: 0.4; }
-  .brand-title-gold { animation-duration: 7s; }
 
   .nav-links {
     display: none !important; /* Hide old horizontal scroll nav on mobile */
@@ -6088,7 +6042,6 @@ textarea:focus-visible,
   .top-nav .brand-logo-wrap,
   .top-nav .brand-text,
   .brand-logo-halo,
-  .brand-title-gold,
   [data-nav] .nav-ico,
   [data-nav="vaticano"] .nav-ico,
   [data-nav="zonas"]::after,
@@ -6674,15 +6627,6 @@ textarea:focus-visible,
     width: 100%;
     padding-left: clamp(24px, 2.5vw, 52px);
     padding-right: clamp(24px, 2.5vw, 52px);
-  }
-}
-/* Defensa extra: si el espacio aprieta, el lema se recorta con puntos
-   en vez de invadir los botones; la marca puede ceder ancho. */
-@media (min-width: 1680px) {
-  .brand-tagline {
-    max-width: 230px;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 }
 @media (min-width: 1481px) {
@@ -12902,7 +12846,6 @@ html:not(.splash-ready) .splash-moon {
 /* Banda de ancho ajustado (1501-1710): compacta marca e íconos para que todo quepa */
 @media (min-width: 1501px) and (max-width: 1710px) {
   .logo-area { gap: 10px; padding-left: 6px; }
-  .brand-divider { display: none !important; }
   .nav-btn { padding: 9px 8px; }
   .nav-ico { width: 21px; height: 21px; font-size: 12.5px; }
 }

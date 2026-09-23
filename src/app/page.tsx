@@ -1206,7 +1206,7 @@ window.setTimeout(() => {
             className="logo-area brand-lockup"
             role="button"
             tabIndex={0}
-            aria-label="PJL Luque — Ir al inicio"
+            aria-label="PJL — Ir al inicio"
             onClick={() => navigate('home')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('home'); } }}
           >
@@ -1220,11 +1220,9 @@ window.setTimeout(() => {
               )}
             </span>
             <span className="brand-text">
-              <h1>PJL <span className="brand-title-gold">LUQUE</span></h1>
+              <h1>PJL</h1>
               <p>Pastoral Juvenil Luqueña</p>
             </span>
-            <span className="brand-divider" aria-hidden="true"></span>
-            <span className="brand-tagline">Fe · Comunidad · Misión</span>
           </div>
           <button
             className={`mobile-menu-toggle ${isMobileMenuOpen ? 'active' : ''}`}
@@ -1377,8 +1375,8 @@ window.setTimeout(() => {
               {branding.mainLogo ? <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '50px', width: '50px' }} alt="Logotipo Principal PJL" /> : <span className="brand-logo brand-logo-fallback" style={{ fontSize: '24px' }}>†</span>}
             </span>
             <div>
-              <h2>PJL <span className="brand-title-gold">LUQUE</span></h2>
-              <p>Pastoral Juvenil</p>
+              <h2>PJL</h2>
+              <p>Pastoral Juvenil Luqueña</p>
             </div>
           </div>
           <button className="drawer-close" onClick={() => setIsMobileMenuOpen(false)} aria-label="Cerrar menú">✕</button>

@@ -2850,7 +2850,7 @@ function AdminContent() {
                       >
                         <div className="ap-mockup-nav">
                           <span className="ap-mockup-logo" style={{ background: goldHex, color: onGold }}>✝</span>
-                          <span className="ap-mockup-title" style={{ color: onNavy }}>PJL LUQUE</span>
+                          <span className="ap-mockup-title" style={{ color: onNavy }}>PJL</span>
                           {previewMode !== 'mobile' && (
                             <span className="ap-mockup-links">
                               <i style={{ background: goldHex }} />
