@@ -199,16 +199,6 @@ export default function RootLayout({
                 </span>
               ))}
             </h1>
-            <p className="splash-tagline sv-t sv-t-b">
-              <span className="splash-flame" aria-hidden="true">✨</span>
-              <em>«Él hace nuevas todas las cosas»</em>
-              <cite>Ap 21,5</cite>
-            </p>
-            <p className="splash-tagline sv-t sv-t-c">
-              <span className="splash-flame" aria-hidden="true">🕊️</span>
-              <em>«Yo soy la luz del mundo»</em>
-              <cite>Jn 8,12</cite>
-            </p>
             <p className="splash-tagline splash-motto">
               <span className="splash-flame" aria-hidden="true">🔥</span>
               <em>«Avivando la llama de Cristo en tu corazón»</em>
