@@ -762,11 +762,16 @@ const [newsSearch, setNewsSearch] = useState('');
         root.classList.remove('show-splash');
         window.setTimeout(() => setNavEntered(true), 240);
       } catch { /* ignore */ }
-      window.setTimeout(() => { root.classList.remove('pjl-reveal'); }, 5200);
       window.setTimeout(() => {
+        // Primero se elimina el nodo del splash y DESPUÉS se quita pjl-reveal.
+        // Si pjl-reveal se quitara con el splash aún en el DOM, el velo
+        // por defecto re-ocultaría todo el contenido por ~0.4s (pantallazo
+        // de recarga). Al quitar el nodo antes, la regla de seguridad
+        // (body:not(:has(#splash-pjl))) mantiene el contenido visible.
         document.getElementById('splash-pjl')?.remove();
         setNavEntered(true);
         setSplashDone(true);
+        root.classList.remove('pjl-reveal');
       }, 5600);
     };
     // Coreografía normal: comienza 900ms después y sale a 4600ms (= 5500ms tot).
