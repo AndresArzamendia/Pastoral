@@ -196,12 +196,7 @@ export async function GET() {
   )).filter((p) => isSaint(p.comm));
 
   if (isSaint(today.comm)) {
-    const parts = [`Hoy la Iglesia celebra ${today.comm}.`];
-    if (today.ref) {
-      parts.push(today.ref && today.excerpt
-        ? `Lecturas de hoy: ${today.ref} — ${today.excerpt}`
-        : `Lecturas de hoy: ${today.ref}`);
-    }
+    const b = [`Hoy la Iglesia celebra ${today.comm}.`];
     items.push({
       id: `auto-santo-${todayYmd}`,
       cat: 'Santos',
@@ -209,33 +204,15 @@ export async function GET() {
       color: '#7B5CD6',
       title: saintTitle(today.comm) || 'Santo del día',
       day: dayLabel(now),
-      body: parts.join('\n\n'),
+      body: b.join('\n\n'),
       comm: today.comm,
-      src: 'vaticannews.va · Liturgia del día',
-      link: today.link,
-    });
-  }
-  if (today.pensamiento) {
-    items.push({
-      id: `auto-papa-${todayYmd}`,
-      cat: 'Palabras del Papa',
-      ico: '🗣️',
-      color: '#C2443E',
-      title: 'Palabra del Papa',
-      body: today.pensamiento.slice(0, 420) + '…',
-      src: 'vaticannews.va · Palabra del Papa',
+      src: 'vatican.va · Liturgia del día',
       link: today.link,
     });
   }
 
   past.forEach((p) => {
-    if (p.comm.trim().length < 3) return;
-    const parts = [`Ese día la Iglesia celebra ${p.comm}.`];
-    if (p.evgRef) {
-      parts.push(p.evgRef && p.evgExcerpt
-        ? `Lecturas de ese día: ${p.evgRef} — ${p.evgExcerpt}`
-        : `Lecturas de ese día: ${p.evgRef}`);
-    }
+    const body = `Ese día la Iglesia celebra ${p.comm}.`;
     items.push({
       id: `auto-santo-${p.ymd}`,
       cat: 'Santos',
@@ -243,9 +220,9 @@ export async function GET() {
       color: '#7B5CD6',
       title: saintTitle(p.comm) || 'Santo del día',
       day: dayLabelFromYmd(p.ymd),
-      body: parts.join('\n\n'),
+      body,
       comm: p.comm,
-      src: 'vaticannews.va · Liturgia del día',
+      src: 'vatican.va · Liturgia del día',
       link: p.link,
     });
   });
