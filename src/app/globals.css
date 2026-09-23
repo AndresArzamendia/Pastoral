@@ -251,7 +251,7 @@ html.pjl-nav-entered .reveal {
   display: flex;
   align-items: center;
   gap: 15px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-width: 0;
   position: relative;
   z-index: 2;
@@ -354,10 +354,9 @@ html.pjl-nav-entered .reveal {
   color: var(--gold);
   font-weight: 400;
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- ENLACES ---------- */
@@ -889,16 +888,20 @@ html.pjl-nav-entered .reveal {
   }
 }
 
-/* NAVBAR — el lema "Pastoral Juvenil Luqueña" no debe desbordar ni pisar el
-   botón «Inicio»: en la banda donde el menú de escritorio y la marca compiten
-   por el ancho, mostramos solo «PJL» (el lema completo vive en el drawer móvil
-   y en el pie de página). El recorte con elipsis evita cualquier solape. */
+/* NAVBAR — el lema "Pastoral Juvenil Luqueña" siempre debe estar visible bajo
+   «PJL» (desktop y móvil) y no pisar jamás el botón «Inicio»: el texto del lema
+   es flexible (envuelve a dos líneas cuando falta ancho, sin cortes). En la
+   banda de escritorio que compite por el espacio también compactamos un poco
+   los botones del menú para que quepa todo. */
 @media (max-width: 1560px) and (min-width: 1481px) {
-  .brand-text p {
-    display: none;
+  .nav-links {
+    gap: 2px !important;
   }
-  .brand-text h1 {
-    font-size: 24px;
+  .nav-btn {
+    padding: 9px clamp(7px, 0.6vw, 10px) !important;
+    font-size: clamp(11px, 0.72vw, 12.5px) !important;
+    gap: 3px !important;
+    min-height: 40px !important;
   }
 }
 
@@ -2775,16 +2778,19 @@ input, textarea { cursor: text; }
     max-width: 52vw;
   }
 
+  /* En móvil el lema "Pastoral Juvenil Luqueña" debe mostrarse COMPLETO:
+     envuelve a dos líneas en vez de cortarse (sin ellipsis ni ancho limitado). */
   .logo-area p {
-    font-size: 8px !important;
+    font-size: 8.5px !important;
     margin: 0 !important;
-    line-height: 1.1 !important;
+    line-height: 1.25 !important;
     color: var(--text-muted) !important;
-    letter-spacing: 1.2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 52vw;
+    letter-spacing: 1.15px;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    overflow-wrap: anywhere;
   }
 
   /* En móvil el halo respira más sutil para no competir con el contenido */
