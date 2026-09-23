@@ -6667,12 +6667,6 @@ html:not(.splash-ready) .splash-tagline,
 html:not(.splash-ready) .splash-bar,
 html:not(.splash-ready) .splash-bar-fill,
 html:not(.splash-ready) .splash-loading-text,
-html:not(.splash-ready) .splash-stars-1,
-html:not(.splash-ready) .splash-stars-2,
-html:not(.splash-ready) .splash-galaxy,
-html:not(.splash-ready) .x-s,
-html:not(.splash-ready) .splash-creation,
-html:not(.splash-ready) .splash-moon,
 html:not(.splash-ready) .sv-scene * {
   animation-play-state: paused !important;
 }
@@ -6697,54 +6691,8 @@ html:not(.splash-ready) .sv-scene * {
   to { opacity: 1; }
 }
 
-/* Fondo: auroras a la deriva + brasas doradas ascendentes */
+/* Fondo: las escenas (amanecer/llama) se anclan a toda la pantalla */
 .splash-bg { position: absolute; inset: 0; }
-.splash-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.5;
-  mix-blend-mode: screen;
-}
-.splash-orb-1 {
-  width: 44vmax; height: 44vmax; left: -12vmax; top: -14vmax;
-  background: radial-gradient(circle, rgba(200, 151, 58, 0.55), transparent 70%);
-  animation: orbDrift1 9s ease-in-out infinite alternate;
-}
-.splash-orb-2 {
-  width: 38vmax; height: 38vmax; right: -10vmax; bottom: -12vmax;
-  background: radial-gradient(circle, rgba(88, 120, 200, 0.5), transparent 70%);
-  animation: orbDrift2 11s ease-in-out infinite alternate;
-}
-.splash-orb-3 {
-  width: 26vmax; height: 26vmax; right: 16vw; top: -8vmax;
-  background: radial-gradient(circle, rgba(233, 84, 32, 0.35), transparent 70%);
-  animation: orbDrift1 13s ease-in-out infinite alternate-reverse;
-}
-@keyframes orbDrift1 {
-  from { transform: translate(0, 0) scale(1); }
-  to { transform: translate(6vmax, 4vmax) scale(1.15); }
-}
-@keyframes orbDrift2 {
-  from { transform: translate(0, 0) scale(1.1); }
-  to { transform: translate(-5vmax, -4vmax) scale(0.95); }
-}
-.splash-ember {
-  position: absolute;
-  bottom: -3vh;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffd98a, rgba(255, 150, 40, 0));
-  box-shadow: 0 0 8px 2px rgba(255, 180, 80, 0.45);
-  animation: emberRise linear infinite;
-  opacity: 0;
-}
-@keyframes emberRise {
-  0% { transform: translateY(0) translateX(0) scale(0.7); opacity: 0; }
-  12% { opacity: 0.95; }
-  70% { opacity: 0.7; }
-  100% { transform: translateY(-108vh) translateX(4vw) scale(1.25); opacity: 0; }
-}
 
 .splash-content {
   position: relative;
@@ -6863,10 +6811,9 @@ html:not(.splash-ready) .sv-scene * {
 }
 /* Frases rotativas: solo se muestra la de la variante activa */
 .splash-tagline.sv-t { display: none; }
-html[data-splash-variant="a"] .sv-t-a,
 html[data-splash-variant="b"] .sv-t-b,
 html[data-splash-variant="c"] .sv-t-c,
-html:not([data-splash-variant]) .sv-t-a { display: flex; }
+html:not([data-splash-variant]) .sv-t-b { display: flex; }
 .splash-tagline cite {
   font-style: normal;
   font-size: .72em;
@@ -6950,9 +6897,8 @@ html:not([data-splash-variant]) .sv-t-a { display: flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .splash-orb, .splash-ember, .splash-ring, .splash-halo, .splash-flame, .splash-bar-shine,
-  .splash-stars, .splash-galaxy, .splash-constellation, .x-p, .x-n, .x-s, .splash-shoot, .splash-glints i,
-  .splash-creation, .splash-moon { animation: none !important; }
+  .splash-ring, .splash-halo, .splash-flame, .splash-bar-shine,
+  .sv-scene * { animation: none !important; }
   .splash-letter, .splash-logo-wrap, .splash-tagline, .splash-bar, .splash-bar-fill, .splash-loading-text { animation-duration: 0.01s !important; animation-delay: 0s !important; }
 }
 
@@ -8852,226 +8798,13 @@ html:not([data-splash-variant]) .sv-t-a { display: flex; }
 }
 
 /* ============================================================
-   /* ============================================================
-   SPLASH · CIELO DE FE (reemplaza las siluetas line-art con los
-   puntos dorados): campo estelar titilante, constelación de la
-   Cruz que se dibuja sola, estrellas fugaces doradas y destellos
-   de esperanza. La constelación y las fugas arrancan al recibir
-   art-on (~0.9s); el resto es bucle de fondo. Solo CSS, sin JS.
-   ============================================================ */
-
-/* --- Campo estelar generado 100% con gradientes repetidos --- */
-.splash-stars { position: absolute; inset: 0; }
-.splash-stars-1 {
-  background-image:
-    radial-gradient(1.3px 1.3px at 12% 18%, rgba(247, 236, 207, .95) 60%, transparent),
-    radial-gradient(1.6px 1.6px at 27% 64%, rgba(232, 200, 122, .9) 62%, transparent),
-    radial-gradient(1.1px 1.1px at 41% 30%, rgba(255, 239, 205, .8) 60%, transparent),
-    radial-gradient(1.8px 1.8px at 55% 78%, rgba(245, 223, 174, .95) 60%, transparent),
-    radial-gradient(1.2px 1.2px at 68% 12%, rgba(255, 243, 214, .75) 60%, transparent),
-    radial-gradient(1.5px 1.5px at 82% 46%, rgba(232, 200, 122, .85) 62%, transparent),
-    radial-gradient(1px 1px at 90% 86%, rgba(255, 244, 219, .7) 60%, transparent),
-    radial-gradient(1.4px 1.4px at 6% 72%, rgba(245, 223, 174, .8) 60%, transparent),
-    radial-gradient(1.7px 1.7px at 48% 94%, rgba(240, 210, 150, .9) 60%, transparent),
-    radial-gradient(1.2px 1.2px at 94% 8%, rgba(255, 243, 214, .8) 60%, transparent);
-  background-size: 460px 460px;
-  opacity: .75;
-  animation: starTwinkle 2.6s ease-in-out infinite alternate;
-}
-.splash-stars-2 {
-  background-image:
-    radial-gradient(1.2px 1.2px at 18% 42%, rgba(235, 246, 255, .95) 60%, transparent),
-    radial-gradient(1.6px 1.6px at 36% 8%, rgba(220, 235, 255, .85) 62%, transparent),
-    radial-gradient(1px 1px at 50% 52%, rgba(255, 255, 255, .8) 60%, transparent),
-    radial-gradient(1.4px 1.4px at 66% 26%, rgba(225, 238, 255, .85) 60%, transparent),
-    radial-gradient(1.7px 1.7px at 79% 68%, rgba(255, 255, 255, .75) 60%, transparent),
-    radial-gradient(1.1px 1.1px at 89% 34%, rgba(235, 246, 255, .9) 60%, transparent),
-    radial-gradient(1.5px 1.5px at 6% 12%, rgba(255, 255, 255, .8) 60%, transparent),
-    radial-gradient(1.3px 1.3px at 32% 88%, rgba(225, 238, 255, .8) 60%, transparent),
-    radial-gradient(1.8px 1.8px at 72% 92%, rgba(240, 230, 255, .85) 60%, transparent),
-    radial-gradient(1.2px 1.2px at 97% 58%, rgba(255, 255, 255, .85) 60%, transparent);
-  background-size: 540px 540px;
-  opacity: .65;
-  animation: starTwinkle 3.4s ease-in-out infinite alternate-reverse;
-  animation-delay: .8s;
-}
-@keyframes starTwinkle { from { opacity: .22; } to { opacity: .9; } }
-
-/* --- Banda de Vía Láctea difusa a la deriva --- */
-.splash-galaxy {
-  position: absolute;
-  width: 140vw;
-  height: 56vh;
-  left: -20vw;
-  top: 30vh;
-  background: radial-gradient(ellipse at center, rgba(200, 151, 58, .16), rgba(120, 150, 220, .1) 42%, transparent 72%);
-  filter: blur(8px);
-  transform: rotate(-18deg);
-  animation: galaxyDrift 18s ease-in-out infinite alternate;
-}
-@keyframes galaxyDrift { to { transform: rotate(-14deg) translateX(7vw) scale(1.06); } }
-
-/* --- Constelación de la Cruz: trazos dorados + nodos-estrella --- */
-.splash-constellation {
-  position: absolute;
-  width: min(34vw, 300px);
-  aspect-ratio: 1 / 1;
-  right: 1.5%;
-  top: 7%;
-  pointer-events: none;
-  opacity: .9;
-}
-.x-p {
-  fill: none;
-  stroke: url(#pjlConsG);
-  stroke-width: 1.1;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  filter: drop-shadow(0 0 5px rgba(240, 217, 166, .5)) drop-shadow(0 0 15px rgba(200, 151, 58, .35));
-}
-.splash-screen.art-on .x-p { animation: consDraw var(--d, 2.8s) linear var(--dl, 0s) forwards; }
-@keyframes consDraw { to { stroke-dashoffset: 0; } }
-.x-n {
-  fill: #fdf0cf;
-  opacity: .1;
-  filter: drop-shadow(0 0 7px rgba(245, 223, 174, .9));
-}
-.x-n-center { fill: #ffe9b8; }
-.splash-screen.art-on .x-n { animation: nodeLit 1.25s ease var(--i, .4s) forwards; }
-@keyframes nodeLit { 0% { opacity: .05; } 55% { opacity: 1; } 100% { opacity: .92; } }
-.x-s {
-  fill: #f7eccf;
-  opacity: .14;
-  animation: strayTwinkle 2.4s ease-in-out var(--i, .4s) infinite alternate;
-}
-@keyframes strayTwinkle { from { opacity: .08; } to { opacity: .9; } }
-
-/* --- Estrellas fugaces doradas --- */
-.splash-shoot {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 190px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgba(255, 244, 214, 0), #fdeec6 55%, #ffffff);
-  opacity: 0;
-  filter: drop-shadow(0 0 7px rgba(240, 217, 166, .85));
-}
-.splash-screen.art-on .splash-shoot-1 {
-  top: 15%;
-  left: 2%;
-  animation: shootZap 1.5s ease-in .7s 1;
-}
-.splash-screen.art-on .splash-shoot-2 {
-  top: 72%;
-  right: 4%;
-  left: auto;
-  width: 150px;
-  animation: shootZap 1.1s ease-in 2.3s 1;
-}
-@keyframes shootZap {
-  0%   { transform: translate3d(-45vw, -22vh, 0) rotate(24deg); opacity: 0; }
-  7%   { opacity: 1; }
-  100% { transform: translate3d(120vw, 62vh, 0) rotate(24deg); opacity: 0; }
-}
-
-/* --- Destellos de esperanza (sparkles de 4 puntas) --- */
-.splash-glints { position: absolute; inset: 0; pointer-events: none; }
-.splash-glints i { position: absolute; width: 16px; height: 16px; opacity: 0; }
-.splash-glints i::before,
-.splash-glints i::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, #ffd98a 50%, transparent);
-  border-radius: 2px;
-}
-.splash-glints i::after { transform: rotate(90deg); }
-.g-a { left: 7%; bottom: 24%; }
-.g-b { left: 19%; bottom: 13%; width: 11px; height: 11px; }
-.g-c { right: 9%; top: 26%; width: 12px; height: 12px; }
-.g-d { right: 26%; top: 12%; width: 9px; height: 9px; }
-.splash-screen.art-on .splash-glints i { animation: glintPop 2.1s ease var(--i, 0s) infinite; }
-@keyframes glintPop {
-  0%   { opacity: 0; transform: scale(.3) rotate(10deg); }
-  14%  { opacity: .95; }
-  55%  { opacity: .45; transform: scale(1) rotate(0deg); }
-  100% { opacity: 0; transform: scale(.75) rotate(-8deg); }
-}
-
-/* Movil: constelacion mas grande arriba, fugas fuera (evitan ruido) */
-@media (max-width: 760px) {
-  .splash-constellation { width: 66vw; right: -7vw; top: 5%; opacity: .55; }
-  .splash-galaxy { top: 26vh; }
-.splash-shoot { animation: none !important; opacity: 0 !important; }
-}
-
-/* --- Obra de la Creación: planetas y la luna creciente --- */
-.splash-creation,
-.splash-moon {
-  position: absolute;
-  pointer-events: none;
-}
-.splash-creation {
-  left: .5%;
-  bottom: 4%;
-  width: clamp(120px, 27vw, 250px);
-  aspect-ratio: 1 / 1;
-  opacity: .92;
-  filter: drop-shadow(0 0 18px rgba(200, 151, 58, .18));
-}
-.splash-moon {
-  left: 5%;
-  top: 15%;
-  width: clamp(64px, 13vw, 118px);
-  aspect-ratio: 1 / 1;
-  opacity: .85;
-  filter: drop-shadow(0 0 14px rgba(245, 223, 174, .25));
-}
-.splash-creation::before,
-.splash-moon::before {
-  content: '';
-  position: absolute;
-  inset: -18%;
-  background: radial-gradient(circle, rgba(200, 151, 58, .16), transparent 66%);
-  z-index: -1;
-}
-.splash-screen.art-on .splash-creation {
-  animation:
-    planetReveal .9s cubic-bezier(.34, 1.56, .64, 1) .2s both,
-    spaceDrift 11s ease-in-out 1.4s infinite alternate;
-}
-.splash-screen.art-on .splash-moon {
-  animation:
-    moonReveal 1s cubic-bezier(.34, 1.56, .64, 1) .5s both,
-    moonBob 9s ease-in-out 1.9s infinite alternate;
-}
-@keyframes planetReveal { from { opacity: 0; transform: translateY(26px) scale(.82) rotate(-8deg); } }
-@keyframes moonReveal  { from { opacity: 0; transform: translateY(-20px) scale(.8); } }
-@keyframes spaceDrift  { to   { transform: translate3d(16px, -10px, 0) rotate(2deg); } }
-@keyframes moonBob     { to   { transform: translate3d(-8px, 10px, 0) rotate(-3deg); } }
-.pl-ring {
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px rgba(240, 217, 166, .6));
-}
-.pl-night { mix-blend-mode: multiply; }
-
-@media (max-width: 760px) {
-  .splash-creation { width: 46vw; left: -5vw; bottom: 1%; opacity: .8; }
-  .splash-moon { width: 20vw; left: 3%; top: 11%; opacity: .75; }
-}
-
-/* ============================================================
-   INTRO ROTATIVA — Escenas alternas (Cielo / Amanecer / Llama)
+   INTRO ROTATIVA — Escenas alternas (Amanecer / Llama)
    Cada entrada muestra una escena distinta (ver layout.tsx) para
    que la animación de inicio nunca canse de repetirse. El fondo
    base del splash usa var(--navy-*) de ThemeLoader, así la escena
    acompaña el color del tiempo litúrgico del día.
    ============================================================ */
-.splash-bg .sv-scene {
+.sv-scene {
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -9079,33 +8812,11 @@ html:not([data-splash-variant]) .sv-t-a { display: flex; }
   pointer-events: none;
   overflow: hidden;
 }
-html[data-splash-variant="a"] .sv-sky,
 html[data-splash-variant="b"] .sv-dawn,
 html[data-splash-variant="c"] .sv-flame,
-html:not([data-splash-variant]) .sv-sky {
+html:not([data-splash-variant]) .sv-dawn {
   opacity: 1;
   visibility: visible;
-}
-
-/* Halo del tiempo litúrgico: un velo dorado que tiñe la escena con el
-   color del día (mismo tono que --gold del tema automático). */
-.splash-season-orb {
-  position: absolute;
-  left: 50%;
-  top: 12%;
-  width: 54vmax;
-  height: 54vmax;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--gold, #c8973a), transparent 66%);
-  opacity: .16;
-  filter: blur(46px);
-  mix-blend-mode: screen;
-  animation: seasonOrbPulse 7s ease-in-out infinite alternate;
-}
-@keyframes seasonOrbPulse {
-  from { opacity: .1;  transform: translateX(-50%) scale(.94); }
-  to   { opacity: .22; transform: translateX(-50%) scale(1.08); }
 }
 
 /* --- Variante B · AMANECER DE ESPERANZA --- */
@@ -9301,17 +9012,15 @@ html:not([data-splash-variant]) .sv-sky {
   .flame-outer { width: clamp(200px, 62vw, 320px); height: clamp(160px, 50vw, 260px); }
   .flame-mid { width: clamp(140px, 44vw, 220px); height: clamp(120px, 38vw, 190px); }
   .flame-inner { width: clamp(84px, 28vw, 140px); height: clamp(84px, 28vw, 150px); }
-  .splash-season-orb { width: 90vmax; height: 90vmax; }
 }
 @media (max-height: 520px) {
-  .splash-creation, .splash-moon, .dawn-cross, .flame-glow { opacity: .45; }
+  .dawn-cross, .flame-glow { opacity: .45; }
   .dawn-petals i { display: none; }
 }
 
 /* Movimiento reducido: quietud total en todas las escenas */
 @media (prefers-reduced-motion: reduce) {
-  .sv-scene *,
-  .splash-season-orb {
+  .sv-scene * {
     animation: none !important;
     transition: none !important;
   }

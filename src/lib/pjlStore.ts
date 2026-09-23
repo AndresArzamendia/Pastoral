@@ -173,6 +173,9 @@ export interface ThemePalette {
   gold: string;
   navy: string;
   mode?: 'auto' | 'manual';
+  /** Vista previa litúrgica elegida en el panel (se sincroniza a todos los
+   *  dispositivos: un toque en "Amanecer de Esperanza" se ve en todos). */
+  litPreview?: string | null;
 }
 
 export interface PageStat { 

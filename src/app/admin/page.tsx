@@ -1732,7 +1732,7 @@ function AdminContent() {
   };
 
   const applyThemeColor = (navy: string, gold: string, extra?: { bg?: string; card?: string }) => {
-    setTheme({ navy, gold, mode: theme.mode });
+    setTheme({ navy, gold, mode: theme.mode, litPreview: theme.litPreview ?? null });
     window.dispatchEvent(new Event('pjl_theme_update'));
     if (typeof window !== 'undefined' && document.documentElement) {
       const root = document.documentElement.style;
@@ -2623,30 +2623,33 @@ function AdminContent() {
             const curLit = liturgicalColor(new Date());
             const autoMode = theme.mode === 'auto';
 
-            /* Vista previa temporal de un color litúrgico (no persiste en el tema) */
+            /* Vista previa temporal de un color litúrgico: se persiste en el
+               tema sincronizado para que TODOS los dispositivos la vean. */
             const applySeasonPreview = (key: LitColorKey) => {
               const s = LIT_COLORS[key];
               try { localStorage.setItem('pjl_lit_preview', key); } catch {}
               setLitPreview(key);
+              setTheme({ ...theme, mode: 'auto', litPreview: key });
               window.dispatchEvent(new Event('pjl_theme_update'));
               showToast(`Vista previa: ${s.label} — ${s.feast} 🎨`);
             };
             const clearSeasonPreview = () => {
               try { localStorage.removeItem('pjl_lit_preview'); } catch {}
               setLitPreview(null);
+              setTheme({ ...theme, mode: 'auto', litPreview: null });
               window.dispatchEvent(new Event('pjl_theme_update'));
               showToast('Tiempo litúrgico actual restaurado');
             };
             const toggleAutoMode = () => {
+              clearSeasonPreview();
               if (autoMode) {
-                setTheme({ navy: navyHex, gold: goldHex, mode: 'manual' });
+                setTheme({ navy: navyHex, gold: goldHex, mode: 'manual', litPreview: null });
               } else {
                 const base = liturgicalColor(new Date()).color;
                 setNavyHex(base.chrome);
                 setGoldHex(base.gold);
-                setTheme({ navy: base.chrome, gold: base.gold, mode: 'auto' });
+                setTheme({ navy: base.chrome, gold: base.gold, mode: 'auto', litPreview: null });
               }
-              clearSeasonPreview();
             };
 
             return (

@@ -127,7 +127,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
-              var V=['a','b','c'], idx=0;
+              var V=['b','c'], idx=1;
               try{
                 var last=parseInt(localStorage.getItem('pjl_splash_variant')||'')|| -1;
                 if(last>=0 && last<V.length){ idx=(last+1+Math.floor(Math.random()*(V.length-1)))%V.length; }
@@ -160,108 +160,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var h=location.hash;if(h&&h.indexOf('type=recovery')!==-1&&location.pathname.indexOf('/reset-password/recover')===-1){location.replace('/reset-password/recover'+h);}}catch(e){}})();` }} />
         {/* Pantalla de carga estática: vive FUERA del árbol que React intercambia,
             por eso se ve desde el primer pintado y sobrevive a la hidratación. */}
-        <div id="splash-pjl" className="splash-screen" role="status" aria-label="Cargando Pastoral Juvenil Luqueña">
-<div className="splash-bg" aria-hidden="true">
-          {/* Variante A · Cielo de Fe: estrellas, constelación de la Cruz, fugas, creación */}
-          <div className="sv-scene sv-sky" aria-hidden="true">
-            <span className="splash-orb splash-orb-1"></span>
-            <span className="splash-orb splash-orb-2"></span>
-            <span className="splash-orb splash-orb-3"></span>
-            {Array.from({ length: 14 }).map((_, i) => (
-              <span key={i} className="splash-ember" style={{ left: `${(i * 7.3 + 4) % 96}%`, animationDelay: `${(i * 0.37) % 3.2}s`, animationDuration: `${3.4 + (i % 5) * 0.55}s` }} />
-            ))}
-                        {/* Fondo estelar "Cielo de Fe": reemplaza las siluetas line-art con
-                puntos dorados por un cielo nocturno vivo. Estrellas que
-                titilan, la constelacion de la Cruz que se dibuja sola al
-                recibir art-on, estrellas fugaces doradas y destellos de
-                esperanza. Todo solo CSS, sin JS de por medio. */}
-            <span className="splash-stars splash-stars-1" aria-hidden="true"></span>
-            <span className="splash-stars splash-stars-2" aria-hidden="true"></span>
-            <span className="splash-galaxy" aria-hidden="true"></span>
-            <svg className="splash-constellation" viewBox="0 0 220 220" aria-hidden="true" focusable="false">
-              <defs>
-                <linearGradient id="pjlConsG" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#f5dfae" />
-                  <stop offset="100%" stopColor="#c8973a" />
-                </linearGradient>
-              </defs>
-              {/* constelacion de la Cruz: trazos que se dibujan + nodos-estrella */}
-              <path className="x-p" style={{ '--d': '3.1s', '--dl': '0.2s' } as React.CSSProperties} d="M26 118 H194" />
-              <path className="x-p" style={{ '--d': '3.4s', '--dl': '0.55s' } as React.CSSProperties} d="M110 22 V206" />
-              <circle className="x-n" style={{ '--i': '0.5s' } as React.CSSProperties} cx="26" cy="118" r="4" />
-              <circle className="x-n" style={{ '--i': '0.9s' } as React.CSSProperties} cx="194" cy="118" r="4" />
-              <circle className="x-n" style={{ '--i': '1.15s' } as React.CSSProperties} cx="110" cy="22" r="4.4" />
-              <circle className="x-n" style={{ '--i': '1.6s' } as React.CSSProperties} cx="110" cy="206" r="4" />
-              <circle className="x-n x-n-center" style={{ '--i': '0.4s' } as React.CSSProperties} cx="110" cy="118" r="5" />
-              <circle className="x-s" style={{ '--i': '0s' } as React.CSSProperties} cx="158" cy="64" r="2" />
-              <circle className="x-s" style={{ '--i': '0.6s' } as React.CSSProperties} cx="66" cy="172" r="2.2" />
-              <circle className="x-s" style={{ '--i': '1.1s' } as React.CSSProperties} cx="150" cy="150" r="1.6" />
-              <circle className="x-s" style={{ '--i': '0.35s' } as React.CSSProperties} cx="80" cy="48" r="1.5" />
-            </svg>
-            <span className="splash-shoot splash-shoot-1" aria-hidden="true"></span>
-            <span className="splash-shoot splash-shoot-2" aria-hidden="true"></span>
-            <span className="splash-glints" aria-hidden="true">
-              <i className="gl g-a" style={{ '--i': '0.4s' } as React.CSSProperties}></i>
-              <i className="gl g-b" style={{ '--i': '1s' } as React.CSSProperties}></i>
-              <i className="gl g-c" style={{ '--i': '1.6s' } as React.CSSProperties}></i>
-              <i className="gl g-d" style={{ '--i': '2.2s' } as React.CSSProperties}></i>
-            </span>
-
-            {/* Obra de la Creación: planeta anillado, astro menor y la luna creciente */}
-            <svg className="splash-creation" viewBox="0 0 220 220" aria-hidden="true" focusable="false" style={{ '--i': '0.4s' } as React.CSSProperties}>
-              <defs>
-                <radialGradient id="plSphere" cx="35%" cy="28%" r="80%">
-                  <stop offset="0%" stopColor="#6d8fc7" />
-                  <stop offset="55%" stopColor="#33466f" />
-                  <stop offset="100%" stopColor="#17233f" />
-                </radialGradient>
-                <linearGradient id="plRing" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#c8973a" stopOpacity="0.55" />
-                  <stop offset="45%" stopColor="#f6e2ae" stopOpacity="0.95" />
-                  <stop offset="100%" stopColor="#a97b22" stopOpacity="0.55" />
-                </linearGradient>
-                <radialGradient id="plMini" cx="35%" cy="30%" r="75%">
-                  <stop offset="0%" stopColor="#fff2d4" />
-                  <stop offset="70%" stopColor="#e6cf98" />
-                  <stop offset="100%" stopColor="#a9863f" />
-                </radialGradient>
-              </defs>
-              {/* anillo parte trasera */}
-              <g transform="rotate(-16 150 150)">
-                <path className="pl-ring pl-ring-back" d="M70 150 A80 20 0 0 1 230 150" fill="none" stroke="url(#plRing)" strokeWidth="7" />
-              </g>
-              {/* esfera del planeta */}
-              <circle cx="150" cy="150" r="46" fill="url(#plSphere)" />
-              <circle cx="133" cy="133" r="21" fill="#ffffff" opacity="0.07" />
-              <path className="pl-night" d="M150 104 A46 46 0 0 1 150 196 A34 34 0 1 0 150 104 Z" fill="#0d1526" opacity="0.5" />
-              {/* anillo parte frontal */}
-              <g transform="rotate(-16 150 150)">
-                <path className="pl-ring pl-ring-front" d="M70 150 A80 20 0 0 0 230 150" fill="none" stroke="url(#plRing)" strokeWidth="7.5" />
-              </g>
-              {/* astro menor con su propio anillo */}
-              <circle cx="62" cy="60" r="10" fill="url(#plMini)" opacity=".92" />
-              <ellipse cx="62" cy="60" rx="20" ry="5" fill="none" stroke="url(#plRing)" strokeWidth="2.2" transform="rotate(-20 62 60)" opacity=".85" />
-              {/* lunita compañera */}
-              <circle cx="192" cy="96" r="6.5" fill="#22334f" />
-              <circle cx="190" cy="94" r="2.2" fill="#8fb0e0" opacity=".8" />
-            </svg>
-
-            <svg className="splash-moon" viewBox="0 0 100 100" aria-hidden="true" focusable="false" style={{ '--i': '0.9s' } as React.CSSProperties}>
-              <defs>
-                <radialGradient id="moonGrad" cx="35%" cy="28%" r="80%">
-                  <stop offset="0%" stopColor="#fff8e6" />
-                  <stop offset="70%" stopColor="#eddca8" />
-                  <stop offset="100%" stopColor="#c3a56b" />
-                </radialGradient>
-              </defs>
-              <path d="M55 8 A38 38 0 1 0 55 92 A30 30 0 1 1 55 8 Z" fill="url(#moonGrad)" />
-              <circle cx="36" cy="40" r="4" fill="#caa86a" opacity=".55" />
-              <circle cx="28" cy="62" r="3" fill="#caa86a" opacity=".45" />
-              <circle cx="44" cy="72" r="2" fill="#caa86a" opacity=".4" />
-            </svg>
-            <span className="splash-season-orb" aria-hidden="true"></span>
-          </div>
-
+<div id="splash-pjl" className="splash-screen" role="status" aria-label="Cargando Pastoral Juvenil Luqueña">
           {/* Variante B · Amanecer de Esperanza: sol naciente, rayos de luz, cruz luminosa */}
           <div className="sv-scene sv-dawn" aria-hidden="true">
             <span className="dawn-rays"></span>
@@ -299,10 +198,6 @@ export default function RootLayout({
                 </span>
               ))}
             </h1>
-            <p className="splash-tagline sv-t sv-t-a">
-              <span className="splash-flame" aria-hidden="true">🔥</span>
-              <em>«Avivando la llama de Cristo en tu corazón»</em>
-            </p>
             <p className="splash-tagline sv-t sv-t-b">
               <span className="splash-flame" aria-hidden="true">✨</span>
               <em>«Él hace nuevas todas las cosas»</em>
@@ -318,7 +213,6 @@ export default function RootLayout({
               <p className="splash-loading-text">Cargando<span className="splash-dots"><i>.</i><i>.</i><i>.</i></span></p>
             </div>
           </div>
-        </div>
         <noscript><style>{"#splash-pjl{display:none!important}"}</style></noscript>
         {/* Inyecta el logo oficial en el splash ANTES de la hidratación para
             evitar que se vea el logo por defecto un instante. */}

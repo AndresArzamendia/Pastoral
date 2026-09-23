@@ -26,7 +26,7 @@ function readableTextOn(hex: string): string {
   return lum > 0.42 ? '#1c1a16' : '#ffffff';
 }
 
-type ThemeLike = { gold: string; navy: string; mode?: 'auto' | 'manual' } | null;
+type ThemeLike = { gold: string; navy: string; mode?: 'auto' | 'manual'; litPreview?: string | null } | null;
 
 export default function ThemeLoader() {
   useEffect(() => {
@@ -34,6 +34,15 @@ export default function ThemeLoader() {
       const theme = themeOverride || store.theme.get();
       const palette = theme || null;
       const auto = !!(palette && palette.mode === 'auto');
+
+      // Preview litúrgico: primero el sincronizado (viene de cualquier
+      // dispositivo vía el tema guardado); el localStorage cubre configs viejas.
+      let previewKey: string | null = null;
+      if (palette && typeof palette.litPreview === 'string' && palette.litPreview) {
+        previewKey = palette.litPreview;
+      } else {
+        try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
+      }
 
       const root = document.documentElement.style;
 
@@ -46,9 +55,8 @@ export default function ThemeLoader() {
       let muted: string;
 
       if (auto) {
-        /* Auto: esquema del color litúrgico del día (o de una vista previa del panel). */
-        let previewKey: string | null = null;
-        try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
+        /* Auto: esquema del color litúrgico del día (o de la vista previa
+           sincronizada desde el panel, en cualquier dispositivo). */
         const previewCol = previewKey ? LIT_COLORS[previewKey as keyof typeof LIT_COLORS] : undefined;
         const col = previewCol || liturgicalColor(new Date()).color;
         navy = col.chrome;
@@ -96,8 +104,6 @@ export default function ThemeLoader() {
       /* Etiquetas del tiempo litúrgico para depuración y estilos puntuales */
       const el = document.documentElement;
       const lit = auto ? (() => {
-        let previewKey: string | null = null;
-        try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
         const today = liturgicalColor(new Date());
         return previewKey && LIT_COLORS[previewKey as keyof typeof LIT_COLORS]
           ? { key: previewKey, name: `Vista previa: ${LIT_COLORS[previewKey as keyof typeof LIT_COLORS].label}` }
@@ -142,7 +148,15 @@ export default function ThemeLoader() {
         .catch(() => {});
     };
     pollRemote();
-    const remoteTimer = window.setInterval(pollRemote, 25000);
+    // Realtime de Supabase no está activo en este proyecto, así que el polling
+    // es el puente de sincronización entre dispositivos: 8s mantiene el cambio
+    // casi instantáneo sin martillar la API.
+    const remoteTimer = window.setInterval(pollRemote, 8000);
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') pollRemote();
+    };
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    window.addEventListener('focus', pollRemote);
 
     // En modo auto, recalcula al cambiar de día (medianoche) o de color litúrgico.
     let lastKey = liturgicalColor(new Date()).color.key + '|' + new Date().toDateString();
@@ -184,6 +198,8 @@ export default function ThemeLoader() {
       unsubscribeRemote();
       window.clearInterval(dayTimer);
       window.clearInterval(remoteTimer);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+      window.removeEventListener('focus', pollRemote);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('pjl_theme_update', handleCustomChange);
       window.removeEventListener('pjl_store_update', handleStoreUpdate);

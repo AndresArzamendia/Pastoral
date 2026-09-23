@@ -747,13 +747,8 @@ const [newsSearch, setNewsSearch] = useState('');
     // había antes volvía a reproducir la intro (doble refresco) tras el
     // primer pintado del HTML estático.
     root.classList.add('splash-ready');
-    // --- Siluetas line-art estaticas (layout.tsx) animadas SOLO por CSS ---
-// Al aparecer art-on, las lineas se dibujan solas (dashoffset) y los
-// puntos dorados recorren sus trazos (offset-path). Sin JS extra.
+    // Sin art-on: las escenas de fondo (amanecer/llama) animan solas con CSS.
 window.setTimeout(() => {
-  const sp = document.getElementById('splash-pjl');
-  if (!sp) return;
-  sp.classList.add('art-on');
   // Salida y revelado en UNA sola transición cruzada (para evitar el "doble
   // refresco" de ver el splash fundirse y LUEGO la página reaparecer):
   // a los 4600ms la intro empieza a salir (is-leaving) y EN EL MISMO INSTANTE
