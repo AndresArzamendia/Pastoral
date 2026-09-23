@@ -19,7 +19,7 @@ import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingPro
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 import { uploadFileToR2 } from '@/lib/uploadFile';
-import { LIT_SEASONS, liturgicalSeason, type LitSeasonKey } from '@/lib/liturgy';
+import { LIT_COLORS, liturgicalColor, type LitColorKey } from '@/lib/liturgy';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
   ssr: false,
@@ -2114,7 +2114,7 @@ function AdminContent() {
                   <div className="admin-dashboard-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
                     <div>
                       <h3 style={{ margin: 0, color: 'var(--navy)', fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="anal-sec-ico" style={{ width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--navy), #2b3a63)', color: '#fff', fontSize: '16px' }}>📊</span>
+                        <span className="anal-sec-ico" style={{ width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--navy), var(--navy-mid))', color: '#fff', fontSize: '16px' }}>📊</span>
                         Visitas por Sección
                       </h3>
                       <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>Rendimiento de cada sección del sitio</p>
@@ -2620,16 +2620,16 @@ function AdminContent() {
               applyThemeColor(n, g, { bg, card });
             };
 
-            const curSeason = liturgicalSeason(new Date());
+            const curLit = liturgicalColor(new Date());
             const autoMode = theme.mode === 'auto';
 
-            /* Vista previa temporal de una estación litúrgica (no persiste en el tema) */
-            const applySeasonPreview = (key: LitSeasonKey) => {
-              const s = LIT_SEASONS[key];
+            /* Vista previa temporal de un color litúrgico (no persiste en el tema) */
+            const applySeasonPreview = (key: LitColorKey) => {
+              const s = LIT_COLORS[key];
               try { localStorage.setItem('pjl_lit_preview', key); } catch {}
               setLitPreview(key);
               window.dispatchEvent(new Event('pjl_theme_update'));
-              showToast(`Vista previa: ${s.label} 🎨`);
+              showToast(`Vista previa: ${s.label} — ${s.feast} 🎨`);
             };
             const clearSeasonPreview = () => {
               try { localStorage.removeItem('pjl_lit_preview'); } catch {}
@@ -2641,7 +2641,10 @@ function AdminContent() {
               if (autoMode) {
                 setTheme({ navy: navyHex, gold: goldHex, mode: 'manual' });
               } else {
-                setTheme({ navy: navyHex, gold: goldHex, mode: 'auto' });
+                const base = liturgicalColor(new Date()).color;
+                setNavyHex(base.chrome);
+                setGoldHex(base.gold);
+                setTheme({ navy: base.chrome, gold: base.gold, mode: 'auto' });
               }
               clearSeasonPreview();
             };
@@ -2669,11 +2672,11 @@ function AdminContent() {
                 <div className="ap-card pop-in" style={{ animationDelay: '0.08s' }}>
                   <label className="premium-label" style={{ display: 'block', marginBottom: '14px' }}>PRESETS LITÚRGICOS</label>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, maxWidth: '420px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, maxWidth: '440px' }}>
                       {autoMode ? (
-                        <>⚙ <b>Modo automático</b> — el sitio usa la paleta del tiempo litúrgico actual (<b>{curSeason.label}</b>). Toca una estación para previsualizarla y «Aplicar tiempo actual» para volver.</>
+                        <>⚙ <b>Modo automático</b> — el sitio usa el color del tiempo litúrgico. Hoy: <b>{curLit.color.label} · {curLit.name}</b>. Tocá un color para previsualizarlo.</>
                       ) : (
-                        <>✋ <b>Modo manual</b> — los colores los elegís vos. El contador litúrgico queda en pausa.</>
+                        <>✋ <b>Modo manual</b> — los colores los elegís vos. El calendario litúrgico queda en pausa.</>
                       )}
                     </p>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -2692,9 +2695,9 @@ function AdminContent() {
                     </div>
                   </div>
                   {autoMode ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(136px, 1fr))', gap: '12px' }}>
-                      {Object.values(LIT_SEASONS).map((s, si) => {
-                        const isCurrent = s.key === curSeason.key && !litPreview;
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                      {Object.values(LIT_COLORS).map((s, si) => {
+                        const isCurrent = s.key === curLit.color.key && !litPreview;
                         const isPreviewed = litPreview === s.key;
                         return (
                           <button
@@ -2702,15 +2705,15 @@ function AdminContent() {
                             className={`liturgical-preset-btn ap-preset-btn pop-in${isCurrent || isPreviewed ? ' lit-active' : ''}`}
                             style={{ animationDelay: `${0.12 + si * 0.06}s` }}
                             onClick={() => applySeasonPreview(s.key)}
-                            title={isCurrent ? `Tiempo litúrgico actual (${curSeason.label})` : `Vista previa: ${s.label}`}
+                            title={isCurrent ? `Hoy: ${curLit.name}` : `Vista previa: ${s.label} — ${s.feast}`}
                           >
                             {(isCurrent || isPreviewed) && <span className="ap-preset-badge">{isCurrent ? 'HOY' : 'VISTA'}</span>}
                             <span className="ap-preset-spheres" aria-hidden="true">
-                              <i style={{ background: s.navy }} />
+                              <i style={{ background: s.lit }} />
                               <i style={{ background: s.gold }} />
                             </span>
                             <span className="premium-label" style={{ fontSize: '10px' }}>{s.label}</span>
-                            <span className="ap-preset-mini" style={{ background: `linear-gradient(135deg, ${s.navy} 62%, ${s.gold} 62%)` }} aria-hidden="true" />
+                            <span className="ap-preset-mini" style={{ background: `linear-gradient(135deg, ${s.chrome} 62%, ${s.gold} 62%)` }} aria-hidden="true" />
                           </button>
                         );
                       })}
@@ -2962,7 +2965,10 @@ function AdminContent() {
               </div>
 
               {/* PERSONALIZACIÓN MANUAL */}
-              <h4 className="serif" style={{ fontSize: '1.25rem', margin: '6px 0 4px' }}>Personalización Manual</h4>
+              <h4 className="serif" style={{ fontSize: '1.25rem', margin: '6px 0 4px' }}>
+                Personalización Manual
+                {autoMode && <span style={{ marginLeft: '10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', padding: '4px 10px', borderRadius: '999px', background: 'var(--gold-pale)', color: 'var(--navy)' }}>en pausa · se aplica en modo manual</span>}
+              </h4>
               <p style={{ color: 'var(--text-muted)', fontSize: '12.5px', marginBottom: '18px' }}>Ajustá cada color con el selector, el código hex o la intensidad. Las letras se eligen solas (blanco u oscuro) según lo que mejor se lea sobre cada color.</p>
               <div className="ap-grid">
 
@@ -3578,7 +3584,7 @@ function AdminContent() {
                         </div>
 
                         <div className="ctx-preview">
-                          <div className="pv-banner" style={{ background: content.instiFoto ? `url(${content.instiFoto}) center/cover no-repeat` : 'linear-gradient(135deg, var(--navy), #2d4a7a)' }}>
+                          <div className="pv-banner" style={{ background: content.instiFoto ? `url(${content.instiFoto}) center/cover no-repeat` : 'linear-gradient(135deg, var(--navy), var(--navy-mid))' }}>
                             {!content.instiFoto && <span className="pv-banner-ico">🏛️</span>}
                           </div>
                           <div className="pv-body">
@@ -3768,7 +3774,7 @@ function AdminContent() {
                             <label className="ctx-label"><span className="chip">✍️</span> TÍTULO PRINCIPAL (SOPORTA HTML)</label>
                             <input className="pjl-input" value={content.heroTitle || ''} onChange={e => setContent({ ...content, heroTitle: e.target.value })} />
                             {content.heroTitle && (
-                              <div style={{ marginTop: '12px', padding: '18px 20px', background: 'linear-gradient(135deg, var(--navy), #283b66)', borderRadius: '16px', border: '1px solid rgba(200,151,58,.5)', boxShadow: '0 14px 30px rgba(26,39,68,.25)' }}>
+                              <div style={{ marginTop: '12px', padding: '18px 20px', background: 'linear-gradient(135deg, var(--navy), var(--navy-mid))', borderRadius: '16px', border: '1px solid rgba(200,151,58,.5)', boxShadow: '0 14px 30px rgba(26,39,68,.25)' }}>
                                 <p style={{ fontSize: '10px', color: 'var(--gold)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Previsualización del título:</p>
                                 <h1 className="serif" style={{ color: '#fff', fontSize: '1.7rem', margin: 0 }} dangerouslySetInnerHTML={{ __html: content.heroTitle }} />
                               </div>
@@ -3864,7 +3870,7 @@ function AdminContent() {
                         </div>
 
                         <div className="ctx-preview">
-                          <div className="pv-banner" style={{ background: content.evangelioFoto ? `url(${content.evangelioFoto}) center/cover no-repeat` : 'linear-gradient(135deg, var(--navy), #2d4a7a)' }}>
+                          <div className="pv-banner" style={{ background: content.evangelioFoto ? `url(${content.evangelioFoto}) center/cover no-repeat` : 'linear-gradient(135deg, var(--navy), var(--navy-mid))' }}>
                             {!content.evangelioFoto && <span className="pv-banner-ico">🙏</span>}
                           </div>
                           <div className="pv-body">
@@ -5237,7 +5243,7 @@ function AdminContent() {
                   <button className="btn-premium btn-premium-gold" onClick={() => openNew('documentos')}>+ REGISTRAR ARCHIVO</button>
                 </div>
               <div className="docs-admin-summary-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr repeat(3, minmax(0, 1fr))', gap: '16px' }}>
-                  <div style={{ padding: '22px', borderRadius: '22px', background: 'linear-gradient(135deg, var(--navy), #31456f)', color: '#fff', boxShadow: '0 18px 35px rgba(26,39,68,0.14)' }}>
+                  <div style={{ padding: '22px', borderRadius: '22px', background: 'linear-gradient(135deg, var(--navy), var(--navy-light))', color: '#fff', boxShadow: '0 18px 35px rgba(26,39,68,0.14)' }}>
                     <div style={{ fontSize: '11px', letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.75, marginBottom: '10px' }}>Biblioteca activa</div>
                     <div className="serif" style={{ fontSize: '2rem', lineHeight: 1, marginBottom: '8px' }}>{docs.length}</div>
                     <div style={{ fontSize: '13px', opacity: 0.82 }}>documentos listos para descarga o consulta</div>

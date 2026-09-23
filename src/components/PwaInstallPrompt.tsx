@@ -14,7 +14,7 @@ const MODAL_STYLE: React.CSSProperties = {
   margin: '12px',
   padding: '16px 16px 14px',
   borderRadius: '18px',
-  background: 'linear-gradient(135deg, #1A2744 0%, #23345e 100%)',
+  background: 'linear-gradient(135deg, #1A2744 0%, var(--navy-mid) 100%)',
   color: '#fff',
   boxShadow: '0 18px 50px rgba(13, 21, 46, 0.5)',
   fontFamily: 'inherit',

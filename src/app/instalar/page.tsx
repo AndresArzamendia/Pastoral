@@ -146,7 +146,7 @@ export default function InstallGuidePage() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #16203a 0%, #1A2744 45%, #23345e 100%)',
+        background: 'linear-gradient(180deg, var(--navy-dark) 0%, #1A2744 45%, var(--navy-mid) 100%)',
         color: '#FDFAF5',
         fontFamily: "var(--font-body), 'Manrope', sans-serif",
         padding: '96px 20px 60px',

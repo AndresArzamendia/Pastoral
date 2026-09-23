@@ -267,7 +267,7 @@ const mainStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '18px',
   padding: '24px 18px',
-  background: 'radial-gradient(circle at 12% 8%, rgba(200,151,58,.2), transparent 30%), radial-gradient(circle at 88% 92%, rgba(124,58,237,.16), transparent 32%), linear-gradient(180deg, #0f1b33 0%, #1a2744 55%, #263452 100%)',
+  background: 'radial-gradient(circle at 12% 8%, rgba(200,151,58,.2), transparent 30%), radial-gradient(circle at 88% 92%, rgba(124,58,237,.16), transparent 32%), linear-gradient(180deg, #0f1b33 0%, #1a2744 55%, var(--navy-mid) 100%)',
 };
 
 const cardStyle: React.CSSProperties = {
@@ -281,7 +281,7 @@ const cardStyle: React.CSSProperties = {
 };
 
 const headerStyle: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #1A2744 0%, #2d4368 60%, #7c3aed 130%)',
+  background: 'linear-gradient(135deg, #1A2744 0%, var(--navy-mid) 60%, #7c3aed 130%)',
   color: '#fff',
   padding: '32px 26px',
   textAlign: 'center',

@@ -145,7 +145,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
       <style>{`
         .naf-wrapper {
           font-family: 'Inter', 'Segoe UI', sans-serif;
-          color: #1a1a2e;
+          color: var(--navy-mid);
         }
         .naf-topbar {
           display: flex;
@@ -169,7 +169,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
           transform: translateY(-1px);
         }
         .naf-header {
-          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+          background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy-dark) 50%, #0f3460 100%);
           padding: 28px 32px;
           border-radius: 16px;
           display: flex;
@@ -211,7 +211,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
           overflow: hidden;
         }
         .naf-section-header {
-          background: linear-gradient(90deg, #1a1a2e, #16213e);
+          background: linear-gradient(90deg, var(--navy-mid), var(--navy-dark));
           padding: 14px 20px;
           display: flex;
           align-items: center;
@@ -279,7 +279,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
           border-radius: 8px;
           font-size: 0.95rem;
           font-family: inherit;
-          color: #1a1a2e;
+          color: var(--navy-mid);
           background: white;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -374,7 +374,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
         .naf-toggle-label strong {
           display: block;
           font-size: 0.95rem;
-          color: #1a1a2e;
+          color: var(--navy-mid);
         }
         .naf-toggle-label span {
           font-size: 0.82rem;

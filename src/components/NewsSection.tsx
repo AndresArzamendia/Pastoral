@@ -153,7 +153,7 @@ export function NewsSection() {
         .news-card-img {
           height: 210px;
           overflow: hidden;
-          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #C8973A 100%);
+          background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy-dark) 60%, #C8973A 100%);
           position: relative;
         }
         .news-card-img img {
@@ -171,7 +171,7 @@ export function NewsSection() {
           align-items: center;
           justify-content: center;
           font-size: 56px;
-          background: linear-gradient(135deg, #1a1a2e 0%, #C8973A 100%);
+          background: linear-gradient(135deg, var(--navy-mid) 0%, #C8973A 100%);
         }
         .news-card-pinned-badge {
           position: absolute;
@@ -219,7 +219,7 @@ export function NewsSection() {
         .news-card-title {
           font-size: 1.05rem;
           font-weight: 700;
-          color: #1a1a2e;
+          color: var(--navy-mid);
           line-height: 1.4;
           margin-bottom: 8px;
           flex: 1;
@@ -320,7 +320,7 @@ export function NewsSection() {
           position: relative;
           overflow: hidden;
           border-radius: 20px 20px 0 0;
-          background: linear-gradient(135deg, #1a1a2e 0%, #C8973A 100%);
+          background: linear-gradient(135deg, var(--navy-mid) 0%, #C8973A 100%);
         }
         .news-modal-hero img {
           width: 100%;
@@ -393,7 +393,7 @@ export function NewsSection() {
         .news-modal-title {
           font-size: 1.5rem;
           font-weight: 800;
-          color: #1a1a2e;
+          color: var(--navy-mid);
           line-height: 1.3;
           margin-bottom: 8px;
           letter-spacing: -0.5px;
@@ -453,7 +453,7 @@ export function NewsSection() {
         }
         .news-modal-link-btn.external {
           background: #f9fafb;
-          color: #1a1a2e;
+          color: var(--navy-mid);
           border: 2px solid #e5e7eb;
         }
         .news-modal-link-btn.external:hover {
@@ -674,7 +674,7 @@ export function NewsSection() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '72px',
-                  background: 'linear-gradient(135deg, #1a1a2e 0%, #C8973A 100%)',
+                  background: 'linear-gradient(135deg, var(--navy-mid) 0%, #C8973A 100%)',
                 }}>
                   📰
                 </div>

@@ -1610,7 +1610,7 @@ window.setTimeout(() => {
             <section className="section-pjl" id="institucional-preview" style={{ 
               position: 'relative', 
               overflow: 'hidden',
-              background: 'linear-gradient(155deg, var(--navy) 0%, #1e3060 60%, #243255 100%)',
+              background: 'linear-gradient(155deg, var(--navy) 0%, var(--navy-mid) 60%, var(--navy-mid) 100%)',
               padding: '100px 0'
             }}>
               {/* Background decorative elements */}
@@ -3723,7 +3723,7 @@ window.setTimeout(() => {
       {/* Styles inline for footer links just to keep it clean */}
       <style dangerouslySetInnerHTML={{__html: `
         /* ===== FOOTER ENRIQUECIDO ===== */
-        .footer-pjl { position: relative; overflow: hidden; background: radial-gradient(1200px 600px at 15% -10%, rgba(200,151,58,0.14), transparent 60%), linear-gradient(180deg, #141d33 0%, #1A2744 55%, #0f1527 100%); }
+        .footer-pjl { position: relative; overflow: hidden; background: radial-gradient(1200px 600px at 15% -10%, rgba(200,151,58,0.14), transparent 60%), linear-gradient(180deg, var(--navy-dark) 0%, #1A2744 55%, #0f1527 100%); }
 
         .footer-ornament { position: absolute; inset: 0; pointer-events: none; opacity: .5; }
         .footer-ornament span { position: absolute; border-radius: 50%; filter: blur(60px); }

@@ -14,7 +14,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             alignItems: 'center',
             justifyContent: 'center',
             gap: '14px',
-            background: 'linear-gradient(155deg, #1A2744 0%, #243255 100%)',
+            background: 'linear-gradient(155deg, #1A2744 0%, var(--navy-mid) 100%)',
             color: '#fff',
             textAlign: 'center',
             padding: '24px',

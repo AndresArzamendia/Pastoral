@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { store } from '@/lib/pjlStore';
 import { fetchStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
-import { liturgicalSeason, LIT_SEASONS } from '@/lib/liturgy';
+import { liturgicalColor, LIT_COLORS } from '@/lib/liturgy';
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = (hex || '').replace('#', '');
@@ -23,40 +23,69 @@ function shade(hex: string, amount: number): string { return mixColor(hex, '#000
 function readableTextOn(hex: string): string {
   const c = hexToRgb(hex);
   const lum = 0.2126 * c[0] / 255 + 0.7152 * c[1] / 255 + 0.0722 * c[2] / 255;
-  return lum > 0.45 ? '#1c1a16' : '#ffffff';
+  return lum > 0.42 ? '#1c1a16' : '#ffffff';
 }
+
+type ThemeLike = { gold: string; navy: string; mode?: 'auto' | 'manual' } | null;
 
 export default function ThemeLoader() {
   useEffect(() => {
-    const applyTheme = (themeOverride?: { gold: string; navy: string; mode?: 'auto' | 'manual' } | null) => {
+    const applyTheme = (themeOverride?: ThemeLike) => {
       const theme = themeOverride || store.theme.get();
       const palette = theme || null;
-
-      /* Auto: el sitio se tiñe según el tiempo litúrgico actual. Manual:
-         usa los colores elegidos en el panel (los temas guardados sin
-         'mode' se tratan como manual para respetar personalizaciones). */
-      let previewKey: string | null = null;
-      try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
-      const realSeason = liturgicalSeason(new Date());
-      const season = previewKey && LIT_SEASONS[previewKey as keyof typeof LIT_SEASONS]
-        ? LIT_SEASONS[previewKey as keyof typeof LIT_SEASONS]
-        : realSeason;
-      const naval = palette && palette.mode === 'auto' ? season : null;
-      const gold = palette && palette.mode !== 'auto' ? palette.gold : naval ? naval.gold : '#C8973A';
-      const navy = palette && palette.mode !== 'auto' ? palette.navy : naval ? naval.navy : '#1A2744';
+      const auto = !!(palette && palette.mode === 'auto');
 
       const root = document.documentElement.style;
+
+      let navy: string;
+      let gold: string;
+      let cream: string;
+      let surface: string;
+      let white: string;
+      let ink: string;
+      let muted: string;
+
+      if (auto) {
+        /* Auto: esquema del color litúrgico del día (o de una vista previa del panel). */
+        let previewKey: string | null = null;
+        try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
+        const previewCol = previewKey ? LIT_COLORS[previewKey as keyof typeof LIT_COLORS] : undefined;
+        const col = previewCol || liturgicalColor(new Date()).color;
+        navy = col.chrome;
+        gold = col.gold;
+        cream = col.cream;
+        surface = col.surface;
+        white = col.white;
+        ink = col.ink;
+        muted = col.muted;
+      } else {
+        /* Manual: los colores elegidos en el panel (los temas guardados sin
+           'mode' se tratan como manual para respetar personalizaciones). */
+        navy = palette?.navy || '#1A2744';
+        gold = palette?.gold || '#C8973A';
+        ink = '#1C1A16';
+        muted = '#5C5444';
+        cream = tint(mixColor(navy, gold, 0.08), 0.84);
+        surface = tint(cream, 0.65);
+        white = tint(cream, 0.9);
+      }
 
       /* Colores base */
       root.setProperty('--gold', gold);
       root.setProperty('--navy', navy);
+      root.setProperty('--cream', cream);
+      root.setProperty('--surface', surface);
+      root.setProperty('--white', white);
 
-      /* Texto que se lee bien sobre cada superficie (auto-contraste) */
+      /* Texto con auto-contraste: legible sobre cualquier color */
       root.setProperty('--on-navy', readableTextOn(navy));
       root.setProperty('--on-gold', readableTextOn(gold));
-      root.setProperty('--on-cream', '#1c1a16');
+      root.setProperty('--on-cream', readableTextOn(cream));
+      root.setProperty('--text', ink);
+      root.setProperty('--text-muted', muted);
+      root.setProperty('--accent', ink);
 
-      /* Paleta derivada automáticamente: sombras y tintes armoniosos */
+      /* Paleta derivada: sombras y tintes armoniosos que siguen el color del tiempo */
       root.setProperty('--navy-mid', mixColor(navy, '#ffffff', 0.12));
       root.setProperty('--navy-light', mixColor(navy, '#ffffff', 0.22));
       root.setProperty('--navy-dark', shade(navy, 0.18));
@@ -64,24 +93,26 @@ export default function ThemeLoader() {
       root.setProperty('--gold-pale', tint(gold, 0.86));
       root.setProperty('--gold-deep', shade(gold, 0.22));
 
-      /* Superficies neutrales derivadas del navy+gold para que todo sea cohesivo */
-      const cream = tint(mixColor(navy, gold, 0.08), 0.84);
-      root.setProperty('--cream', cream);
-      root.setProperty('--surface', tint(cream, 0.65));
-      root.setProperty('--white', tint(cream, 0.9));
-
-      /* Etiqueta del tiempo litúrgico activo, para el panel y depuración */
+      /* Etiquetas del tiempo litúrgico para depuración y estilos puntuales */
       const el = document.documentElement;
-      if (naval) {
-        el.setAttribute('data-lit-season', naval.key);
-        el.setAttribute('data-lit-label', naval.label);
+      const lit = auto ? (() => {
+        let previewKey: string | null = null;
+        try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
+        const today = liturgicalColor(new Date());
+        return previewKey && LIT_COLORS[previewKey as keyof typeof LIT_COLORS]
+          ? { key: previewKey, name: `Vista previa: ${LIT_COLORS[previewKey as keyof typeof LIT_COLORS].label}` }
+          : { key: today.color.key, name: today.name };
+      })() : null;
+      if (lit) {
+        el.setAttribute('data-lit-color', lit.key);
+        el.setAttribute('data-lit-label', lit.name);
       } else {
-        el.removeAttribute('data-lit-season');
+        el.removeAttribute('data-lit-color');
         el.removeAttribute('data-lit-label');
       }
     };
 
-const syncTheme = (theme: { gold: string; navy: string; mode?: 'auto' | 'manual' } | null) => {
+    const syncTheme = (theme: ThemeLike) => {
       if (!theme) return;
       try {
         localStorage.setItem('pjl_theme', JSON.stringify(theme));
@@ -93,14 +124,14 @@ const syncTheme = (theme: { gold: string; navy: string; mode?: 'auto' | 'manual'
 
     applyTheme();
 
-void fetchStoreValue<{ gold: string; navy: string; mode?: 'auto' | 'manual' }>('theme')
+    void fetchStoreValue<{ gold: string; navy: string; mode?: 'auto' | 'manual' }>('theme')
       .then(theme => syncTheme(theme))
       .catch(() => {});
 
-    // En modo auto, recalcula al cambiar de día (medianoche) o de tiempo litúrgico.
-    let lastKey = liturgicalSeason(new Date()).key + '|' + new Date().toDateString();
+    // En modo auto, recalcula al cambiar de día (medianoche) o de color litúrgico.
+    let lastKey = liturgicalColor(new Date()).color.key + '|' + new Date().toDateString();
     const dayTimer = window.setInterval(() => {
-      const key = liturgicalSeason(new Date()).key + '|' + new Date().toDateString();
+      const key = liturgicalColor(new Date()).color.key + '|' + new Date().toDateString();
       if (key !== lastKey) {
         lastKey = key;
         applyTheme();
@@ -116,9 +147,9 @@ void fetchStoreValue<{ gold: string; navy: string; mode?: 'auto' | 'manual' }>('
 
     // Custom event to handle in-tab immediate updates
     const handleCustomChange = () => applyTheme();
-const unsubscribeRemote = subscribeStoreChanges((key, value) => {
+    const unsubscribeRemote = subscribeStoreChanges((key, value) => {
       if (key === 'theme' && value && typeof value === 'object') {
-        syncTheme(value as { gold: string; navy: string; mode?: 'auto' | 'manual' });
+        syncTheme(value as ThemeLike);
       }
     });
 

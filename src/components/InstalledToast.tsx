@@ -43,7 +43,7 @@ export default function InstalledToast() {
     >
       <div
         style={{
-          background: 'linear-gradient(135deg, #1A2744 0%, #23345e 100%)',
+          background: 'linear-gradient(135deg, #1A2744 0%, var(--navy-mid) 100%)',
           color: '#fff',
           border: '1px solid rgba(200,151,58,0.45)',
           borderRadius: '999px',
