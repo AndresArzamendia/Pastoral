@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Fraunces, Manrope, Libre_Baskerville } from "next/font/google";
 import ThemeLoader from "../components/ThemeLoader";
 import PwaInstallPrompt from "../components/PwaInstallPrompt";
@@ -226,6 +227,7 @@ export default function RootLayout({
         <InstalledToast />
         <UpdatePrompt />
         {children}
+        <SpeedInsights />
         <Script
           src="https://www.vaticannews.va/etc/designs/vaticannews/widget/widget.js"
           strategy="lazyOnload"
