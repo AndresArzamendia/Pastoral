@@ -730,49 +730,52 @@ const [newsSearch, setNewsSearch] = useState('');
       setSplashDone(true);
       return;
     }
-    const mainLogo = store.branding.get()?.mainLogo;
-    if (mainLogo) {
-      const fallbackNode = splash.querySelector('.splash-logo-fallback');
-      if (fallbackNode) {
-        const img = document.createElement('img');
-        img.src = mainLogo;
-        img.alt = 'Logotipo de la Pastoral Juvenil Luqueña';
-        img.className = 'splash-logo-img';
-        fallbackNode.replaceWith(img);
+    // Reemplaza el fallback del logo por la imagen real y habilita coreografía.
+    // Envuelto en try-catch para que NO bloquee la salida del splash.
+    try {
+      const mainLogo = store.branding.get()?.mainLogo;
+      if (mainLogo) {
+        const fallbackNode = splash.querySelector('.splash-logo-fallback');
+        if (fallbackNode) {
+          const img = document.createElement('img');
+          img.src = mainLogo;
+          img.alt = 'Logotipo de la Pastoral Juvenil Luqueña';
+          img.className = 'splash-logo-img';
+          fallbackNode.replaceWith(img);
+        }
       }
-    }
-    // Habilita la coreografía. Las animaciones del contenido viven pausadas
-    // en CSS (html:not(.splash-ready)) y arrancan UNA sola vez aquí, de forma
-    // sincronizada con los temporizadores de abajo. El reinicio manual que
-    // había antes volvía a reproducir la intro (doble refresco) tras el
-    // primer pintado del HTML estático.
-    root.classList.add('splash-ready');
-    // Sin art-on: las escenas de fondo (amanecer/llama) animan solas con CSS.
-window.setTimeout(() => {
-  // Salida y revelado en UNA sola transición cruzada (para evitar el "doble
-  // refresco" de ver el splash fundirse y LUEGO la página reaparecer):
-  // a los 4600ms la intro empieza a salir (is-leaving) y EN EL MISMO INSTANTE
-  // la página comienza a revelarse por debajo (pjl-reveal), fundiendo ambos.
-  window.setTimeout(() => {
-    document.getElementById('splash-pjl')?.classList.add('is-leaving');
-    root.classList.add('pjl-reveal');
-    root.classList.remove('show-splash');
-    window.setTimeout(() => setNavEntered(true), 240);
-  }, 4600);
-  // Retiro de 'pjl-reveal' cuando el fundido del contenido terminó (0.55s
-  // desde 4600 => ~5150).
-  window.setTimeout(() => {
-    root.classList.remove('pjl-reveal');
-  }, 5200);
-  // Retiro del nodo del splash cuando ya está fundido (0.95s desde 4600).
-  window.setTimeout(() => {
-    document.getElementById('splash-pjl')?.remove();
-    setNavEntered(true);
-    setSplashDone(true);
-  }, 5600);
-}, 900);
+      root.classList.add('splash-ready');
+    } catch { /* ignore */ }
 
-    // Intencionadamente NO se cancelan en el cleanup: si el usuario navega a
+    // Salida y revelado garantizados: la coreografía normal termina a ~5.5s.
+    // Un temporizador de seguridad fuerza la salida si algo impide
+    // que el setTimeout principal se dispare (así el menú se muestra
+    // siempre, sin dejar el splash cubriendo la página).
+    let exited = false;
+    const triggerExit = () => {
+      if (exited) return;
+      exited = true;
+      try {
+        document.getElementById('splash-pjl')?.classList.add('is-leaving');
+        root.classList.add('pjl-reveal');
+        root.classList.remove('show-splash');
+        window.setTimeout(() => setNavEntered(true), 240);
+      } catch { /* ignore */ }
+      window.setTimeout(() => { root.classList.remove('pjl-reveal'); }, 5200);
+      window.setTimeout(() => {
+        document.getElementById('splash-pjl')?.remove();
+        setNavEntered(true);
+        setSplashDone(true);
+      }, 5600);
+    };
+    // Coreografía normal: comienza 900ms después y sale a 4600ms (= 5500ms tot).
+    window.setTimeout(() => {
+      window.setTimeout(() => { triggerExit(); }, 4600);
+    }, 900);
+    // Seguridad: si triggerExit no se ejecutó antes de 7000ms, forzar salida.
+    window.setTimeout(() => { if (!exited) triggerExit(); }, 7000);
+
+    // Intencionalmente NO se cancelan en el cleanup: si el usuario navega a
     // otra página durante la intro, estos temporizadores deben igualmente
     // retirar el velo y la pantalla; cancelarlos dejaría la clase
     // show-splash huérfana y el contenido oculto para siempre.
