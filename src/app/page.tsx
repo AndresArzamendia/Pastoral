@@ -775,11 +775,14 @@ const [newsSearch, setNewsSearch] = useState('');
     // Seguridad: si triggerExit no se ejecutó antes de 7000ms, forzar salida.
     window.setTimeout(() => { if (!exited) triggerExit(); }, 7000);
 
-    // Intencionalmente NO se cancelan en el cleanup: si el usuario navega a
-    // otra página durante la intro, estos temporizadores deben igualmente
-    // retirar el velo y la pantalla; cancelarlos dejaría la clase
-    // show-splash huérfana y el contenido oculto para siempre.
-    return () => {};
+    return () => {
+      if (window.location.pathname !== '/') {
+        exited = true;
+        root.classList.remove('show-splash', 'pjl-reveal', 'splash-ready');
+        root.classList.add('no-splash');
+        splash?.remove();
+      }
+    };
   }, []);
 
   // --- SYNC LOGIC ---

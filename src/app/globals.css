@@ -6656,6 +6656,7 @@ textarea:focus-visible,
   visibility: hidden;
 }
 html.show-splash .splash-screen { visibility: visible; }
+html.no-splash .splash-screen { display: none !important; }
 /* Las animaciones del contenido viven PAUSADAS hasta que el JS agrega
    'splash-ready' en el useLayoutEffect de page.tsx. Sin esto, la intro
    arrancaba en el primer pintado del HTML estático y luego se reiniciaba
@@ -6696,7 +6697,7 @@ html:not(.splash-ready) .sv-scene * {
 
 .splash-content {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   text-align: center;
   padding: 24px;
   max-width: min(92vw, 780px);
@@ -6771,6 +6772,7 @@ html.show-splash .splash-content { visibility: visible; }
   font-weight: 900;
   letter-spacing: 0.06em;
   line-height: 1.12;
+  text-shadow: 0 3px 16px rgba(16, 26, 46, 0.9);
 }
 /* Cada palabra es indivisible: el título solo puede saltar de línea
    entre palabras, nunca dentro de "LUQUEÑA". */
@@ -6798,6 +6800,7 @@ html.show-splash .splash-content { visibility: visible; }
   margin: 0 auto clamp(20px, 4vh, 34px);
   font-size: clamp(14px, 2.6vw, 21px);
   color: #e8ddc2;
+  text-shadow: 0 2px 10px rgba(16, 26, 46, 0.95);
   font-family: Georgia, 'Times New Roman', serif;
   letter-spacing: 0.02em;
   display: flex;

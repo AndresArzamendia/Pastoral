@@ -127,6 +127,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
+              if(location.pathname!=='/')return;
               var V=['b','c'], idx=1;
               try{
                 var last=parseInt(localStorage.getItem('pjl_splash_variant')||'')|| -1;
@@ -156,7 +157,7 @@ export default function RootLayout({
         {/* Marca <html> ANTES de pintar el splash: solo en la home ('/').
             El velo de contenido se gestiona junto con la intro; otras rutas
             no deben depender de ella. */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){if(location.pathname!=='/')return;var skip=false;try{var ne=performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation');var nt=ne&&ne[0]?ne[0].type:'';var isReload=(nt==='reload')||(performance.navigation&&performance.navigation.type===1);if(!isReload){var ts=parseInt(sessionStorage.getItem('pjl_skip_splash')||'',10);if(ts&&Date.now()-ts<8000)skip=true;}}catch(e){skip=false;}if(!skip){document.documentElement.className+=' show-splash';}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){if(location.pathname!=='/'){document.documentElement.classList.add('no-splash');return;}var skip=false;try{var ne=performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation');var nt=ne&&ne[0]?ne[0].type:'';var isReload=(nt==='reload')||(performance.navigation&&performance.navigation.type===1);if(!isReload){var ts=parseInt(sessionStorage.getItem('pjl_skip_splash')||'',10);if(ts&&Date.now()-ts<8000)skip=true;}}catch(e){skip=false;}if(!skip){document.documentElement.classList.add('show-splash');}})();` }} />
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var h=location.hash;if(h&&h.indexOf('type=recovery')!==-1&&location.pathname.indexOf('/reset-password/recover')===-1){location.replace('/reset-password/recover'+h);}}catch(e){}})();` }} />
         {/* Pantalla de carga estática: vive FUERA del árbol que React intercambia,
             por eso se ve desde el primer pintado y sobrevive a la hidratación. */}
