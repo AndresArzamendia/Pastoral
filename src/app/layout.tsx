@@ -122,24 +122,6 @@ export default function RootLayout({
             ].join(''),
           }}
         />
-        {/* Rotación de escenas de la intro: cada entrada muestra una escena
-            distinta (cielo / amanecer / llama) para que nunca canse ver la
-            misma de nuevo. Corre ANTES del primer pintado. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-              if(location.pathname!=='/')return;
-              var V=['b','c'], idx=1;
-              try{
-                var last=parseInt(localStorage.getItem('pjl_splash_variant')||'')|| -1;
-                if(last>=0 && last<V.length){ idx=(last+1+Math.floor(Math.random()*(V.length-1)))%V.length; }
-                else{ idx=Math.floor(Math.random()*V.length); }
-                localStorage.setItem('pjl_splash_variant', String(idx));
-              }catch(e){}
-              document.documentElement.setAttribute('data-splash-variant', V[idx]);
-            })();`,
-          }}
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
@@ -163,26 +145,26 @@ export default function RootLayout({
         {/* Pantalla de carga estática: vive FUERA del árbol que React intercambia,
             por eso se ve desde el primer pintado y sobrevive a la hidratación. */}
 <div id="splash-pjl" className="splash-screen" role="status" aria-label="Cargando Pastoral Juvenil Luqueña">
-          {/* Variante B · Amanecer de Esperanza: sol naciente, rayos de luz, cruz luminosa */}
-          <div className="sv-scene sv-dawn" aria-hidden="true">
-            <span className="dawn-rays"></span>
-            <span className="dawn-sun"></span>
-            <span className="dawn-haze"></span>
-            <span className="dawn-cross"></span>
-            <span className="dawn-petals" aria-hidden="true">
-              <i className="dp-1"></i><i className="dp-2"></i><i className="dp-3"></i><i className="dp-4"></i><i className="dp-5"></i>
+          {/* Fondo vivo "Noche de luz": aurora + destellos dorados + haz,
+              sincronizado con la barra de carga. Logo, frase y barra viven
+              en .splash-content (por encima, z-index 3). */}
+          <div className="sx-scene" aria-hidden="true">
+            <span className="sx-aura-1"></span>
+            <span className="sx-aura-2"></span>
+            <span className="sx-beams"></span>
+            <span className="sx-rise"></span>
+            <span className="sx-stars">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <i key={i} className="sx-star" style={{
+                  left: `${((i * 23 + 7) % 96) + 2}%`,
+                  top: `${((i * 41 + 13) % 86) + 4}%`,
+                  ['--s' as any]: String((i % 3) + 1),
+                  ['--fl' as any]: (0.55 + (i % 5) * 0.1).toFixed(2),
+                  animationDelay: `${(i % 7) * 0.55}s`,
+                  animationDuration: `${3.4 + (i % 5) * 0.9}s`,
+                }} />
+              ))}
             </span>
-          </div>
-
-          {/* Variante C · Llama de Fe: fuego vivo con brasas encendidas */}
-          <div className="sv-scene sv-flame" aria-hidden="true">
-            <span className="flame-glow"></span>
-            <span className="flame-outer"></span>
-            <span className="flame-mid"></span>
-            <span className="flame-inner"></span>
-            {Array.from({ length: 14 }).map((_, i) => (
-              <span key={i} className="flame-spark" style={{ left: `${30 + (i % 6) * 6.5}%`, animationDelay: `${(i * 0.43) % 3.4}s`, animationDuration: `${3.2 + (i % 4) * 0.7}s` }} />
-            ))}
           </div>
           <div className="splash-content">
             <div className="splash-logo-wrap">
