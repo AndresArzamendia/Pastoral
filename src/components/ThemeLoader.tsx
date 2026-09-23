@@ -124,9 +124,25 @@ export default function ThemeLoader() {
 
     applyTheme();
 
-    void fetchStoreValue<{ gold: string; navy: string; mode?: 'auto' | 'manual' }>('theme')
-      .then(theme => syncTheme(theme))
-      .catch(() => {});
+    // Sincronización remota: trae el tema guardado y lo re-aplica si cambió.
+    // También sirve de red de seguridad si Realtime no entrega el evento.
+    let lastRemote: string | null = (() => {
+      try { return localStorage.getItem('pjl_theme'); } catch { return null; }
+    })();
+    const pollRemote = () => {
+      void fetchStoreValue<ThemeLike>('theme')
+        .then(theme => {
+          if (!theme || typeof theme !== 'object') return;
+          const raw = JSON.stringify(theme);
+          if (raw !== lastRemote) {
+            lastRemote = raw;
+            syncTheme(theme);
+          }
+        })
+        .catch(() => {});
+    };
+    pollRemote();
+    const remoteTimer = window.setInterval(pollRemote, 25000);
 
     // En modo auto, recalcula al cambiar de día (medianoche) o de color litúrgico.
     let lastKey = liturgicalColor(new Date()).color.key + '|' + new Date().toDateString();
@@ -156,11 +172,21 @@ export default function ThemeLoader() {
     window.addEventListener('storage', handleStorage);
     window.addEventListener('pjl_theme_update', handleCustomChange);
 
+    // pjlStore normaliza los cambios remotos en localStorage y dispara este evento;
+    // re-aplicamos por si la suscripción directa no llegó.
+    const handleStoreUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ key?: string }>).detail;
+      if (detail?.key === 'theme') applyTheme();
+    };
+    window.addEventListener('pjl_store_update', handleStoreUpdate);
+
     return () => {
       unsubscribeRemote();
       window.clearInterval(dayTimer);
+      window.clearInterval(remoteTimer);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('pjl_theme_update', handleCustomChange);
+      window.removeEventListener('pjl_store_update', handleStoreUpdate);
     };
   }, []);
 

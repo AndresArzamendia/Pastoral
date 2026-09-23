@@ -1732,7 +1732,7 @@ function AdminContent() {
   };
 
   const applyThemeColor = (navy: string, gold: string, extra?: { bg?: string; card?: string }) => {
-    setTheme({ navy, gold });
+    setTheme({ navy, gold, mode: theme.mode });
     window.dispatchEvent(new Event('pjl_theme_update'));
     if (typeof window !== 'undefined' && document.documentElement) {
       const root = document.documentElement.style;
