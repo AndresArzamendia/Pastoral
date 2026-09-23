@@ -19,6 +19,7 @@ import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingPro
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 import { uploadFileToR2 } from '@/lib/uploadFile';
+import { LIT_SEASONS, liturgicalSeason, type LitSeasonKey } from '@/lib/liturgy';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
   ssr: false,
@@ -625,6 +626,7 @@ function AdminContent() {
   const [profiles, setProfiles] = useLS<MemberProfile[]>('profiles', []);
   const [branding, setBranding] = useLS<Branding>('branding', DEFAULT_BRANDING);
   const [theme, setTheme] = useLS<ThemePalette>('theme', DEFAULT_THEME_PALETTE);
+  const [litPreview, setLitPreview] = useState<string | null>(null);
   const [liveHeroImages, setLiveHeroImages] = useLS<HeroSlide[]>('hero', []);
   const [heroIntervalSecs, setHeroIntervalSecs] = useLS<number>('heroInterval', 3);
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
@@ -2618,6 +2620,32 @@ function AdminContent() {
               applyThemeColor(n, g, { bg, card });
             };
 
+            const curSeason = liturgicalSeason(new Date());
+            const autoMode = theme.mode === 'auto';
+
+            /* Vista previa temporal de una estación litúrgica (no persiste en el tema) */
+            const applySeasonPreview = (key: LitSeasonKey) => {
+              const s = LIT_SEASONS[key];
+              try { localStorage.setItem('pjl_lit_preview', key); } catch {}
+              setLitPreview(key);
+              window.dispatchEvent(new Event('pjl_theme_update'));
+              showToast(`Vista previa: ${s.label} 🎨`);
+            };
+            const clearSeasonPreview = () => {
+              try { localStorage.removeItem('pjl_lit_preview'); } catch {}
+              setLitPreview(null);
+              window.dispatchEvent(new Event('pjl_theme_update'));
+              showToast('Tiempo litúrgico actual restaurado');
+            };
+            const toggleAutoMode = () => {
+              if (autoMode) {
+                setTheme({ navy: navyHex, gold: goldHex, mode: 'manual' });
+              } else {
+                setTheme({ navy: navyHex, gold: goldHex, mode: 'auto' });
+              }
+              clearSeasonPreview();
+            };
+
             return (
             <div style={{ maxWidth: '1160px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
@@ -2640,6 +2668,54 @@ function AdminContent() {
                 {/* PRESETS LITÚRGICOS + ARMÓNICAS + PALETAS GUARDADAS */}
                 <div className="ap-card pop-in" style={{ animationDelay: '0.08s' }}>
                   <label className="premium-label" style={{ display: 'block', marginBottom: '14px' }}>PRESETS LITÚRGICOS</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, maxWidth: '420px' }}>
+                      {autoMode ? (
+                        <>⚙ <b>Modo automático</b> — el sitio usa la paleta del tiempo litúrgico actual (<b>{curSeason.label}</b>). Toca una estación para previsualizarla y «Aplicar tiempo actual» para volver.</>
+                      ) : (
+                        <>✋ <b>Modo manual</b> — los colores los elegís vos. El contador litúrgico queda en pausa.</>
+                      )}
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {autoMode && (
+                        <button className="btn-premium btn-premium-outline" style={{ fontSize: '11px', padding: '7px 12px' }} onClick={clearSeasonPreview}>
+                          {litPreview ? 'Aplicar tiempo actual' : 'Re-sincronizar con el calendario'}
+                        </button>
+                      )}
+                      <button
+                        className={`btn-premium ${autoMode ? 'btn-premium-outline' : 'btn-premium-gold'}`}
+                        style={{ fontSize: '11px', padding: '7px 12px' }}
+                        onClick={toggleAutoMode}
+                      >
+                        {autoMode ? 'Usar colores manuales' : '⚙ Automático por tiempo litúrgico'}
+                      </button>
+                    </div>
+                  </div>
+                  {autoMode ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(136px, 1fr))', gap: '12px' }}>
+                      {Object.values(LIT_SEASONS).map((s, si) => {
+                        const isCurrent = s.key === curSeason.key && !litPreview;
+                        const isPreviewed = litPreview === s.key;
+                        return (
+                          <button
+                            key={s.key}
+                            className={`liturgical-preset-btn ap-preset-btn pop-in${isCurrent || isPreviewed ? ' lit-active' : ''}`}
+                            style={{ animationDelay: `${0.12 + si * 0.06}s` }}
+                            onClick={() => applySeasonPreview(s.key)}
+                            title={isCurrent ? `Tiempo litúrgico actual (${curSeason.label})` : `Vista previa: ${s.label}`}
+                          >
+                            {(isCurrent || isPreviewed) && <span className="ap-preset-badge">{isCurrent ? 'HOY' : 'VISTA'}</span>}
+                            <span className="ap-preset-spheres" aria-hidden="true">
+                              <i style={{ background: s.navy }} />
+                              <i style={{ background: s.gold }} />
+                            </span>
+                            <span className="premium-label" style={{ fontSize: '10px' }}>{s.label}</span>
+                            <span className="ap-preset-mini" style={{ background: `linear-gradient(135deg, ${s.navy} 62%, ${s.gold} 62%)` }} aria-hidden="true" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
                     {[
                       { label: 'T. Ordinario',  gold: '#C8973A', navy: '#1A3B2B' },
@@ -2665,6 +2741,7 @@ function AdminContent() {
                       </button>
                     ))}
                   </div>
+                  )}
 
                   {/* ARMÓNICAS ALEATORIAS */}
                   <div style={{ borderTop: '1px solid var(--gold-pale)', marginTop: '18px', paddingTop: '16px' }}>

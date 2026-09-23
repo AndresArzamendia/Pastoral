@@ -172,6 +172,7 @@ export interface Branding {
 export interface ThemePalette {
   gold: string;
   navy: string;
+  mode?: 'auto' | 'manual';
 }
 
 export interface PageStat { 
@@ -390,6 +391,7 @@ export const DEFAULT_USERS: User[] = [
 export const DEFAULT_THEME_PALETTE: ThemePalette = {
   gold: '#C8973A',
   navy: '#1A2744',
+  mode: 'auto',
 };
 
 export const DEFAULT_STATS: PageStat[] = [

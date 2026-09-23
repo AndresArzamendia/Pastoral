@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { store } from '@/lib/pjlStore';
 import { fetchStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
+import { liturgicalSeason, LIT_SEASONS } from '@/lib/liturgy';
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = (hex || '').replace('#', '');
@@ -27,39 +28,60 @@ function readableTextOn(hex: string): string {
 
 export default function ThemeLoader() {
   useEffect(() => {
-    const applyTheme = (themeOverride?: { gold: string; navy: string } | null) => {
+    const applyTheme = (themeOverride?: { gold: string; navy: string; mode?: 'auto' | 'manual' } | null) => {
       const theme = themeOverride || store.theme.get();
-      if (theme) {
-        const navy = theme.navy || '#1A2744';
-        const gold = theme.gold || '#C8973A';
-        const root = document.documentElement.style;
+      const palette = theme || null;
 
-        /* Colores base */
-        root.setProperty('--gold', gold);
-        root.setProperty('--navy', navy);
+      /* Auto: el sitio se tiñe según el tiempo litúrgico actual. Manual:
+         usa los colores elegidos en el panel (los temas guardados sin
+         'mode' se tratan como manual para respetar personalizaciones). */
+      let previewKey: string | null = null;
+      try { previewKey = localStorage.getItem('pjl_lit_preview'); } catch { /* ignore */ }
+      const realSeason = liturgicalSeason(new Date());
+      const season = previewKey && LIT_SEASONS[previewKey as keyof typeof LIT_SEASONS]
+        ? LIT_SEASONS[previewKey as keyof typeof LIT_SEASONS]
+        : realSeason;
+      const naval = palette && palette.mode === 'auto' ? season : null;
+      const gold = palette && palette.mode !== 'auto' ? palette.gold : naval ? naval.gold : '#C8973A';
+      const navy = palette && palette.mode !== 'auto' ? palette.navy : naval ? naval.navy : '#1A2744';
 
-        /* Texto que se lee bien sobre cada superficie (auto-contraste) */
-        root.setProperty('--on-navy', readableTextOn(navy));
-        root.setProperty('--on-gold', readableTextOn(gold));
-        root.setProperty('--on-cream', '#1c1a16');
+      const root = document.documentElement.style;
 
-        /* Paleta derivada automáticamente: sombras y tintes armoniosos */
-        root.setProperty('--navy-mid', mixColor(navy, '#ffffff', 0.12));
-        root.setProperty('--navy-light', mixColor(navy, '#ffffff', 0.22));
-        root.setProperty('--navy-dark', shade(navy, 0.18));
-        root.setProperty('--gold-light', tint(gold, 0.28));
-        root.setProperty('--gold-pale', tint(gold, 0.86));
-        root.setProperty('--gold-deep', shade(gold, 0.22));
+      /* Colores base */
+      root.setProperty('--gold', gold);
+      root.setProperty('--navy', navy);
 
-        /* Superficies neutrales derivadas del navy+gold para que todo sea cohesivo */
-        const cream = tint(mixColor(navy, gold, 0.08), 0.84);
-        root.setProperty('--cream', cream);
-        root.setProperty('--surface', tint(cream, 0.65));
-        root.setProperty('--white', tint(cream, 0.9));
+      /* Texto que se lee bien sobre cada superficie (auto-contraste) */
+      root.setProperty('--on-navy', readableTextOn(navy));
+      root.setProperty('--on-gold', readableTextOn(gold));
+      root.setProperty('--on-cream', '#1c1a16');
+
+      /* Paleta derivada automáticamente: sombras y tintes armoniosos */
+      root.setProperty('--navy-mid', mixColor(navy, '#ffffff', 0.12));
+      root.setProperty('--navy-light', mixColor(navy, '#ffffff', 0.22));
+      root.setProperty('--navy-dark', shade(navy, 0.18));
+      root.setProperty('--gold-light', tint(gold, 0.28));
+      root.setProperty('--gold-pale', tint(gold, 0.86));
+      root.setProperty('--gold-deep', shade(gold, 0.22));
+
+      /* Superficies neutrales derivadas del navy+gold para que todo sea cohesivo */
+      const cream = tint(mixColor(navy, gold, 0.08), 0.84);
+      root.setProperty('--cream', cream);
+      root.setProperty('--surface', tint(cream, 0.65));
+      root.setProperty('--white', tint(cream, 0.9));
+
+      /* Etiqueta del tiempo litúrgico activo, para el panel y depuración */
+      const el = document.documentElement;
+      if (naval) {
+        el.setAttribute('data-lit-season', naval.key);
+        el.setAttribute('data-lit-label', naval.label);
+      } else {
+        el.removeAttribute('data-lit-season');
+        el.removeAttribute('data-lit-label');
       }
     };
 
-    const syncTheme = (theme: { gold: string; navy: string } | null) => {
+const syncTheme = (theme: { gold: string; navy: string; mode?: 'auto' | 'manual' } | null) => {
       if (!theme) return;
       try {
         localStorage.setItem('pjl_theme', JSON.stringify(theme));
@@ -71,9 +93,19 @@ export default function ThemeLoader() {
 
     applyTheme();
 
-    void fetchStoreValue<{ gold: string; navy: string }>('theme')
+void fetchStoreValue<{ gold: string; navy: string; mode?: 'auto' | 'manual' }>('theme')
       .then(theme => syncTheme(theme))
       .catch(() => {});
+
+    // En modo auto, recalcula al cambiar de día (medianoche) o de tiempo litúrgico.
+    let lastKey = liturgicalSeason(new Date()).key + '|' + new Date().toDateString();
+    const dayTimer = window.setInterval(() => {
+      const key = liturgicalSeason(new Date()).key + '|' + new Date().toDateString();
+      if (key !== lastKey) {
+        lastKey = key;
+        applyTheme();
+      }
+    }, 60000);
 
     // Listen to localStorage changes across tabs, or custom events from admin panel
     const handleStorage = (e: StorageEvent) => {
@@ -84,9 +116,9 @@ export default function ThemeLoader() {
 
     // Custom event to handle in-tab immediate updates
     const handleCustomChange = () => applyTheme();
-    const unsubscribeRemote = subscribeStoreChanges((key, value) => {
+const unsubscribeRemote = subscribeStoreChanges((key, value) => {
       if (key === 'theme' && value && typeof value === 'object') {
-        syncTheme(value as { gold: string; navy: string });
+        syncTheme(value as { gold: string; navy: string; mode?: 'auto' | 'manual' });
       }
     });
 
@@ -95,6 +127,7 @@ export default function ThemeLoader() {
 
     return () => {
       unsubscribeRemote();
+      window.clearInterval(dayTimer);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('pjl_theme_update', handleCustomChange);
     };
