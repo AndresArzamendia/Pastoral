@@ -711,6 +711,7 @@ const [newsSearch, setNewsSearch] = useState('');
     if (skipSplash) {
       try { sessionStorage.removeItem('pjl_skip_splash'); } catch { /* ignore */ }
       root.classList.remove('show-splash');
+      root.classList.add('no-hero-intro');
       splash?.remove();
       setNavEntered(true);
       setSplashDone(true);
@@ -725,6 +726,7 @@ const [newsSearch, setNewsSearch] = useState('');
     // revelar todo de inmediato.
     if (!splash || reduced) {
       liftCurtain();
+      root.classList.add('no-hero-intro');
       splash?.remove();
       setNavEntered(true);
       setSplashDone(true);
@@ -758,8 +760,11 @@ const [newsSearch, setNewsSearch] = useState('');
       try {
         document.getElementById('splash-pjl')?.classList.add('is-leaving');
         root.classList.add('pjl-reveal');
+        root.classList.add('hero-ready');
         root.classList.remove('show-splash');
-        window.setTimeout(() => setNavEntered(true), 240);
+        // El hero se "ensambla" EN EL MISMO instante en que el splash empieza
+        // a fundirse: una sola coreografía continua, sin cortes ni re-colocado.
+        setNavEntered(true);
       } catch { /* ignore */ }
       window.setTimeout(() => { root.classList.remove('pjl-reveal'); }, 5200);
       window.setTimeout(() => {
@@ -1505,20 +1510,25 @@ const [newsSearch, setNewsSearch] = useState('');
               </div>
 
               {/* Content layer — always above images */}
-              <div className="container hero-content-container">
+              <div className="container hero-content-container hero-in">
+                <div className="hero-welcome reveal">
+                  <span className="hero-welcome-ico" aria-hidden="true">🔥</span>
+                  <span className="hero-welcome-txt">¡Bienvenido, joven!</span>
+                  <span className="hero-welcome-ico hero-welcome-ico-spark" aria-hidden="true">✨</span>
+                </div>
                 {liveHeroImages.length > 0 && (
-                  <div className="reveal hero-slide-meta" style={{ animationDelay: '0.1s' }}>
+                  <div className="hero-slide-meta">
                     Slide {liveHeroIndex + 1} de {liveHeroImages.length}
                   </div>
                 )}
                 <span className="hero-tag reveal">{siteContent.heroTag}</span>
-                 <h2 className="reveal" style={{ animationDelay: '0.2s', marginBottom: '20px', lineHeight: 1.05, color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
+                 <h2 className="reveal" style={{ marginBottom: '20px', lineHeight: 1.05, color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
                    <span dangerouslySetInnerHTML={{ __html: siteContent.heroTitle || '' }} />
                  </h2>
-                 <p className="reveal" style={{ animationDelay: '0.4s', marginBottom: '35px', fontSize: '1.15rem', maxWidth: '580px', lineHeight: '1.75', color: 'rgba(255,255,255,0.85)' }}>
+                 <p className="reveal" style={{ marginBottom: '35px', fontSize: '1.15rem', maxWidth: '580px', lineHeight: '1.75', color: 'rgba(255,255,255,0.85)' }}>
                    {siteContent.heroText}
                  </p>
-                 <div className="reveal hero-cta-group" style={{ animationDelay: '0.6s', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                 <div className="reveal hero-cta-group" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
                    {siteContent.heroBtnText ? (
                      <button className="btn-pjl hero-primary-cta" style={{ padding: '15px 40px', color: 'var(--navy)', fontWeight: 700 }} onClick={() => navigate(siteContent.heroBtnLink?.replace('/', '') || 'contacto')}>{siteContent.heroBtnText}</button>
                    ) : (

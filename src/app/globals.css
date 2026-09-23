@@ -13233,3 +13233,126 @@ html:not([data-splash-variant]) .sv-dawn {
   .fact-body,
   .fact-loading-spin { animation: none !important; transition: none !important; }
 }
+
+/* ============================================================
+   NUEVA ENTRADA DE INICIO (home)
+   Una SOLA coreografía continua splash → hero en vez del
+   «borrar todo y volver a colocar»: mientras el velo del splash
+   se funde y su escena de fondo se expande hacia el hero, las
+   piezas del hero se ENSAMBLAN debajo (badge de bienvenida →
+   lema → título → texto → CTA) con delays escalonados.
+   El logo, el lema y la barra de carga del splash se mantienen
+   intactos y la barra sigue sincronizada con el fondo (~5.5s,
+   igual que la salida). El resto de la página no participa.
+   ============================================================ */
+
+/* Mano a mano del fondo: la escena del splash (amanecer/llama) se
+   expande y difumina conforme sale, cediendo el testigo al hero. */
+.splash-screen.is-leaving .sv-scene {
+  transform: scale(1.07);
+  filter: blur(7px) brightness(1.12);
+  transition: transform 0.9s ease, filter 0.9s ease;
+}
+
+/* Ensamblaje del hero: las piezas nacen ocultas y solo se animan
+   cuando el splash arranca su salida (html.pjl-nav-entered). */
+html.hero-ready .hero-in > * {
+  opacity: 0;
+  animation: heroPiece 0.8s cubic-bezier(0.22, 0.8, 0.2, 1) both;
+}
+@keyframes heroPiece {
+  from { opacity: 0; transform: translateY(26px); filter: blur(6px) brightness(1.18); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0) brightness(1); }
+}
+html.hero-ready .hero-in > .hero-welcome   { animation-delay: 0.02s; }
+html.hero-ready .hero-in > .hero-slide-meta { animation-delay: 0.14s; }
+html.hero-ready .hero-in > .hero-tag       { animation-delay: 0.2s; }
+html.hero-ready .hero-in > h2              { animation-delay: 0.3s; }
+html.hero-ready .hero-in > p               { animation-delay: 0.5s; }
+html.hero-ready .hero-in > .hero-cta-group { animation-delay: 0.66s; }
+html.hero-ready .hero-in > .hero-controls  { animation-delay: 0.9s; }
+html.hero-ready .hero-in > h2 { animation-name: heroPiece, heroTitleShine; animation-duration: 0.8s, 1.6s; }
+@keyframes heroTitleShine {
+  from { text-shadow: 0 0 0 transparent; }
+  45%  { text-shadow: 0 0 32px rgba(233, 200, 124, 0.55); }
+  to   { text-shadow: 0 0 0 transparent; }
+}
+
+/* Píldora «¡Bienvenido, joven!»: entrada con rebote + anillo pulsante */
+.hero-welcome {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: fit-content;
+  padding: 8px 20px 8px 15px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(200, 151, 58, 0.3), rgba(255, 243, 214, 0.12));
+  border: 1px solid rgba(228, 183, 102, 0.5);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #f7e8bd;
+  font-weight: 800;
+  font-size: clamp(13px, 2vw, 17px);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.hero-welcome::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 1px solid rgba(228, 183, 102, 0.35);
+  animation: welcomeRing 2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes welcomeRing {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 0; }
+}
+.hero-welcome-ico {
+  font-size: 1.3em;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(233, 200, 124, 0.6));
+  animation: welcomePulse 1.6s ease-in-out infinite;
+}
+.hero-welcome-ico-spark { animation-delay: 0.4s; }
+@keyframes welcomePulse {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.22) rotate(7deg); }
+}
+
+/* Responsivo: la píldora escala, el desenfoque pesado se aligera en móvil */
+@media (max-width: 768px) {
+  .hero-welcome {
+    font-size: clamp(11px, 3.4vw, 14px);
+    padding: 7px 16px 7px 12px;
+    margin-bottom: 14px;
+    gap: 8px;
+  }
+}
+
+/* Rutas de salto (navegación interna / reduced-motion / sin splash):
+   el hero se muestra al instante, la auto-intro no se repite. */
+html.no-hero-intro .hero-in > * {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.hero-ready .hero-in > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .splash-screen.is-leaving .sv-scene {
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+}
