@@ -6715,7 +6715,10 @@ html:not(.splash-ready) .sx-scene * {
   100% { opacity: 0; filter: blur(18px); transform: scale(1.08); }
 }
 @keyframes splashIn {
-  from { opacity: 0; }
+  /* Parte totalmente opaco: así el primer pintado ya está 100% cubierto por
+     la pantalla de carga y NADA (campana, navbar) puede asomarse detrás
+     mientras el splash hace su fundido de entrada. */
+  from { opacity: 1; }
   to { opacity: 1; }
 }
 
@@ -6727,7 +6730,9 @@ html:not(.splash-ready) .sx-scene * {
   text-align: center;
   padding: 24px;
   max-width: min(92vw, 780px);
-  visibility: hidden;
+  /* Visible por defecto: el contenido de la intro (logo, título, barra)
+     nace mostrado junto con el fondo, sin esperar clases ni JS. */
+  visibility: visible;
   transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.55s ease;
 }
 html.show-splash .splash-content { visibility: visible; }

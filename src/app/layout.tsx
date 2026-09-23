@@ -127,6 +127,11 @@ export default function RootLayout({
               /* Seguridad: si el nodo del splash ya no está en el DOM, el
                  contenido se muestra aunque el velo quedara huérfano. */
               'body:not(:has(> #splash-pjl))>*:not(script):not(style):not(noscript){visibility:visible!important}',
+              /* La campana de notificaciones se auto-fuerza visible en móvil
+                 (visibility/opacity !important en globals.css). Mientras el
+                 splash exista en el DOM, se oculta sí o sí: nunca puede verse
+                 el icono antes/encima de la intro. */
+              'body:has(> #splash-pjl) .nav-content .notif-bell{visibility:hidden!important;opacity:0!important}',
               '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important}}',
               '@media (prefers-reduced-motion:reduce){.top-nav .brand-logo-wrap,.top-nav .brand-text,.top-nav .nav-links .nav-item{opacity:1 !important}}',
             ].join(''),
