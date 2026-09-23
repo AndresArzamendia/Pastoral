@@ -1197,28 +1197,6 @@ window.setTimeout(() => {
       {/* 1. NAVBAR REFINADA */}
       <nav className={`top-nav ${navScrolled ? 'nav-scrolled' : ''} ${navEntered ? 'nav-entered' : ''}`}>
         <div className="container nav-content">
-          <div
-            className="logo-area brand-lockup"
-            role="button"
-            tabIndex={0}
-            aria-label="PJL — Ir al inicio"
-            onClick={() => navigate('home')}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('home'); } }}
-          >
-            <span className="brand-logo-wrap">
-              <span className="brand-logo-ring" aria-hidden="true"></span>
-              <span className="brand-logo-halo" aria-hidden="true"></span>
-              {branding.mainLogo ? (
-                <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '60px', width: '60px' }} alt="Logotipo Principal PJL" />
-              ) : (
-                <span className="brand-logo brand-logo-fallback">†</span>
-              )}
-            </span>
-            <span className="brand-text">
-              <h1>PJL</h1>
-              <p>Pastoral Juvenil Luqueña</p>
-            </span>
-          </div>
           <button
             className={`mobile-menu-toggle ${isMobileMenuOpen ? 'active' : ''}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -1364,16 +1342,6 @@ window.setTimeout(() => {
       )}
       <div className={`mobile-nav-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="drawer-header">
-          <div className="logo-area brand-lockup" style={{ cursor: 'pointer' }} onClick={() => { navigate('home'); setIsMobileMenuOpen(false); }}>
-            <span className="brand-logo-wrap">
-              <span className="brand-logo-halo" aria-hidden="true"></span>
-              {branding.mainLogo ? <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '50px', width: '50px' }} alt="Logotipo Principal PJL" /> : <span className="brand-logo brand-logo-fallback" style={{ fontSize: '24px' }}>†</span>}
-            </span>
-            <div>
-              <h2>PJL</h2>
-              <p>Pastoral Juvenil Luqueña</p>
-            </div>
-          </div>
           <button className="drawer-close" onClick={() => setIsMobileMenuOpen(false)} aria-label="Cerrar menú">✕</button>
         </div>
         <div className="drawer-body">

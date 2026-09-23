@@ -117,7 +117,7 @@ export default function RootLayout({
               '@keyframes pjlPageIn{from{opacity:0}to{opacity:1}}',
               'html.show-splash body:not(:has(> #splash-pjl))>*{visibility:visible!important}',
               '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}html.show-splash body>*:not(#splash-pjl){visibility:visible!important}}',
-              '@media (prefers-reduced-motion:reduce){.top-nav .brand-logo-wrap,.top-nav .brand-text,.top-nav .nav-links .nav-item{opacity:1 !important}}',
+              '@media (prefers-reduced-motion:reduce){.top-nav .nav-links .nav-item{opacity:1 !important}}',
             ].join(''),
           }}
         />
@@ -207,6 +207,10 @@ export default function RootLayout({
               <span className="splash-flame" aria-hidden="true">🕊️</span>
               <em>«Yo soy la luz del mundo»</em>
               <cite>Jn 8,12</cite>
+            </p>
+            <p className="splash-tagline splash-motto">
+              <span className="splash-flame" aria-hidden="true">🔥</span>
+              <em>«Avivando la llama de Cristo en tu corazón»</em>
             </p>
             <div className="splash-loader">
               <div className="splash-bar"><span className="splash-bar-fill"></span><span className="splash-bar-shine"></span></div>

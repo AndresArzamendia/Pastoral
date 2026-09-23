@@ -240,7 +240,7 @@ html.pjl-nav-entered .reveal {
   position: relative;
   z-index: 1;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 16px;
   width: 100%;
@@ -2719,7 +2719,7 @@ input, textarea { cursor: text; }
 
   .nav-content {
     display: flex !important;
-    justify-content: space-between !important;
+    justify-content: flex-end !important;
     align-items: center !important;
     padding: 0 20px !important;
     flex-direction: row !important;
@@ -3375,7 +3375,7 @@ input:checked + .pjl-slider:before {
 /* Header within Drawer */
 .drawer-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 24px 20px;
   border-bottom: 1px solid rgba(200, 151, 58, 0.2);
@@ -6814,6 +6814,17 @@ html:not(.splash-ready) .sv-scene * {
 html[data-splash-variant="b"] .sv-t-b,
 html[data-splash-variant="c"] .sv-t-c,
 html:not([data-splash-variant]) .sv-t-b { display: flex; }
+/* Lema principal: siempre presente en la intro */
+.splash-motto {
+  font-size: clamp(13px, 2.2vw, 18px);
+  letter-spacing: .04em;
+  color: #f4e3b0;
+  margin-top: -6px;
+  margin-bottom: clamp(10px, 3vh, 22px);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .5);
+  animation-delay: 1.9s;
+}
+.splash-motto em { font-style: italic; }
 .splash-tagline cite {
   font-style: normal;
   font-size: .72em;
@@ -8873,13 +8884,13 @@ html:not([data-splash-variant]) .sv-dawn {
   animation: hazeDrift 12s ease-in-out infinite alternate;
 }
 @keyframes hazeDrift { to { transform: translateX(5vw); } }
-/* Cruz de luz en el cielo del amanecer */
+/* Cruz de luz en el cielo del amanecer (cruz latina, no símbolo +) */
 .dawn-cross {
   position: absolute;
   left: 50%;
-  top: 7%;
-  width: clamp(110px, 22vw, 190px);
-  aspect-ratio: 1;
+  top: 6%;
+  width: clamp(96px, 19vw, 170px);
+  aspect-ratio: 0.84;
   transform: translateX(-50%);
   opacity: 0;
   filter: drop-shadow(0 0 16px rgba(255, 224, 160, .6));
@@ -8889,11 +8900,25 @@ html:not([data-splash-variant]) .sv-dawn {
 .dawn-cross::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, transparent 46%, rgba(255, 236, 193, .9) 46% 54%, transparent 54%);
+  background: linear-gradient(0deg, rgba(255, 236, 193, .35), rgba(255, 244, 214, .95) 48%, rgba(255, 236, 193, .35));
+  border-radius: 3px;
   animation: crossPulse 5s ease-in-out 2.6s infinite alternate;
 }
-.dawn-cross::after { transform: rotate(90deg); animation-delay: .4s; }
+/* Brazo vertical, largo */
+.dawn-cross::before {
+  left: 40%;
+  right: 40%;
+  top: 0;
+  bottom: 9%;
+}
+/* Brazo horizontal, corto y arriba */
+.dawn-cross::after {
+  left: 12%;
+  right: 12%;
+  top: 9%;
+  bottom: 64%;
+  animation-delay: .4s;
+}
 @keyframes crossReveal {
   from { opacity: 0; transform: translateX(-50%) scale(.55); filter: blur(7px); }
   to   { opacity: .9; transform: translateX(-50%) scale(1);  filter: blur(0); }
