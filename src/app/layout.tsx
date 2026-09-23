@@ -128,10 +128,12 @@ export default function RootLayout({
                  contenido se muestra aunque el velo quedara huérfano. */
               'body:not(:has(> #splash-pjl))>*:not(script):not(style):not(noscript){visibility:visible!important}',
               /* La campana de notificaciones se auto-fuerza visible en móvil
-                 (visibility/opacity !important en globals.css). Mientras el
-                 splash exista en el DOM, se oculta sí o sí: nunca puede verse
-                 el icono antes/encima de la intro. */
-              'body:has(> #splash-pjl) .nav-content .notif-bell{visibility:hidden!important;opacity:0!important}',
+                 (visibility/opacity !important en globals.css). Se oculta SOLO
+                 mientras el splash cubre la pantalla (nodo presente y sin
+                 'is-leaving'); en cuanto empieza la salida de la intro vuelve a
+                 mostrarse junto a las 3 barras, aunque el nodo tarde en borrarse.
+                 Con movimiento reducido nunca se oculta. */
+              '@media (prefers-reduced-motion: no-preference){body:has(> #splash-pjl:not(.is-leaving)) .nav-content .notif-bell{visibility:hidden!important;opacity:0!important}}',
               '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important}}',
               '@media (prefers-reduced-motion:reduce){.top-nav .brand-logo-wrap,.top-nav .brand-text,.top-nav .nav-links .nav-item{opacity:1 !important}}',
             ].join(''),
