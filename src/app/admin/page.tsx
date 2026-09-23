@@ -431,6 +431,12 @@ function AdminContent() {
   const searchParams = useSearchParams();
   const modParam = searchParams.get('mod') as Module || 'dashboard';
 
+  useEffect(() => {
+    document.documentElement.classList.add('no-splash');
+    document.documentElement.classList.remove('show-splash', 'pjl-reveal', 'splash-ready');
+    document.getElementById('splash-pjl')?.remove();
+  }, []);
+
   // --- AUTH ---
   const [loggedIn, setLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);

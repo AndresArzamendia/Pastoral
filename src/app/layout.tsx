@@ -108,6 +108,7 @@ export default function RootLayout({
                  Nada de sobreescribir opacity a 1 aquí (causaba doble refresco:
                  flash visible -> re-animación desde 0). */
               'html.show-splash:not(.pjl-reveal) body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
+              'html:not(.show-splash) #splash-pjl{display:none!important}',
               'html.pjl-reveal body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important;animation:pjlPageIn .55s ease-out both}',
               /* IMPORTANTE: el navbar NO debe heredar pjlPageIn. Si lo recibe,
                  entraría con el fundido del contenido y LUEGO otra vez con su
