@@ -1172,25 +1172,6 @@ window.setTimeout(() => {
         </div>
       )}
 
-      {/* BRANDING WATERMARK */}
-      {branding.logoWatermark && branding.mainLogo && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '800px',
-          height: '800px',
-          backgroundImage: `url(${branding.mainLogo})`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          opacity: 0.02,
-          pointerEvents: 'none',
-          zIndex: -1
-        }}></div>
-      )}
-
       {/* DATO DEL DÍA — curiosidades católicas de fuentes oficiales (vatican.va) */}
       <FactWidget />
 
@@ -2100,11 +2081,6 @@ window.setTimeout(() => {
                 <h2 className="serif nosotros-hero-title">{siteContent.instiTitulo || 'Nuestra Identidad'}</h2>
                 <div className="nosotros-hero-divider"><span className="dot">†</span></div>
                 <p className="nosotros-hero-intro">{siteContent.nosotrosIntro || 'Somos la Pastoral Juvenil Luqueña, una comunidad eclesial viva...'}</p>
-                <div className="nosotros-lema">
-                  <span className="q">“</span>
-                  {siteContent.nosotrosLema || '«Avivando la llama de Cristo en tu corazón»'}
-                  <span className="q">”</span>
-                </div>
               </div>
 
               {/* CIFRAS / LOGROS */}
