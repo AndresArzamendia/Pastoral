@@ -240,7 +240,7 @@ html.pjl-nav-entered .reveal {
   position: relative;
   z-index: 1;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 16px;
   width: 100%;
@@ -2719,7 +2719,7 @@ input, textarea { cursor: text; }
 
   .nav-content {
     display: flex !important;
-    justify-content: flex-end !important;
+    justify-content: space-between !important;
     align-items: center !important;
     padding: 0 20px !important;
     flex-direction: row !important;
@@ -3375,7 +3375,7 @@ input:checked + .pjl-slider:before {
 /* Header within Drawer */
 .drawer-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 24px 20px;
   border-bottom: 1px solid rgba(200, 151, 58, 0.2);
