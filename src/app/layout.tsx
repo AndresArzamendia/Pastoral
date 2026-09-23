@@ -182,8 +182,7 @@ export default function RootLayout({
               <span key={i} className="flame-spark" style={{ left: `${30 + (i % 6) * 6.5}%`, animationDelay: `${(i * 0.43) % 3.4}s`, animationDuration: `${3.2 + (i % 4) * 0.7}s` }} />
             ))}
           </div>
-        </div>
-        <div className="splash-content">
+          <div className="splash-content">
             <div className="splash-logo-wrap">
               <span className="splash-ring" aria-hidden="true"></span>
               <span className="splash-halo" aria-hidden="true"></span>
@@ -217,6 +216,7 @@ export default function RootLayout({
               <p className="splash-loading-text">Cargando<span className="splash-dots"><i>.</i><i>.</i><i>.</i></span></p>
             </div>
           </div>
+        </div>
         <noscript><style>{"#splash-pjl{display:none!important}"}</style></noscript>
         {/* Inyecta el logo oficial en el splash ANTES de la hidratación para
             evitar que se vea el logo por defecto un instante. */}
