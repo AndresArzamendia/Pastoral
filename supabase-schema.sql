@@ -35,6 +35,15 @@ for each row execute function public.set_updated_at();
 
 alter table public.pjl_store enable row level security;
 
+-- Habilita realtime (empuje en vivo) para pjl_store y user_profiles.
+-- Las actualizaciones de un dispositivo se ven en los demás al instante.
+do $$
+begin
+  alter publication supabase_realtime add table public.pjl_store, public.user_profiles;
+exception
+  when duplicate_object then null;
+end $$;
+
 drop policy if exists "Public read pjl_store" on public.pjl_store;
 create policy "Public read pjl_store"
 on public.pjl_store

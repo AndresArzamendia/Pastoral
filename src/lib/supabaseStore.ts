@@ -50,6 +50,32 @@ export async function fetchAllStoreValues<T>(keys: string[]): Promise<Record<str
   }, {});
 }
 
+export async function fetchAllStoreRows(keys: string[]): Promise<Array<{ key: string; value: unknown; updatedAt?: string | null }>> {
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch (e) {
+    console.warn('fetchAllStoreRows: Supabase not configured:', (e as Error).message);
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from(STORE_TABLE)
+    .select('key, value, updated_at')
+    .in('key', keys);
+
+  if (error) {
+    console.error('Supabase fetchAllStoreRows error:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    key: row.key,
+    value: row.value,
+    updatedAt: row.updated_at ?? null,
+  }));
+}
+
 export async function upsertStoreValue(key: string, value: unknown): Promise<boolean> {
   let supabase;
   try {
@@ -72,11 +98,11 @@ export async function upsertStoreValue(key: string, value: unknown): Promise<boo
 }
 
 type SupabaseStoreChangePayload = {
-  new?: { key?: string; value?: unknown };
-  old?: { key?: string; value?: unknown };
+  new?: { key?: string; value?: unknown; updated_at?: string | null };
+  old?: { key?: string; value?: unknown; updated_at?: string | null };
 };
 
-export function subscribeStoreChanges(onChange: (key: string, value: unknown) => void): () => void {
+export function subscribeStoreChanges(onChange: (key: string, value: unknown, updatedAt?: string | null) => void): () => void {
   let supabase;
   try {
     supabase = getSupabaseClient();
@@ -93,7 +119,8 @@ export function subscribeStoreChanges(onChange: (key: string, value: unknown) =>
       (payload: SupabaseStoreChangePayload) => {
         const key = payload.new?.key ?? payload.old?.key;
         const value = payload.new?.value ?? payload.old?.value;
-        if (key) onChange(key, value);
+        const updatedAt = payload.new?.updated_at ?? payload.old?.updated_at ?? null;
+        if (key) onChange(key, value, updatedAt);
       }
     );
 

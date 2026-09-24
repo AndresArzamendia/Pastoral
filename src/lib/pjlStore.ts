@@ -1,7 +1,7 @@
 // ─── SHARED PJL STORE ────────────────────────────────────────────────────────
 // Admin writes here → main page reads here.
 // All keys are stored in localStorage so changes persist across pages.
-import { fetchAllStoreValues, subscribeStoreChanges, upsertStoreValue } from './supabaseStore';
+import { fetchAllStoreRows, subscribeStoreChanges, upsertStoreValue } from './supabaseStore';
 
 export interface NewsItem     { id: number; title: string; body: string; date: string; published: boolean; calendarUrl?: string; calendarEventId?: string; calendarSyncStatus?: 'pending' | 'synced' | 'error'; }
 export interface Activity     { id: number; title: string; date: string; category: string; active: boolean; inscription: boolean; description?: string; calendarUrl?: string; calendarEventId?: string; calendarSyncStatus?: 'pending' | 'synced' | 'error'; icsUid?: string; }
@@ -508,9 +508,19 @@ function journalUpdate(key: string) {
   } catch { /* ignore */ }
 }
 
+function getLocalTs(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try { return localStorage.getItem('pjl_' + key + '_ts') ?? null; } catch { return null; }
+}
+
+function setLocalTs(key: string, ts: string) {
+  try { localStorage.setItem('pjl_' + key + '_ts', ts); } catch { /* ignore */ }
+}
+
 function save<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem('pjl_' + key, JSON.stringify(value));
+  setLocalTs(key, new Date().toISOString());
   window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
   upsertStoreValue(key, value).catch(() => {
     // Si Supabase no está disponible, seguimos guardando localmente.
@@ -521,9 +531,13 @@ function save<T>(key: string, value: T): void {
 async function syncRemoteValues() {
   if (typeof window === 'undefined') return;
   try {
-    const remoteValues = await fetchAllStoreValues<unknown>(STORE_KEYS);
-    Object.entries(remoteValues).forEach(([key, value]) => {
+    const rows = await fetchAllStoreRows(STORE_KEYS);
+    rows.forEach(({ key, value, updatedAt }) => {
       if (value === null || value === undefined) return;
+      // Protege escrituras locales recientes: el valor remoto solo se aplica
+      // si fue actualizado DESPUÉS de nuestro último cambio local.
+      const localTs = getLocalTs(key);
+      if (localTs && updatedAt && updatedAt < localTs) return;
       const current = localStorage.getItem('pjl_' + key);
       let nextValue = value;
       if (key === 'stats' && Array.isArray(value)) {
@@ -537,7 +551,11 @@ async function syncRemoteValues() {
       const payload = JSON.stringify(nextValue);
       if (current !== payload) {
         localStorage.setItem('pjl_' + key, payload);
+        if (updatedAt) setLocalTs(key, updatedAt);
         window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
+      } else if (updatedAt) {
+        // Contenido idéntico: igualmente sembramos el timestamp conocido.
+        setLocalTs(key, updatedAt);
       }
     });
   } catch (error) {
@@ -548,9 +566,12 @@ async function syncRemoteValues() {
 function initializeRemoteStoreSync() {
   if (typeof window === 'undefined') return;
   setTimeout(syncRemoteValues, 200);
-  const unsubscribe = subscribeStoreChanges((key, value) => {
+  const poll = setInterval(syncRemoteValues, 45000);
+  const unsubscribe = subscribeStoreChanges((key, value, updatedAt) => {
     if (!key) return;
     try {
+      const localTs = getLocalTs(key);
+      if (localTs && updatedAt && updatedAt < localTs) return;
       const current = localStorage.getItem('pjl_' + key);
       let nextValue = value;
       if (key === 'stats' && Array.isArray(value)) {
@@ -560,6 +581,7 @@ function initializeRemoteStoreSync() {
       const payload = JSON.stringify(nextValue);
       if (current !== payload) {
         localStorage.setItem('pjl_' + key, payload);
+        if (updatedAt) setLocalTs(key, updatedAt);
         window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
       }
     } catch {
@@ -567,7 +589,10 @@ function initializeRemoteStoreSync() {
     }
   });
 
-  window.addEventListener('beforeunload', () => unsubscribe());
+  window.addEventListener('beforeunload', () => {
+    unsubscribe();
+    clearInterval(poll);
+  });
 }
 
 initializeRemoteStoreSync();
