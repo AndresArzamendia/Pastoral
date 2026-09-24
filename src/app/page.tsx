@@ -2340,7 +2340,7 @@ const [newsSearch, setNewsSearch] = useState('');
                 </div>
                 <div style={{ borderRadius: '16px', overflow: 'hidden', border: '2px solid var(--gold-pale)', boxShadow: '0 15px 50px rgba(0,0,0,0.07)' }}>
                   <ZonaMap
-                    chapels={liveChapels.map(c => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, zonaId: c.zonaId, estadoComunidad: c.estadoComunidad, comunidadNombre: c.comunidadNombre }))}
+                    chapels={liveChapels.map(c => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, zonaId: c.zonaId, estadoComunidad: c.estadoComunidad, comunidadNombre: c.comunidadNombre, address: c.address, locationUrl: c.locationUrl, photo: c.photo }))}
                     selectedZone={null}
                     zoneColors={zoneColors}
                     polygons={{
@@ -2611,7 +2611,10 @@ const [newsSearch, setNewsSearch] = useState('');
                           zonaId: c.zonaId, 
                           estadoComunidad: c.estadoComunidad, 
                           comunidadNombre: c.comunidadNombre,
-                          markerColor: c.markerColor
+                          markerColor: c.markerColor,
+                          address: c.address, 
+                          locationUrl: c.locationUrl, 
+                          photo: c.photo
                         }))}
                         selectedZone={selectedZone}
                         zoneColors={zoneColors}

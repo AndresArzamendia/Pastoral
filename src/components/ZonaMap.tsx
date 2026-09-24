@@ -11,6 +11,9 @@ export interface ChapelMapPoint {
   estadoComunidad?: string;
   comunidadNombre?: string;
   markerColor?: string;
+  address?: string;
+  locationUrl?: string;
+  photo?: string;
 }
 
 interface ZonaMapProps {
@@ -104,15 +107,30 @@ export default function ZonaMap({
   const zoomControlRef = useRef<any>(null);
   const searchMarkerRef = useRef<any>(null);
   const searchTimerRef = useRef<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
+  const [infoChapel, setInfoChapel] = useState<ChapelMapPoint | null>(null);
+  const infoPinnedRef = useRef(false);
+  const hoverTimerRef = useRef<number | null>(null);
+
+  const closeInfo = () => {
+    infoPinnedRef.current = false;
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setInfoChapel(null);
+  };
 
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) {
         window.clearTimeout(searchTimerRef.current);
+      }
+      if (hoverTimerRef.current) {
+        window.clearTimeout(hoverTimerRef.current);
       }
     };
   }, []);
@@ -209,12 +227,28 @@ export default function ZonaMap({
 
       const zoom = mapZoom || (selectedZone ? 14 : 13);
 
-      const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom }).setView(center, zoom);
+const map = L.map(mapRef.current, {
+        zoomControl: false,
+        scrollWheelZoom,
+        zoomSnap: 0.5,
+        zoomDelta: 0.5,
+        wheelPxPerZoomLevel: 120,
+        inertia: true,
+        inertiaDeceleration: 3400,
+        inertiaMaxSpeed: 1600,
+        touchZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        keyboard: true,
+        zoomAnimation: true,
+        fadeAnimation: true,
+        markerZoomAnimation: true,
+      }).setView(center, zoom);
       leafletMapRef.current = map;
       zoomControlRef.current = L.control.zoom({ position: drawingMode ? 'bottomright' : 'topright' }).addTo(map);
 
       const baseLayers = [
-        { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options: { attribution: '© OpenStreetMap', maxZoom: 19, crossOrigin: true } }
+        { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', options: { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20, subdomains: 'abcd', crossOrigin: true, detectRetina: true } }
       ];
 
       const layer = L.tileLayer(baseLayers[0].url, baseLayers[0].options).addTo(map);
@@ -276,7 +310,14 @@ export default function ZonaMap({
         fillOpacity: (selectedZone === zId || !selectedZone || showAllZones) ? 0.35 : 0.08,
         weight: (selectedZone === zId) ? 3 : 1.5,
         dashArray: (savedPolygon && savedPolygon.length > 0) ? undefined : '6 4',
+        className: (savedPolygon && savedPolygon.length > 0) ? 'zone-polygon' : 'zone-polygon zone-fallback',
       }).addTo(map);
+
+      const polyEl: SVGElement | null = polygon.getElement?.();
+      if (polyEl) {
+        polyEl.style.setProperty('--mc', borderColor);
+        polyEl.style.setProperty('--anim-delay', `${zId * 140}ms`);
+      }
 
       layersRef.current.push(polygon);
 
@@ -348,17 +389,37 @@ export default function ZonaMap({
 
       const svgIcon = L.divIcon({
         html: `
-          <div style="width: 32px; height: 32px; background: ${markerColor}; border: 3px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 12px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center;">
-            <div style="transform: rotate(45deg); color: #fff; font-size: 14px; font-weight: 900;">⛪</div>
+          <div class="capm" style="--mc:${markerColor};--d:${(idxInZone % 8) * 80}ms">
+            <span class="capm-name">${String(chapel.name).replace(/'/g, '&#39;').replace(/"/g, '&quot;')}</span>
+            <div class="capm-pin"><span class="capm-ico">${chapel.photo ? `<img class="capm-img" src="${chapel.photo.replace(/"/g, '&quot;')}" alt="" />` : '⛪'}</span></div>
+            <div class="capm-drop"></div>
           </div>`,
-        className: 'premium-marker',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -34],
+        className: 'premium-marker capm-wrap',
+        iconSize: [44, 56],
+        iconAnchor: [22, 54],
+        popupAnchor: [0, -56],
       });
 
-      const marker = L.marker([lat, lng], { icon: svgIcon }).addTo(map)
-        .bindPopup(`<div style="padding: 5px;"><strong>${chapel.name}</strong><br/><span style="font-size:11px;color:#666;">Zona Pastoral ${chapel.zonaId}</span></div>`);
+      const marker = L.marker([lat, lng], { icon: svgIcon, riseOnHover: true, title: chapel.name }).addTo(map);
+
+      marker.on('click', () => {
+        infoPinnedRef.current = true;
+        setInfoChapel(chapel);
+      });
+      marker.on('mouseover', () => {
+        if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+        infoPinnedRef.current = false;
+        setInfoChapel(chapel);
+      });
+      marker.on('mouseout', () => {
+        if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = window.setTimeout(() => {
+          if (!infoPinnedRef.current) {
+            infoPinnedRef.current = false;
+            setInfoChapel(null);
+          }
+        }, 350);
+      });
       
       layersRef.current.push(marker);
     });
@@ -479,7 +540,7 @@ export default function ZonaMap({
           font-size: 11px;
           color: #7a6a55;
         }
-        .zona-map-details {
+.zona-map-details {
           position: absolute;
           right: 14px;
           bottom: 14px;
@@ -492,7 +553,134 @@ export default function ZonaMap({
           padding: 12px 14px;
           box-shadow: 0 14px 30px rgba(0,0,0,0.18);
         }
-        @media (max-width: 768px) {
+        .capm-wrap { background: transparent !important; border: none !important; }
+        .capm { position: relative; width: 44px; height: 56px; cursor: pointer; filter: drop-shadow(0 6px 10px rgba(26,39,68,0.35)); }
+        .capm-pin {
+          position: absolute; left: 3px; top: 3px; width: 38px; height: 38px;
+          border-radius: 50% 50% 50% 4px;
+          background: linear-gradient(160deg, var(--mc, #C8973A), #12203f 135%);
+          border: 3px solid #fff;
+          box-shadow: 0 5px 16px rgba(26,39,68,0.4);
+          transform: rotate(-45deg);
+          display: flex; align-items: center; justify-content: center;
+          transform-origin: 50% 62%;
+          transition: transform .16s ease;
+          animation: capmPop .55s cubic-bezier(.34,1.56,.64,1) both;
+          animation-delay: var(--d, 0ms);
+        }
+        .capm-pin .capm-ico {
+          transform: rotate(45deg);
+          font-size: 15px; line-height: 1; font-weight: 900;
+          display: flex; align-items: center; justify-content: center;
+          width: 100%; height: 100%;
+        }
+        .capm-pin .capm-ico img { width: 100%; height: 100%; object-fit: cover; border-radius: 50% 50% 50% 4px; }
+        .capm:hover .capm-pin { transform: rotate(-45deg) scale(1.15); }
+        @keyframes capmPop {
+          0% { opacity: 0; transform: rotate(-45deg) scale(0); }
+          60% { transform: rotate(-45deg) scale(1.22); }
+          100% { transform: rotate(-45deg) scale(1); opacity: 1; }
+        }
+        .capm-drop {
+          position: absolute; left: 50%; top: 45px; margin-left: -5px;
+          width: 10px; height: 6px; border-radius: 50%;
+          background: var(--mc, #C8973A); opacity: .45; transform: scale(.5);
+          animation: capmPulse 2.4s ease-out infinite;
+        }
+        @keyframes capmPulse {
+          0% { transform: scale(.5); opacity: .7; }
+          70% { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+        .capm-name {
+          position: absolute; left: 50%; top: -8px;
+          transform: translateX(-50%) translateY(-100%);
+          background: rgba(26,39,68,0.94); color: #fff;
+          font-size: 11px; font-weight: 800; white-space: nowrap;
+          padding: 4px 10px; border-radius: 999px;
+          opacity: 0; pointer-events: none;
+          transition: opacity .18s ease, transform .18s ease;
+          z-index: 10;
+        }
+        .capm:hover .capm-name { opacity: 1; }
+        .zone-polygon {
+          animation: zoneIn .9s ease both, zoneGlow 3.4s ease-in-out infinite;
+          animation-delay: var(--anim-delay, 0ms), var(--anim-delay, 0ms);
+        }
+        .zone-fallback { animation-duration: 1.2s, 3.4s; }
+        @keyframes zoneIn {
+          0% { opacity: 0; stroke-dashoffset: 600; }
+          100% { opacity: 1; stroke-dashoffset: 0; }
+        }
+        @keyframes zoneGlow {
+          0%, 100% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+          50% { filter: drop-shadow(0 0 8px var(--mc, #C8973A)); }
+        }
+        .cap-info-card {
+          position: absolute; top: 16px; left: 50%;
+          transform: translateX(-50%);
+          width: min(340px, calc(100% - 28px));
+          z-index: 1400;
+          background: linear-gradient(150deg, var(--zcolor, #C8973A), #131f3c 80%);
+          color: #fff; border-radius: 18px; padding: 14px;
+          border: 2px solid rgba(255,255,255,0.9);
+          box-shadow: 0 22px 45px rgba(15,25,55,0.5);
+          animation: capCardIn .38s cubic-bezier(.22,1.2,.4,1) both;
+          pointer-events: auto;
+        }
+        @keyframes capCardIn {
+          0% { opacity: 0; transform: translateX(-50%) translateY(-18px) scale(.94); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+        .cap-info-x {
+          position: absolute; top: 8px; right: 8px;
+          width: 26px; height: 26px; border-radius: 50%;
+          border: 2px solid rgba(255,255,255,0.85);
+          background: rgba(255,255,255,0.18); color: #fff;
+          font-weight: 900; font-size: 12px; line-height: 1; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: background .15s ease, transform .15s ease;
+        }
+        .cap-info-x:hover { background: rgba(255,255,255,0.38); transform: scale(1.08); }
+        .cap-info-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding-right: 30px; }
+        .cap-info-avatar {
+          width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+          background: rgba(255,255,255,0.22);
+          border: 2px solid rgba(255,255,255,0.75);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 18px; overflow: hidden;
+        }
+        .cap-info-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .cap-info-titles { min-width: 0; flex: 1; }
+        .cap-info-titles strong { display: block; font-size: 14px; line-height: 1.2; letter-spacing: .3px; }
+        .cap-info-titles span { display: block; font-size: 11px; opacity: .85; margin-top: 2px; }
+        .cap-info-estado {
+          font-size: 10px; font-weight: 900; letter-spacing: .5px;
+          padding: 4px 9px; border-radius: 999px; flex-shrink: 0;
+          background: rgba(255,255,255,0.18);
+        }
+        .cap-info-estado.is-activo { background: rgba(45,212,160,0.35); }
+        .cap-info-estado.is-nuc { background: rgba(251,113,133,0.38); }
+        .cap-info-rows { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        .cap-info-row {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 11.5px; line-height: 1.4;
+          background: rgba(255,255,255,0.1);
+          border-radius: 10px; padding: 5px 9px; overflow-wrap: anywhere;
+        }
+        .cir-ico { width: 22px; text-align: center; flex-shrink: 0; }
+        .cap-info-link {
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          width: 100%; background: #fff; color: var(--zcolor, #C8973A);
+          font-weight: 900; font-size: 11px; letter-spacing: 1px;
+          padding: 9px 12px; border-radius: 12px; text-decoration: none;
+          transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .cap-info-link:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.28); }
+        .zona-map-inner { box-shadow: inset 0 0 40px rgba(18,32,63,0.05); }
+        .leaflet-container { font-family: inherit; }
+        .leaflet-control-zoom a { border-radius: 8px !important; }
+@media (max-width: 768px) {
           .zona-map-search {
             width: calc(100vw - 28px);
           }
@@ -501,6 +689,12 @@ export default function ZonaMap({
             right: 14px;
             width: auto;
           }
+          .cap-info-card { top: 12px; width: calc(100% - 24px); }
+          .cap-info-avatar { width: 38px; height: 38px; font-size: 16px; }
+          .cap-info-titles strong { font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+          .capm-name { display: none; }
         }
       `}</style>
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -539,7 +733,44 @@ export default function ZonaMap({
             </div>
           </div>
         )}
-        <div ref={mapRef} className={`zona-map-inner${drawingMode ? ' leaflet-drawing-cursor' : ''}`} style={{ height, width: '100%', borderRadius: '12px', zIndex: 1 }} />
+<div ref={mapRef} className={`zona-map-inner${drawingMode ? ' leaflet-drawing-cursor' : ''}`} style={{ height, width: '100%', borderRadius: '12px', zIndex: 1 }} />
+        {infoChapel && (() => {
+          const ic = infoChapel;
+          const infoColor = ic.markerColor || zoneColors[ic.zonaId] || MARKER_COLORS[ic.zonaId] || '#C8973A';
+          const estadoKey = String(ic.estadoComunidad || 'Activo').toLowerCase();
+          const mapsHref = ic.locationUrl
+            ? (ic.locationUrl.startsWith('http://') || ic.locationUrl.startsWith('https://')
+                ? ic.locationUrl
+                : `https://www.google.com/maps/?q=${encodeURIComponent(ic.locationUrl)}`)
+            : '';
+          return (
+            <div className="cap-info-card" style={{ ['--zcolor' as any]: infoColor }}>
+              <button type="button" className="cap-info-x" aria-label="Cerrar información de la capilla" onClick={closeInfo}>✕</button>
+              <div className="cap-info-head">
+                <div className="cap-info-avatar">
+                  {ic.photo ? <img src={ic.photo} alt="" /> : <span>⛪</span>}
+                </div>
+                <div className="cap-info-titles">
+                  <strong>{ic.name}</strong>
+                  {ic.comunidadNombre && <span>{ic.comunidadNombre}</span>}
+                </div>
+                <span className={`cap-info-estado is-${estadoKey === 'nucleación' || estadoKey.includes('nucleacion') ? 'nuc' : 'activo'}`}>
+                  {ic.estadoComunidad || 'Activo'}
+                </span>
+              </div>
+              <div className="cap-info-rows">
+                <div className="cap-info-row"><span className="cir-ico">📍</span><span>Zona Pastoral {ic.zonaId}</span></div>
+                {ic.address && <div className="cap-info-row"><span className="cir-ico">🏠</span><span>{ic.address}</span></div>}
+                {typeof ic.lat === 'number' && typeof ic.lng === 'number' && (
+                  <div className="cap-info-row"><span className="cir-ico">🧭</span><span>{ic.lat.toFixed(6)}, {ic.lng.toFixed(6)}</span></div>
+                )}
+              </div>
+              {mapsHref && (
+                <a className="cap-info-link" href={mapsHref} target="_blank" rel="noopener noreferrer">🗺️ VER EN GOOGLE MAPS ↗</a>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </>
   );

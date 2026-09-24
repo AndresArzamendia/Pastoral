@@ -4270,6 +4270,7 @@ function AdminContent() {
                     drawingMode={!!capturingZone}
                     hideFallbackPolygon={!!capturingZone && tempPolygon.length === 0 && !branding[`zona${capturingZone}Polygon`]}
                     enableSearch={true}
+                    chapels={chapels.map(c => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, zonaId: c.zonaId, estadoComunidad: c.estadoComunidad, comunidadNombre: c.comunidadNombre, markerColor: c.markerColor, address: c.address, locationUrl: c.locationUrl, photo: c.photo }))}
                     zoneColors={{
                       1: branding.zona1Color as string || '#C8973A',
                       2: branding.zona2Color as string || '#1A2744',
