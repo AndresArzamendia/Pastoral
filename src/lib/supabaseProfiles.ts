@@ -135,22 +135,35 @@ export function subscribeProfileChanges(
     return () => {};
   }
 
-  const tableName = cachedProfileTable || PROFILE_TABLES[0];
-  const channel = (supabase.channel('profile_changes') as any).on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: tableName },
-    (payload: SupabaseProfileChangePayload) => {
-      const profile = payload.new ?? payload.old;
-      if (!profile) return;
-      const eventType = (payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE') || (payload.new ? 'INSERT' : 'UPDATE');
-      onChange(profile, eventType);
-    }
-  );
+  let disposed = false;
+  let cleanup: (() => void) | null = null;
 
-  (channel as any).subscribe();
+  getProfileTableName(supabase)
+    .then((tableName) => {
+      if (disposed) return;
+      const channel = (supabase.channel('profile_changes') as any).on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: tableName },
+        (payload: SupabaseProfileChangePayload) => {
+          const profile = payload.new ?? payload.old;
+          if (!profile) return;
+          const eventType = (payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE') || (payload.new ? 'INSERT' : 'UPDATE');
+          onChange(profile, eventType);
+        }
+      );
+
+      (channel as any).subscribe();
+      cleanup = () => {
+        supabase.removeChannel(channel);
+      };
+    })
+    .catch((err) => {
+      console.error('subscribeProfileChanges error:', err);
+    });
 
   return () => {
-    supabase.removeChannel(channel);
+    disposed = true;
+    if (cleanup) cleanup();
   };
 }
 

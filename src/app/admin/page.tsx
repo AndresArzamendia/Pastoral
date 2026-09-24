@@ -470,6 +470,29 @@ function AdminContent() {
       }
     }
   }, [allUsers]);
+
+  useEffect(() => {
+    if (!loggedIn || !currentUser || currentUser.id === 'master') return;
+    const email = currentUser.email;
+    let cancel = false;
+    fetchProfileByEmail(email).then((profile) => {
+      if (cancel || !profile || profile.email !== currentUser.email) return;
+      const freshUser = {
+        ...currentUser,
+        name: profile.name,
+        email: profile.email,
+        role: profile.role,
+        status: profile.status,
+        permissions: profile.permissions && profile.permissions.length > 0 ? profile.permissions : ['dashboard'],
+        createdAt: profile.created_at,
+        authUid: profile.auth_uid,
+      };
+      setCurrentUser(freshUser);
+      localStorage.setItem('pjl_current_user', JSON.stringify(freshUser));
+    }).catch(() => {});
+    return () => { cancel = true; };
+  }, [loggedIn, currentUser?.id, currentUser?.email]);
+
   const [loginForm, setLoginForm] = useState({ user: '', pass: '' });
   const [loginErr, setLoginErr] = useState(false);
   const [loginErrorMessage, setLoginErrorMessage] = useState('');
@@ -597,7 +620,7 @@ function AdminContent() {
 
   const hasPermission = (m: Module, action: 'view' | 'edit' | 'admin' = 'view') => {
     if (!loggedIn) return false;
-    if (!currentUser) return true;
+    if (!currentUser) return false;
     if (currentUser.role === 'desarrollador' || currentUser.role === 'superadmin') return true;
     if (m === 'dashboard' && action === 'view') return true;
 
@@ -787,6 +810,15 @@ function AdminContent() {
       localStorage.setItem('pjl_current_user', JSON.stringify(mergedUser));
     }
   }, [allUsers, currentUser]);
+
+  useEffect(() => {
+    if (!loggedIn || !currentUser || currentUser.id === 'master') return;
+    if (mod && !hasPermission(mod)) {
+      setMod('dashboard');
+      router.replace('/admin?mod=dashboard');
+      showToast('Este módulo no está habilitado para este usuario');
+    }
+  }, [loggedIn, currentUser, mod, allUsers]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1379,6 +1411,10 @@ function AdminContent() {
   };
 
   const navigateMod = (m: Module, section?: 'capillas' | 'territorio') => {
+    if (currentUser && !hasPermission(m)) {
+      showToast('Este módulo no está habilitado para este usuario');
+      return;
+    }
     const sectionQuery = section ? `&tab=${section}` : '';
     router.push(`/admin?mod=${m}${sectionQuery}`);
     setSidebarOpen(false);
