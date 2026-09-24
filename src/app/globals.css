@@ -10312,6 +10312,97 @@ html.show-splash .splash-content { visibility: visible; }
   }
 }
 
+/* --- Historial: pill Historial / Dispositivos --- */
+.lg-pillrow {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin-bottom: 26px; padding: 6px;
+  background: var(--cream, #FAF6EE);
+  border: 1px solid var(--gold-pale, #E8D9B8);
+  border-radius: 999px;
+  width: fit-content;
+  animation: lgIn 0.4s backwards;
+}
+.lg-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border-radius: 999px;
+  border: 1px solid transparent; background: transparent;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.3px;
+  color: #8A8477; cursor: pointer;
+  transition: all 0.22s ease;
+}
+.lg-pill span { font-style: normal; font-size: 14px; }
+.lg-pill em {
+  font-style: normal; font-size: 10px; font-weight: 900;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(26, 39, 68, 0.08); color: var(--navy, #1A2744);
+}
+.lg-pill:hover { color: var(--navy, #1A2744); }
+.lg-pill.on {
+  background: var(--navy, #1A2744); color: #fff;
+  box-shadow: 0 8px 18px -6px rgba(26, 39, 68, 0.45);
+}
+.lg-pill.on em { background: rgba(200, 151, 58, 0.9); color: #fff; }
+
+/* --- Panel Dispositivos (dv-*) --- */
+.dv-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; animation: lgSlideIn 0.35s ease; }
+.dv-card {
+  position: relative; display: flex; flex-direction: column; gap: 12px;
+  padding: 18px 18px 14px; border-radius: 16px;
+  background: var(--cream, #FAF6EE);
+  border: 1px solid var(--gold-pale, #E8D9B8);
+  border-left: 4px solid var(--dv-tone, #C8973A);
+  overflow: hidden; animation: lgIn 0.45s var(--d, 0ms) backwards;
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+}
+.dv-desktop { --dv-tone: #3B82F6; }
+.dv-tablet { --dv-tone: #8B5CF6; }
+.dv-mobile { --dv-tone: #10B981; }
+.dv-card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -12px rgba(26, 39, 68, 0.18); }
+.dv-head { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.dv-ico {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 19px;
+  background: rgba(26, 39, 68, 0.06);
+}
+.dv-title { flex: 1; min-width: 0; }
+.dv-title b { display: block; font-size: 13.5px; color: var(--navy, #1A2744); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-title small { display: block; font-size: 10.5px; color: #8A8477; margin-top: 2px; }
+.dv-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.dv-key {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 8px 10px; border-radius: 10px;
+  background: #fff; border: 1px solid rgba(26, 39, 68, 0.07);
+}
+.dv-key span { font-size: 8.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #B0AA9C; }
+.dv-key b { font-size: 11.5px; color: var(--navy, #1A2744); word-break: break-word; overflow-wrap: anywhere; }
+.dv-foot {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding-top: 10px; border-top: 1px solid rgba(26, 39, 68, 0.06);
+  font-size: 10px; color: #8A8477;
+}
+.dv-foot b { color: var(--navy, #1A2744); font-weight: 700; }
+.dv-foot span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 860px) {
+  .lg-pillrow { width: 100%; }
+  .lg-pill { flex: 1; justify-content: center; }
+}
+@media (max-width: 720px) {
+  .dv-list { grid-template-columns: 1fr; gap: 11px; }
+  .dv-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  .dv-card:hover { transform: none; }
+  .dv-foot { flex-direction: column; align-items: flex-start; }
+  .dv-foot span { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg-pillrow, .lg-pill, .dv-card, .dv-list, .dv-ico {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ============================================================
    ADMIN ASISTENTE IA - GEMINI PREMIUM (ai-*)
    ============================================================ */

@@ -50,6 +50,20 @@ export interface ActivityLog {
   details?: string;
 }
 
+export interface DeviceLog {
+  id: string;            // fingerprint estable por dispositivo
+  name: string;          // p.ej. "Chrome · Windows"
+  type: 'desktop' | 'tablet' | 'mobile';
+  browser?: string;
+  os?: string;
+  ip: string;
+  network: string;       // red (Wi-Fi/4G…) — mejor esfuerzo, algunos navegadores NO exponen el SSID
+  firstSeen: string;
+  lastSeen: string;
+  visits: number;        // veces que entró al sitio
+  pages: number;         // páginas vistas
+}
+
 export interface SiteContent  { 
   mision: string; 
   vision: string; 
@@ -470,7 +484,7 @@ export const TEAM_LABELS: Record<string, string> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STORE_KEYS = [
   'news', 'activities', 'faq', 'docs', 'gallery', 'content', 'social', 'sections', 'profiles',
-  'branding', 'theme', 'users', 'hero', 'heroInterval', 'chapels', 'stats', 'logs', 'meta_updated'
+  'branding', 'theme', 'users', 'hero', 'heroInterval', 'chapels', 'stats', 'devices', 'logs', 'meta_updated'
 ];
 
 // Journal de "última actualización" por clave del store. Cada save() registra
@@ -615,6 +629,7 @@ export const store = {
   heroInterval: { get: () => load<number>('heroInterval', 3), set: (v: number) => save('heroInterval', v) },
   chapels:   { get: () => load<Chapel[]>('chapels',          DEFAULT_CHAPELS),    set: (v: Chapel[])        => save('chapels', v) },
   stats:     { get: () => load<PageStat[]>('stats',          DEFAULT_STATS),      set: (v: PageStat[])      => save('stats', v) },
+  devices:   { get: () => load<DeviceLog[]>('devices',       []),                 set: (v: DeviceLog[])      => save('devices', v) },
   logs:      { get: () => load<ActivityLog[]>('logs',        []),                 set: (v: ActivityLog[])   => save('logs', v) },
   aiHistory: { get: () => load<{ id: string; mode: string; prompt: string; text: string; at: number }[]>('aiHistory', []), set: (v: { id: string; mode: string; prompt: string; text: string; at: number }[]) => save('aiHistory', v) },
   aiKey:     { get: () => load<string>('aiKey', ''), set: (v: string) => save('aiKey', v) },

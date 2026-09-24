@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import {
   store, NewsItem, Activity, FaqItem, SiteContent, DocItem, MemberProfile, Chapel, Branding, ThemePalette, TimelineEvent, HeroSlide,
   DEFAULT_CONTENT, DEFAULT_NEWS, DEFAULT_ACTIVITIES, DEFAULT_FAQ, DEFAULT_SOCIAL, SocialLinks, DEFAULT_BRANDING, DEFAULT_CHAPELS,
-  DEFAULT_STATS, PageStat, mergePageStats
+  DEFAULT_STATS, PageStat, DeviceLog, mergePageStats
 } from '@/lib/pjlStore';
 import { fetchStoreValue } from '@/lib/supabaseStore';
 import Link from 'next/link';
@@ -127,6 +127,14 @@ const detectDeviceType = () => {
   if (/ipad|tablet/.test(ua) || isIPadLike || isTouchTabletSize || (width >= 768 && width <= 1180 && (/android/.test(ua) || maxTouchPoints > 1))) return 'tablet' as const;
   if (/mobi|iphone|ipod|android/.test(ua) || width < 768) return 'mobile' as const;
   return 'desktop' as const;
+};
+
+const mergeDevices = (a: DeviceLog[], b: DeviceLog[]): DeviceLog[] => {
+  const map = new Map<string, DeviceLog>();
+  [...a, ...b].forEach((d) => {
+    if (d?.id) map.set(d.id, d);
+  });
+  return Array.from(map.values());
 };
 
 function TextWithLinks({ text }: { text: string }) {
@@ -955,8 +963,80 @@ const [newsSearch, setNewsSearch] = useState('');
     } catch (e) {}
   };
 
+  // --- DETECCIÓN DE DISPOSITIVOS (IP · nombre · red · visitas) ---
+  const getDeviceId = () => {
+    try {
+      let id = localStorage.getItem('pjl_device_id');
+      if (!id) {
+        id = (crypto?.randomUUID?.() || `dev-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
+        localStorage.setItem('pjl_device_id', id);
+      }
+      return id;
+    } catch { return 'anon'; }
+  };
+
+  const registerDeviceVisit = async () => {
+    try {
+      const id = getDeviceId();
+      const type = detectDeviceType();
+      const uaLower = navigator.userAgent.toLowerCase();
+      const browser = /edg/i.test(uaLower) ? 'Edge' : /opr|opera/i.test(uaLower) ? 'Opera' : /chrome|crios/i.test(uaLower) ? 'Chrome' : /firefox|fxios/i.test(uaLower) ? 'Firefox' : /safari/i.test(uaLower) ? 'Safari' : 'Otro';
+      const os = /windows/i.test(uaLower) ? 'Windows' : /android/i.test(uaLower) ? 'Android' : /iphone|ipad|ios/i.test(uaLower) ? 'iOS' : /mac os/i.test(uaLower) ? 'macOS' : /linux/i.test(uaLower) ? 'Linux' : 'Otro';
+      const name = `${browser} · ${os}`;
+
+      let network = 'Desconocida';
+      try {
+        const conn = (navigator as any).connection;
+        const ssid = conn?.name || conn?.ssid;
+        const NET_TYPES: Record<string, string> = { wifi: 'Wi-Fi', cellular: 'Datos móviles', ethernet: 'Ethernet', bluetooth: 'Bluetooth', mixed: 'Mixta', other: 'Otra', unknown: 'Desconocida' };
+        const typeLabel = conn?.type ? NET_TYPES[String(conn.type)] || String(conn.type) : '';
+        const eff = conn?.effectiveType ? String(conn.effectiveType).toUpperCase() : '';
+        network = ssid || [typeLabel, eff].filter(Boolean).join(' · ') || (navigator.onLine ? 'Conectado' : 'Desconectado');
+      } catch { /* ignore */ }
+
+      let ip = '';
+      try {
+        ip = localStorage.getItem('pjl_device_ip') || '';
+        const ipAt = Number(localStorage.getItem('pjl_device_ip_at')) || 0;
+        if (!ip || Date.now() - ipAt > 12 * 36e5) {
+          const res = await fetch('/api/device/info', { cache: 'no-store' });
+          const json = await res.json();
+          ip = json.ip || '';
+          if (ip) { localStorage.setItem('pjl_device_ip', ip); localStorage.setItem('pjl_device_ip_at', String(Date.now())); }
+        }
+      } catch { /* ignore */ }
+
+      const now = new Date().toISOString();
+      const local = Array.isArray(store.devices.get()) ? store.devices.get() : [];
+      let base = local;
+      try {
+        const remote = await fetchStoreValue<DeviceLog[]>('devices');
+        if (Array.isArray(remote)) base = mergeDevices(local, remote);
+      } catch { base = local; }
+
+      const sessionSeen = sessionStorage.getItem('pjl_session_seen');
+      const idx = base.findIndex((d) => d.id === id);
+
+      if (idx === -1) {
+        base.push({
+          id, name, type, browser, os, ip, network,
+          firstSeen: now, lastSeen: now, visits: 1, pages: 1,
+        });
+      } else {
+        const rec = base[idx];
+        rec.lastSeen = now;
+        if (ip) rec.ip = ip;
+        if (!sessionSeen) rec.visits = (rec.visits || 0) + 1;
+        rec.pages = (rec.pages || 0) + 1;
+      }
+      try { sessionStorage.setItem('pjl_session_seen', '1'); } catch { /* ignore */ }
+      store.devices.set(base);
+    } catch (e) { /* ignore */ }
+  };
+
   useEffect(() => {
     trackVisit(currentPage);
+    void registerDeviceVisit();
   }, [currentPage]);
 
   // --- VATICAN WIDGET SCRIPT ---

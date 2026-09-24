@@ -5,8 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { parseIcs } from '@/lib/ics';
+import { parseIcs, classifyActivity, type ActivityCategory } from '@/lib/ics';
 import type { Activity } from '@/lib/pjlStore';
+
+const VALID_CATS: readonly string[] = ['Formación', 'Liturgia', 'Organización', 'Social'];
+
+const pickCategory = (title: string, description: string | undefined, googleCategory: string | undefined): ActivityCategory => {
+  if (typeof googleCategory === 'string' && VALID_CATS.includes(googleCategory)) {
+    return googleCategory as ActivityCategory;
+  }
+  return classifyActivity(title, description, googleCategory);
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,9 +81,12 @@ export async function POST(request: NextRequest) {
 
       if (index !== -1) {
         const existing = base[index];
+        const isExistingValidCat = typeof existing.category === 'string' && VALID_CATS.includes(existing.category);
         existing.title = event.title;
         existing.date = event.date;
-        existing.category = event.category || existing.category || 'Agenda';
+        existing.category = isExistingValidCat
+          ? existing.category
+          : pickCategory(event.title, event.description, event.category);
         existing.description = event.description || existing.description;
         existing.active = true;
         if (event.uid) existing.icsUid = event.uid;
@@ -86,7 +98,7 @@ export async function POST(request: NextRequest) {
         id: nextId--,
         title: event.title,
         date: event.date,
-        category: event.category || 'Agenda',
+        category: pickCategory(event.title, event.description, event.category),
         active: true,
         inscription: false,
         description: event.description,

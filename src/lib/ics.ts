@@ -183,3 +183,41 @@ export function buildIcs(items: IcsItem[], calendarName = 'Pastoral Juvenil Luqu
   lines.push('END:VCALENDAR');
   return lines.join('\r\n');
 }
+
+// ── Auto-clasificación por tipo (Formación | Liturgia | Organización | Social) ──
+export type ActivityCategory = 'Formación' | 'Liturgia' | 'Organización' | 'Social';
+
+const CATEGORY_RULES: Array<{ cat: ActivityCategory; re: RegExp }> = [
+  // Liturgia: prácticas y celebraciones litúrgicas concretas.
+  { cat: 'Liturgia', re: /(biblioteca-se?sion|santo rosario|rosario|misa|eucarist|adoraci|v[ií]a crucis|procesi|vigilia|oraci|confesi|novena|peregrinaci|liturgia|celebraci(ón|on)|besamanos|tr[ií]duo|quincena|v[ií]a lucis|crisma|v[ií]acrucis)/i },
+  // Formación: retiros, talleres, cursos, escuelas, charlas.
+  { cat: 'Formación', re: /(retiro|campamento|curso|taller|charla|cateques|seminario|escuela|capacitac|formaci|jornada( de| institucional)?|jornada de formaci|estudio|biblioteca|catecumenado)/i },
+  // Organización: reuniones, asambleas, coordinación, planificación.
+  { cat: 'Organización', re: /(asamblea|reum|reuni|coordin|consejo|planificac|evaluaci|junta|directiva|convocatoria|comisi|sesi[óo]n|equipo|lanzamiento|preparac|secretar[ií]a|tesorer|organiz)/i },
+  // Social: acción social, misión, campamentos, festivales, convivencias.
+  { cat: 'Social', re: /(social|solidar|mis[ióo]n|misionero|voluntari|visita|campa[ií]a|convivencia|festival|deporte|kerm|bazar|colecta|ayuda|donac|merienda|comedor|recreativ|aniversario|encuentro|fiesta|pe[ií]a|salida|paseo|gala|concierto|pollada|empanada|compartir)/i },
+];
+
+export function classifyActivity(title: string, description?: string, googleCategory?: string): ActivityCategory {
+  const haystack = `${title || ''} ${description || ''} ${googleCategory || ''}`;
+  // Si Google ya categoriza con uno de nuestros tipos, respetar.
+  if (googleCategory) {
+    const base = googleCategory.toLowerCase().replace(/[^a-záéíóúñ]/gi, '');
+    const match = (['Formación' as const, 'Liturgia' as const, 'Organización' as const, 'Social' as const]).find(c =>
+      c.toLowerCase().replace(/[^a-záéíóúñ]/gi, '') === base
+    );
+    if (match) return match;
+  }
+  for (const rule of CATEGORY_RULES) {
+    if (rule.re.test(haystack)) return rule.cat;
+  }
+  // Prioridad de la categoría de Google, o un término clave, o por defecto Formación.
+  if (googleCategory) {
+    const gc = googleCategory.toLowerCase();
+    if (/formac|curso|taller|retiro|escuela/i.test(gc)) return 'Formación';
+    if (/misa|liturgia|oraci|celebra/i.test(gc)) return 'Liturgia';
+    if (/organiz|reuni|asamblea|consejo/i.test(gc)) return 'Organización';
+    if (/social|mision|solidar|campa/i.test(gc)) return 'Social';
+  }
+  return 'Formación';
+}

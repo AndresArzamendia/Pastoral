@@ -8,7 +8,7 @@ import {
   store,
   NewsItem, Activity, FaqItem, DocItem, GalleryItem,
   SiteContent, SocialLinks, ActiveSections, MemberProfile,
-  Branding, ThemePalette, PageStat, Chapel, HeroSlide, User,
+  Branding, ThemePalette, PageStat, Chapel, HeroSlide, User, DeviceLog,
   DEFAULT_NEWS, DEFAULT_ACTIVITIES, DEFAULT_FAQ,
   DEFAULT_DOCS, DEFAULT_CONTENT, DEFAULT_SOCIAL, DEFAULT_SECTIONS, DEFAULT_BRANDING,
   DEFAULT_STATS, DEFAULT_THEME_PALETTE, DEFAULT_USERS, mergePageStats
@@ -366,6 +366,7 @@ function useLS<T>(key: keyof typeof store, def: T) {
     upsertStoreValue(String(key), next).catch(() => {
       // Fallback to local persistence if Supabase no está disponible
     });
+    window.dispatchEvent(new CustomEvent('pjl_admin_write', { detail: { key: String(key) } }));
   };
   return [val, update] as const;
 }
@@ -638,6 +639,7 @@ function AdminContent() {
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
   const [chapels, setChapels] = useLS<Chapel[]>('chapels', []);
   const [pageStats, setPageStats] = useLS<PageStat[]>('stats', DEFAULT_STATS);
+  const [devices, setDevices] = useLS<DeviceLog[]>('devices', []);
   const [logs, setLogs] = useLS<any[]>('logs', []);
   const [googleCalendarStatus, setGoogleCalendarStatus] = useState<{ connected: boolean; account?: string } | null>(null);
   const [googleCalendarSyncing, setGoogleCalendarSyncing] = useState(false);
@@ -710,8 +712,40 @@ function AdminContent() {
       details,
       timestamp: new Date().toISOString()
     };
-    setLogs([newLog, ...logs.slice(0, 49)]);
+    setLogs([newLog, ...logs.slice(0, 499)]);
   };
+
+  // --- AUTO-AUDITORÍA: cada write de useLS (branding, contenido, tema, galería,
+  //     perfiles, FAQ, redes, secciones…) queda registrado en el Historial. ---
+  const ADMIN_WRITE_META: Record<string, { module: string; label: string }> = {
+    branding: { module: 'identidad', label: 'Identidad' },
+    theme: { module: 'apariencia', label: 'Apariencia' },
+    hero: { module: 'carrusel', label: 'Carrusel Hero' },
+    heroInterval: { module: 'carrusel', label: 'Carrusel Hero' },
+    sections: { module: 'configuracion', label: 'Secciones visibles' },
+    social: { module: 'contacto', label: 'Redes sociales' },
+    gallery: { module: 'galeria', label: 'Galería' },
+    profiles: { module: 'perfiles', label: 'Currículos' },
+    faq: { module: 'faq', label: 'Preguntas frecuentes' },
+    content: { module: 'contenido', label: 'Contenido' },
+  };
+  const addLogRef = useRef(addLog);
+  useEffect(() => { addLogRef.current = addLog; });
+  const adminWriteAt = useRef<Record<string, number>>({});
+  useEffect(() => {
+    const onWrite = (ev: Event) => {
+      const key = (ev as CustomEvent<{ key?: string }>).detail?.key;
+      if (!key) return;
+      const meta = ADMIN_WRITE_META[key];
+      if (!meta) return; // las demás llaves ya tienen su log explícito o son internas
+      const now = Date.now();
+      if (now - (adminWriteAt.current[key] || 0) < 25_000) return;
+      adminWriteAt.current[key] = now;
+      addLogRef.current('guardar', meta.module, `Cambios guardados en ${meta.label}`);
+    };
+    window.addEventListener('pjl_admin_write', onWrite as EventListener);
+    return () => window.removeEventListener('pjl_admin_write', onWrite as EventListener);
+  }, []);
 
   // --- LOCAL UI STATE ---
   const tabParam = searchParams.get('tab') === 'territorio' ? 'territorio' : 'capillas';
@@ -929,6 +963,10 @@ function AdminContent() {
   const [logSearch, setLogSearch] = useState('');
   const [logModule, setLogModule] = useState<string>('all');
   const [logPage, setLogPage] = useState(1);
+  const [logView, setLogView] = useState<'logs' | 'dispositivos'>('logs');
+  const [devPage, setDevPage] = useState(1);
+  const [devSearch, setDevSearch] = useState('');
+  const [devType, setDevType] = useState<'all' | 'desktop' | 'tablet' | 'mobile'>('all');
 
   // --- TERRITORY EDITOR ---
   const [capturingZone, setCapturingZone] = useState<number | null>(null);
@@ -4408,12 +4446,18 @@ function AdminContent() {
             const MOD_META: Record<string, { icon: string; label: string }> = {
               territorio: { icon: '\u{1F5FA}\uFE0F', label: 'Territorio' },
               capillas: { icon: '\u26EA', label: 'Capillas' },
+              identidad: { icon: '\u{1F3A8}', label: 'Identidad' },
+              apariencia: { icon: '\u2728', label: 'Apariencia' },
+              carrusel: { icon: '\u{1F3A0}', label: 'Carrusel' },
+              contenido: { icon: '\u{1F4DD}', label: 'Contenido' },
+              perfiles: { icon: '\u{1F464}', label: 'Currículos' },
+              configuracion: { icon: '\u2699\uFE0F', label: 'Configuración' },
+              contacto: { icon: '\u{1F4EC}', label: 'Contacto' },
               noticias: { icon: '\u{1F4F0}', label: 'Noticias' },
-              usuarios: { icon: '\u{1F464}', label: 'Usuarios' },
+              usuarios: { icon: '\u{1F465}', label: 'Usuarios' },
               actividades: { icon: '\u{1F4C5}', label: 'Actividades' },
               documentos: { icon: '\u{1F4C4}', label: 'Documentos' },
               galeria: { icon: '\u{1F5BC}\uFE0F', label: 'Galería' },
-              carrusel: { icon: '\u{1F3A0}', label: 'Carrusel' },
               faq: { icon: '\u2753', label: 'FAQ' },
               sistema: { icon: '\u2699\uFE0F', label: 'Sistema' },
             };
@@ -4485,8 +4529,188 @@ function AdminContent() {
               showToast('\u{1F4E5} Historial exportado en CSV');
             };
 
+            /* ── PANEL DE DISPOSITIVOS ── */
+            const devList = devices && Array.isArray(devices) ? devices : [];
+            const dq = devSearch.trim().toLowerCase();
+            const filteredDevs = devList
+              .filter(d => {
+                if (devType !== 'all' && d.type !== devType) return false;
+                if (!dq) return true;
+                return [d.name, d.browser, d.os, d.ip, d.network].some(v => (v || '').toLowerCase().includes(dq));
+              })
+              .sort((a, b) => (b.visits || 0) - (a.visits || 0) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
+            const devTot = Math.max(1, Math.ceil(filteredDevs.length / 10));
+            const devSafe = Math.min(devPage, devTot);
+            const devPageRows = filteredDevs.slice((devSafe - 1) * 10, devSafe * 10);
+            const devCountHoy = devList.filter(d => new Date(d.lastSeen).toDateString() === hoyStr).length;
+            const devTotalVisits = devList.reduce((a, d) => a + (d.visits || 0), 0);
+            const devAsiduo = devList.filter(d => (d.visits || 0) >= 10).length;
+
+            const exportDevicesCSV = () => {
+              if (!filteredDevs.length) { showToast('No hay dispositivos para exportar'); return; }
+              const rows: string[][] = [
+                ['Dispositivo', 'Tipo', 'Navegador', 'Sistema Operativo', 'IP', 'Red', 'Primera visita', 'Última visita', 'Visitas', 'Páginas'],
+                ...filteredDevs.map(d => [
+                  d.name, d.type, d.browser || '', d.os || '', d.ip || '', d.network || '',
+                  d.firstSeen ? new Date(d.firstSeen).toLocaleString('es-PY') : '',
+                  d.lastSeen ? new Date(d.lastSeen).toLocaleString('es-PY') : '',
+                  String(d.visits || 0), String(d.pages || 0),
+                ]),
+              ];
+              const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+              const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `dispositivos-pjl-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              showToast('\u{1F4E5} Dispositivos exportados en CSV');
+            };
+
+            const devicesPanel = (
+              <>
+                <div className="admin-section-header admin-stack-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                  <div className="admin-section-title-group">
+                    <h3 className="serif" style={{ fontSize: '2rem', color: 'var(--navy)', margin: 0 }}>Dispositivos</h3>
+                    <p className="premium-label" style={{ color: 'var(--gold)', marginTop: '5px' }}>VISITANTES QUE ENTRARON AL SITIO</p>
+                  </div>
+                  <div className="admin-stack-mobile" style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn-premium btn-premium-outline admin-section-action lg-export" onClick={exportDevicesCSV}>
+                      <span className="lg-xico">{'\u2913'}</span> EXPORTAR CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg-stats">
+                  <div className="lg-stat"><b>{devList.length}</b><span>Dispositivos</span></div>
+                  <div className="lg-stat lg-st-hoy"><b>{devCountHoy}</b><span>Hoy</span></div>
+                  <div className="lg-stat lg-st-sem"><b>{devTotalVisits}</b><span>Visitas totales</span></div>
+                  <div className="lg-stat lg-st-mod"><b>{devAsiduo}</b><span>Asiduos (10+ visitas)</span></div>
+                </div>
+
+                <div className="lg-toolbar">
+                  <div className="lg-searchbox">
+                    <span>{'\u{1F50D}'}</span>
+                    <input
+                      type="text"
+                      placeholder="Buscar dispositivo, IP o red…"
+                      value={devSearch}
+                      onChange={e => { setDevSearch(e.target.value); setDevPage(1); }}
+                      aria-label="Buscar dispositivos"
+                    />
+                    {devSearch && (
+                      <button title="Limpiar" aria-label="Limpiar búsqueda" onClick={() => { setDevSearch(''); setDevPage(1); }}>{'\u2715'}</button>
+                    )}
+                  </div>
+                  <div className="lg-chips" role="group" aria-label="Filtrar por tipo de dispositivo">
+                    {(['all', 'desktop', 'tablet', 'mobile'] as const).map(t => (
+                      <button
+                        key={t}
+                        className={`lg-chip ${devType === t ? 'on' : ''}`}
+                        onClick={() => { setDevType(t); setDevPage(1); }}
+                      >
+                        {t === 'all' ? 'Todos' : t === 'desktop' ? '\u{1F5A5}\uFE0F Desktop' : t === 'tablet' ? '\u{1F4F1} Tablet' : '\u{1F4F1} Móvil'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="lg-count">
+                  {filteredDevs.length} de {devList.length} dispositivos
+                  {(devSearch || devType !== 'all') && <> · filtros activos <button className="lg-reset" onClick={() => { setDevSearch(''); setDevType('all'); setDevPage(1); }}>limpiar {'\u2715'}</button></>}
+                </p>
+
+                {devList.length === 0 ? (
+                  <div className="lg-empty">
+                    <span className="lge-ico">{'\u{1F4F1}'}</span>
+                    <h4>Aún no hay dispositivos</h4>
+                    <p>Cuando alguien entre al sitio público, su dispositivo (nombre, IP, red y visitas) aparecerá aquí.</p>
+                  </div>
+                ) : devPageRows.length === 0 ? (
+                  <div className="lg-empty">
+                    <span className="lge-ico">{'\u{1F50D}'}</span>
+                    <h4>Sin resultados</h4>
+                    <p>Ningún dispositivo coincide con los filtros aplicados.</p>
+                  </div>
+                ) : (
+                  <div className="dv-list">
+                    {devPageRows.map((d, idx) => (
+                      <article key={d.id} className={`dv-card dv-${d.type || 'mobile'}`} style={{ '--d': `${idx * 40}ms` } as CSSProperties}>
+                        <div className="dv-head">
+                          <span className="dv-ico">{d.type === 'desktop' ? '\u{1F5A5}\uFE0F' : '\u{1F4F1}'}</span>
+                          <div className="dv-title">
+                            <b>{d.name}</b>
+                            <small>{[d.browser, d.os].filter(Boolean).join(' · ')}</small>
+                          </div>
+                          <span className="lg-dot">{d.type === 'desktop' ? 'Desktop' : d.type === 'tablet' ? 'Tablet' : 'Móvil'}</span>
+                        </div>
+                        <div className="dv-stats">
+                          <div className="dv-key"><span>IP</span><b>{d.ip || '—'}</b></div>
+                          <div className="dv-key"><span>Red</span><b>{d.network || '—'}</b></div>
+                          <div className="dv-key"><span>Visitas</span><b>{d.visits || 0}</b></div>
+                          <div className="dv-key"><span>Páginas</span><b>{d.pages || 0}</b></div>
+                        </div>
+                        <div className="dv-foot">
+                          <span>Primera vez <b>{new Date(d.firstSeen).toLocaleString('es-PY', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</b></span>
+                          <span>Última vez <b>{new Date(d.lastSeen).toLocaleString('es-PY', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</b></span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+
+                {devTot > 1 && (
+                  <div className="lg-pages">
+                    <button
+                      className="lg-pg lg-nav"
+                      disabled={devSafe === 1}
+                      onClick={() => setDevPage(devSafe - 1)}
+                      aria-label="Página anterior"
+                    >{'\u2039'}</button>
+                    {pageNums(devSafe, devTot).map((p, i) =>
+                      p === '...' ? (
+                        <span key={`gap${i}`} className="lg-gap">{'\u2026'}</span>
+                      ) : (
+                        <button
+                          key={p}
+                          className={`lg-pg ${p === devSafe ? 'on' : ''}`}
+                          onClick={() => setDevPage(p)}
+                          aria-current={p === devSafe ? 'page' : undefined}
+                        >{p}</button>
+                      )
+                    )}
+                    <button
+                      className="lg-pg lg-nav"
+                      disabled={devSafe === devTot}
+                      onClick={() => setDevPage(devSafe + 1)}
+                      aria-label="Página siguiente"
+                    >{'\u203A'}</button>
+                    <span className="lg-pageinfo">Página {devSafe} de {devTot} · 10 por página</span>
+                  </div>
+                )}
+              </>
+            );
+
             return (
               <div className="animate-reveal pjl-card" style={{ padding: '40px' }}>
+                <div className="lg-pillrow">
+                  <button
+                    className={`lg-pill ${logView === 'logs' ? 'on' : ''}`}
+                    onClick={() => setLogView('logs')}
+                  >
+                    <span>{'\u{1F4DC}'}</span> Historial
+                  </button>
+                  <button
+                    className={`lg-pill ${logView === 'dispositivos' ? 'on' : ''}`}
+                    onClick={() => { setLogView('dispositivos'); setDevPage(1); }}
+                  >
+                    <span>{'\u{1F4F1}'}</span> Dispositivos
+                    <em>{devices.length}</em>
+                  </button>
+                </div>
+                {logView === 'dispositivos' ? devicesPanel : (
+                <>
                 <div className="admin-section-header admin-stack-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                   <div className="admin-section-title-group">
                     <h3 className="serif" style={{ fontSize: '2rem', color: 'var(--navy)', margin: 0 }}>Historial de Actividad</h3>
@@ -4623,6 +4847,8 @@ function AdminContent() {
                     >{'\u203A'}</button>
                     <span className="lg-pageinfo">Página {safePage} de {totalPages}</span>
                   </div>
+                )}
+                </>
                 )}
               </div>
             );
