@@ -248,7 +248,7 @@ const map = L.map(mapRef.current, {
       zoomControlRef.current = L.control.zoom({ position: drawingMode ? 'bottomright' : 'topright' }).addTo(map);
 
       const baseLayers = [
-        { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}{r}.png', options: { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 20, maxNativeZoom: 19, crossOrigin: true, detectRetina: true } }
+        { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', options: { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 20, maxNativeZoom: 19, crossOrigin: true } }
       ];
 
       const layer = L.tileLayer(baseLayers[0].url, baseLayers[0].options).addTo(map);
