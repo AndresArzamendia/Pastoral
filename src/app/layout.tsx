@@ -62,7 +62,10 @@ export default function RootLayout({
             La ruta /api/favicon resuelve en el servidor para TODOS los visitantes,
             sin depender del localStorage de cada dispositivo. */}
         <link rel="icon" href="/api/favicon" sizes="any" />
-        <link rel="apple-touch-icon" href="/api/favicon" />
+        {/* apple-touch-icon: imagen opaca de buena resolución (iOS le aplica
+            su propio redondeo); el script de favicon la reemplaza por el logo
+            del branding cuando existe. */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script dangerouslySetInnerHTML={{ __html: "var pf=document.querySelector('link[href*=\"Playfair\"][media=\"print\"]');if(pf)pf.onload=function(){this.media='all'};" }} />
         {/* Captura TEMPRANA del beforeinstallprompt (antes de la hidratación).
             Chrome lo dispara al cargar si la web es instalable; si React no lo
@@ -143,13 +146,66 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
-  function setFavicon(u){var l=document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]');for(var i=0;i<l.length;i++)l[i].remove();var c=document.createElement('link');c.rel='icon';c.type='image/png';c.href=u;document.head.insertBefore(c,document.head.firstChild);var a=document.createElement('link');a.rel='apple-touch-icon';a.href=u;document.head.appendChild(a)}
-  function pickLogo(b){if(!b)return null;var u=b.favLogo||b.androidLogo||b.mainLogo;return typeof u==='string'&&u.length>0?u:null}
-  function drawCircle(imgUrl){var img=new Image();img.onload=function(){var s=256,ca=document.createElement('canvas');ca.width=s;ca.height=s;var x=ca.getContext('2d');if(!x)return;var m=Math.min(img.width,img.height);if(!m||m<8){setFavicon(imgUrl);return}x.beginPath();x.arc(s/2,s/2,s/2,0,Math.PI*2);x.closePath();x.clip();x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,s,s);setFavicon(ca.toDataURL('image/png'));try{if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({type:'FAVICON_UPDATED'})}catch(e){}};img.onerror=function(){};img.src=imgUrl+(imgUrl.indexOf('data:')===0?'':'?ts='+Date.now())}
-  function loadLogo(){try{var r=localStorage.getItem('pjl_branding');if(!r)return;var u=pickLogo(JSON.parse(r));if(!u)return;drawCircle(u)}catch(e){}}
-  setTimeout(loadLogo,50);
-  function onStore(e){try{var d=e.detail||{};if(d.key==='branding')setTimeout(loadLogo,50)}catch(ex){}}
-  if(typeof window!=='undefined'){window.addEventListener('pjl_store_update',onStore);window.addEventListener('storage',function(e){if(e.key==='pjl_branding')setTimeout(loadLogo,50)})}
+  // Máscara circular para el icono de la pestaña en TODOS los dispositivos.
+  // Sin branding local se circulariza exactamente la misma imagen que sirve
+  // /api/favicon (el servidor responde el favLogo cuadrado); con branding se
+  // usa favLogo > androidLogo > mainLogo. El apple-touch-icon conserva la
+  // imagen opaca (iOS aplica su propio redondeo y no soporta transparencia).
+  function setFavicons(icon, touch){
+    var list=document.querySelectorAll('link[rel="icon"]');
+    for(var i=0;i<list.length;i++)list[i].remove();
+    var at=document.querySelector('link[rel="apple-touch-icon"]');
+    if(at&&touch){try{at.href=touch}catch(e){}}
+    var c=document.createElement('link');
+    c.rel='icon';c.type='image/png';c.href=icon;
+    document.head.insertBefore(c,document.head.firstChild);
+    try{if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({type:'FAVICON_UPDATED'})}catch(e){}
+  }
+  function toCanvas(srcUrl, touch){
+    var img=new Image();
+    img.onload=function(){
+      var s=256,ca=document.createElement('canvas');ca.width=s;ca.height=s;
+      var x=ca.getContext('2d');
+      var m=Math.min(img.width,img.height);
+      if(!x||!m||m<8){setFavicons(srcUrl,touch);return;}
+      try{
+        x.beginPath();x.arc(s/2,s/2,s/2,0,Math.PI*2);x.closePath();x.clip();
+        x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+        x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,s,s);
+        setFavicons(ca.toDataURL('image/png'),touch);
+      }catch(e){setFavicons(srcUrl,touch);}
+    };
+    img.onerror=function(){setFavicons(srcUrl,touch);};
+    img.src=srcUrl+(srcUrl.indexOf('data:')===0?'':'?ts='+Date.now());
+  }
+  var DEFAULT_TOUCH='/apple-touch-icon.png';
+  function getTouch(){
+    try{
+      var r=localStorage.getItem('pjl_branding');
+      if(r){var b=JSON.parse(r);var u=b&&b.mainLogo;if(typeof u==='string'&&u.length>0)return u;}
+    }catch(e){}
+    return DEFAULT_TOUCH;
+  }
+  function resolve(){
+    var touch=getTouch();
+    try{
+      var raw=localStorage.getItem('pjl_branding');
+      if(raw){
+        var b=JSON.parse(raw);
+        var u=(b&&b.favLogo)||(b&&b.androidLogo)||(b&&b.mainLogo);
+        if(typeof u==='string'&&u.length>0){toCanvas(u,touch);return;}
+      }
+    }catch(e){}
+    toCanvas('/api/favicon',touch);
+  }
+  setTimeout(resolve,50);
+  setTimeout(resolve,1200);
+  setTimeout(resolve,3000);
+  function onStore(e){try{var d=e.detail||{};if(d.key==='branding')setTimeout(resolve,50)}catch(ex){}}
+  if(typeof window!=='undefined'){
+    window.addEventListener('pjl_store_update',onStore);
+    window.addEventListener('storage',function(e){if(e.key==='pjl_branding')setTimeout(resolve,50)});
+  }
 })();`,
           }}
         />
