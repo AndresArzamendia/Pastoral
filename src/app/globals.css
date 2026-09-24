@@ -251,7 +251,7 @@ html.pjl-nav-entered .reveal {
   display: flex;
   align-items: center;
   gap: 15px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-width: 0;
   position: relative;
   z-index: 2;
@@ -334,6 +334,7 @@ html.pjl-nav-entered .reveal {
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+  overflow: hidden;
 }
 .logo-area h1 {
   font-family: var(--font-display);
@@ -353,7 +354,9 @@ html.pjl-nav-entered .reveal {
   color: var(--gold);
   font-weight: 400;
   margin: 0;
-  white-space: nowrap;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- ENLACES ---------- */
@@ -882,6 +885,23 @@ html.pjl-nav-entered .reveal {
 
   .mobile-menu-toggle {
     display: flex !important;
+  }
+}
+
+/* NAVBAR — el lema "Pastoral Juvenil Luqueña" siempre debe estar visible bajo
+   «PJL» (desktop y móvil) y no pisar jamás el botón «Inicio»: el texto del lema
+   es flexible (envuelve a dos líneas cuando falta ancho, sin cortes). En la
+   banda de escritorio que compite por el espacio también compactamos un poco
+   los botones del menú para que quepa todo. */
+@media (max-width: 1560px) and (min-width: 1481px) {
+  .nav-links {
+    gap: 2px !important;
+  }
+  .nav-btn {
+    padding: 9px clamp(7px, 0.6vw, 10px) !important;
+    font-size: clamp(11px, 0.72vw, 12.5px) !important;
+    gap: 3px !important;
+    min-height: 40px !important;
   }
 }
 
@@ -2758,16 +2778,19 @@ input, textarea { cursor: text; }
     max-width: 52vw;
   }
 
+  /* En móvil el lema "Pastoral Juvenil Luqueña" debe mostrarse COMPLETO:
+     envuelve a dos líneas en vez de cortarse (sin ellipsis ni ancho limitado). */
   .logo-area p {
-    font-size: 8px !important;
+    font-size: 8.5px !important;
     margin: 0 !important;
-    line-height: 1.1 !important;
+    line-height: 1.25 !important;
     color: var(--text-muted) !important;
-    letter-spacing: 1.2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 52vw;
+    letter-spacing: 1.15px;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+    overflow-wrap: anywhere;
   }
 
   /* En móvil el halo respira más sutil para no competir con el contenido */
@@ -6651,9 +6674,11 @@ textarea:focus-visible,
     linear-gradient(160deg, var(--navy-dark) 0%, var(--navy-mid) 45%, var(--navy-dark) 100%);
   overflow: hidden;
   animation: splashIn 0.5s ease both;
-  /* Oculta por defecto: el script inline del layout la muestra solo
-     fuera de /admin, así jamás destella en el panel. */
-  visibility: hidden;
+  /* Visible POR DEFECTO (sin necesitar clase ni JS): así el splash cubre el
+     primer pintado SIEMPRE y nada del contenido (campana, navbar) puede verse
+     antes. El script inline del layout añade 'no-splash' en las rutas sin
+     intro (admin, instalar...) para sacarlo de escena de inmediato. */
+  visibility: visible;
 }
 html.show-splash .splash-screen { visibility: visible; }
 html.no-splash .splash-screen { display: none !important; }
@@ -6668,7 +6693,9 @@ html:not(.splash-ready) .splash-tagline,
 html:not(.splash-ready) .splash-bar,
 html:not(.splash-ready) .splash-bar-fill,
 html:not(.splash-ready) .splash-loading-text,
-html:not(.splash-ready) .sv-scene * {
+html:not(.splash-ready) .splash-motto::after,
+html:not(.splash-ready) .sx-scene,
+html:not(.splash-ready) .sx-scene * {
   animation-play-state: paused !important;
 }
 /* Salida cinematográfica en DOS fases (ver efecto del splash en page.tsx):
@@ -6688,12 +6715,14 @@ html:not(.splash-ready) .sv-scene * {
   100% { opacity: 0; filter: blur(18px); transform: scale(1.08); }
 }
 @keyframes splashIn {
-  from { opacity: 0; }
+  /* Parte totalmente opaco: así el primer pintado ya está 100% cubierto por
+     la pantalla de carga y NADA (campana, navbar) puede asomarse detrás
+     mientras el splash hace su fundido de entrada. */
+  from { opacity: 1; }
   to { opacity: 1; }
 }
 
-/* Fondo: las escenas (amanecer/llama) se anclan a toda la pantalla */
-.splash-bg { position: absolute; inset: 0; }
+/* Fondo animado: vive en .sx-scene */
 
 .splash-content {
   position: relative;
@@ -6701,7 +6730,9 @@ html:not(.splash-ready) .sv-scene * {
   text-align: center;
   padding: 24px;
   max-width: min(92vw, 780px);
-  visibility: hidden;
+  /* Visible por defecto: el contenido de la intro (logo, título, barra)
+     nace mostrado junto con el fondo, sin esperar clases ni JS. */
+  visibility: visible;
   transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.55s ease;
 }
 html.show-splash .splash-content { visibility: visible; }
@@ -6815,12 +6846,11 @@ html.show-splash .splash-content { visibility: visible; }
   0% { opacity: 0; transform: translateY(14px); filter: blur(8px); }
   100% { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
-/* Frases rotativas: solo se muestra la de la variante activa */
+/* La intro muestra SOLO: fondo animado + logo + nombre + frase + barra.
+   La barra y el fondo comparten la misma duración (5.5s): el escenario
+   (amanecer/llama) se carga y se enciende conforme avanza la barra. */
 .splash-tagline.sv-t { display: none; }
-html[data-splash-variant="b"] .sv-t-b,
-html[data-splash-variant="c"] .sv-t-c,
-html:not([data-splash-variant]) .sv-t-b { display: flex; }
-/* Lema principal: siempre presente en la intro */
+/* Frase principal (lema): siempre presente en la intro */
 .splash-motto {
   font-size: clamp(13px, 2.2vw, 18px);
   letter-spacing: .04em;
@@ -6831,6 +6861,25 @@ html:not([data-splash-variant]) .sv-t-b { display: flex; }
   animation-delay: 1.9s;
 }
 .splash-motto em { font-style: italic; }
+/* Subrayado dorado que se dibuja bajo la frase MIENTRAS la barra avanza */
+.splash-motto { position: relative; }
+.splash-motto::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  width: 0;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #e9c87c, #ffe9b8, #e9c87c, transparent);
+  box-shadow: 0 0 12px rgba(233, 200, 124, 0.7);
+  animation: mottoLine 1.1s cubic-bezier(0.22, 1, 0.36, 1) 2.05s forwards;
+}
+@keyframes mottoLine {
+  from { width: 0; opacity: 0; }
+  to { width: min(320px, 78%); opacity: 1; }
+}
 .splash-tagline cite {
   font-style: normal;
   font-size: .72em;
@@ -6915,7 +6964,8 @@ html:not([data-splash-variant]) .sv-t-b { display: flex; }
 
 @media (prefers-reduced-motion: reduce) {
   .splash-ring, .splash-halo, .splash-flame, .splash-bar-shine,
-  .sv-scene * { animation: none !important; }
+  .splash-motto::after,
+  .sx-scene, .sx-scene * { animation: none !important; }
   .splash-letter, .splash-logo-wrap, .splash-tagline, .splash-bar, .splash-bar-fill, .splash-loading-text { animation-duration: 0.01s !important; animation-delay: 0s !important; }
 }
 
@@ -8815,245 +8865,129 @@ html:not([data-splash-variant]) .sv-t-b { display: flex; }
 }
 
 /* ============================================================
-   INTRO ROTATIVA — Escenas alternas (Amanecer / Llama)
-   Cada entrada muestra una escena distinta (ver layout.tsx) para
-   que la animación de inicio nunca canse de repetirse. El fondo
-   base del splash usa var(--navy-*) de ThemeLoader, así la escena
-   acompaña el color del tiempo litúrgico del día.
+   INTRO — Fondo vivo "Noche de luz"
+   Aurora suave + destellos dorados ascendentes + haces de luz.
+   El escenario se carga y se enciende al MISMO ritmo que la
+   barra (barFill = 5.5s · delay 0.4s): fondo y barra quedan
+   sincronizados. Logo, frase y barra van por encima.
    ============================================================ */
-.sv-scene {
+.sx-scene {
   position: absolute;
   inset: 0;
-  opacity: 0;
-  visibility: hidden;
   pointer-events: none;
   overflow: hidden;
+  /* Se enciende conforme avanza la barra de carga */
+  animation: sceneCharge 5.5s linear 0.4s both;
 }
-html[data-splash-variant="b"] .sv-dawn,
-html[data-splash-variant="c"] .sv-flame,
-html:not([data-splash-variant]) .sv-dawn {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* --- Variante B · AMANECER DE ESPERANZA --- */
-.sv-dawn {
-  background:
-    radial-gradient(78vw 62vh at 50% 120%, rgba(255, 214, 138, .45), transparent 68%),
-    radial-gradient(60vw 56vh at 50% 124%, rgba(198, 140, 54, .22), transparent 72%),
-    linear-gradient(174deg, #101a2e 0%, #1b2b4b 30%, #40548a 58%, #b98a4a 82%, #e8c383 100%);
-}
-/* Rayos de sol que brotan desde el horizonte bajo */
-.dawn-rays {
-  position: absolute;
-  left: -15vw;
-  right: -15vw;
-  bottom: 0;
-  height: 52vh;
-  background: repeating-conic-gradient(from -22deg at 50% 118%, rgba(255, 226, 160, .18) 0deg 3deg, transparent 3deg 13deg);
-  -webkit-mask: linear-gradient(180deg, #000 0%, transparent 74%);
-  mask: linear-gradient(180deg, #000 0%, transparent 74%);
-  filter: blur(1px);
-  transform-origin: 50% 118%;
-  animation: raysTurn 46s linear infinite;
-}
-@keyframes raysTurn { from { transform: rotate(0deg); } to { transform: rotate(14deg); } }
-/* Sol naciente */
-.dawn-sun {
-  position: absolute;
-  left: 50%;
-  bottom: -9vmax;
-  width: 46vmax;
-  height: 46vmax;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 42%, rgba(255, 247, 222, .96), rgba(255, 216, 130, .9) 38%, rgba(233, 168, 74, .5) 62%, transparent 72%);
-  filter: blur(1.5px);
-  box-shadow: 0 0 90px 24px rgba(255, 202, 110, .5);
-  animation: sunRise 6.2s cubic-bezier(.34, 1.3, .55, 1) .4s both, sunGlow 7s ease-in-out 2.2s infinite alternate;
-}
-@keyframes sunRise {
-  from { transform: translate(-50%, 16vmax) scale(.7);  opacity: .3; }
-  to   { transform: translate(-50%, 0) scale(1);        opacity: 1; }
-}
-@keyframes sunGlow {
-  to { box-shadow: 0 0 120px 42px rgba(255, 202, 110, .72); }
-}
-/* Niebla cálida en el horizonte */
-.dawn-haze {
-  position: absolute;
-  left: -6vw;
-  right: -6vw;
-  bottom: 16%;
-  height: 24vh;
-  background: linear-gradient(180deg, transparent, rgba(226, 188, 132, .18));
-  filter: blur(16px);
-  animation: hazeDrift 12s ease-in-out infinite alternate;
-}
-@keyframes hazeDrift { to { transform: translateX(5vw); } }
-/* Cruz de luz en el cielo del amanecer (cruz latina, no símbolo +) */
-.dawn-cross {
-  position: absolute;
-  left: 50%;
-  top: 6%;
-  width: clamp(96px, 19vw, 170px);
-  aspect-ratio: 0.84;
-  transform: translateX(-50%);
-  opacity: 0;
-  filter: drop-shadow(0 0 16px rgba(255, 224, 160, .6));
-  animation: crossReveal 1.5s ease .9s both;
-}
-.dawn-cross::before,
-.dawn-cross::after {
-  content: '';
-  position: absolute;
-  background: linear-gradient(0deg, rgba(255, 236, 193, .35), rgba(255, 244, 214, .95) 48%, rgba(255, 236, 193, .35));
-  border-radius: 3px;
-  animation: crossPulse 5s ease-in-out 2.6s infinite alternate;
-}
-/* Brazo vertical, largo */
-.dawn-cross::before {
-  left: 40%;
-  right: 40%;
-  top: 0;
-  bottom: 9%;
-}
-/* Brazo horizontal, corto y arriba */
-.dawn-cross::after {
-  left: 12%;
-  right: 12%;
-  top: 9%;
-  bottom: 64%;
-  animation-delay: .4s;
-}
-@keyframes crossReveal {
-  from { opacity: 0; transform: translateX(-50%) scale(.55); filter: blur(7px); }
-  to   { opacity: .9; transform: translateX(-50%) scale(1);  filter: blur(0); }
-}
-@keyframes crossPulse { to { opacity: .42; } }
-/* Pétalos de luz flotando */
-.dawn-petals i {
-  position: absolute;
-  width: 5px;
-  height: 9px;
-  border-radius: 60% 40% 60% 40%;
-  background: linear-gradient(135deg, #fff1cf, #f2c27a);
-  opacity: 0;
-  filter: blur(.3px);
-  animation: petalFall linear infinite;
-}
-.dp-1 { left: 12%;  top: -4%; animation-duration: 7.2s; animation-delay: .4s; }
-.dp-2 { left: 31%;  top: -9%; animation-duration: 8.4s; animation-delay: 1.8s; }
-.dp-3 { left: 55%;  top: -2%; animation-duration: 6.6s; animation-delay: 3.1s; }
-.dp-4 { left: 73%;  top: -8%; animation-duration: 9s;   animation-delay: 1.1s; }
-.dp-5 { left: 89%;  top: -5%; animation-duration: 7.8s; animation-delay: 2.4s; }
-@keyframes petalFall {
-  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
-  12%  { opacity: .85; }
-  85%  { opacity: .55; }
-  100% { transform: translateY(112vh) rotate(170deg) translateX(28px); opacity: 0; }
+@keyframes sceneCharge {
+  from { filter: brightness(0.85) saturate(0.92); transform: scale(0.99); }
+  to   { filter: brightness(1.12) saturate(1.06); transform: scale(1.03); }
 }
 
-/* --- Variante C · LLAMA DE FE --- */
-.sv-flame {
-  background:
-    radial-gradient(54vw 46vh at 50% 113%, rgba(148, 62, 26, .55), transparent 70%),
-    radial-gradient(74vw 42vh at 50% 119%, rgba(226, 128, 44, .22), transparent 72%),
-    linear-gradient(175deg, #150d18 0%, #241020 42%, #3a1020 74%, #58120f 100%);
-}
-/* Resplandor que tiñe el suelo */
-.flame-glow {
+/* Auroras: blobs luminosos que se deslizan muy lentos */
+.sx-aura-1,
+.sx-aura-2 {
   position: absolute;
-  left: 50%;
-  bottom: 3vmax;
-  width: 60vmax;
-  height: 48vmax;
-  transform: translateX(-50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 170, 60, .5), rgba(230, 80, 30, .18) 45%, transparent 70%);
-  filter: blur(32px);
+  filter: blur(56px);
   mix-blend-mode: screen;
-  animation: flameGlowPulse 3.4s ease-in-out infinite alternate;
+  opacity: 0.5;
+  will-change: transform;
 }
-@keyframes flameGlowPulse {
-  to { opacity: .45; transform: translateX(-50%) scale(1.12); }
+.sx-aura-1 {
+  width: 64vmax;
+  height: 64vmax;
+  left: -20vmax;
+  top: -24vmax;
+  background: radial-gradient(circle, rgba(104, 140, 240, 0.5), transparent 62%);
+  animation: sxDrift 19s ease-in-out infinite alternate;
 }
-/* Llamas en capas: roja por fuera, ámbar en el medio, núcleo blanco */
-.flame-outer,
-.flame-mid,
-.flame-inner {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  transform-origin: 50% 100%;
-  border-radius: 48% 52% 44% 56% / 74% 78% 22% 26%;
-  filter: blur(.6px);
+.sx-aura-2 {
+  width: 56vmax;
+  height: 56vmax;
+  right: -18vmax;
+  bottom: -20vmax;
+  background: radial-gradient(circle, rgba(233, 200, 124, 0.48), transparent 62%);
+  animation: sxDrift 24s ease-in-out infinite alternate-reverse;
 }
-.flame-outer {
-  width: clamp(220px, 36vw, 420px);
-  height: clamp(200px, 32vw, 380px);
-  background: radial-gradient(115% 92% at 50% 100%, #ff5b1f 0%, rgba(255, 90, 30, .6) 36%, rgba(190, 40, 16, .15) 60%, transparent 74%);
-  animation: flameFlickOut 1.7s ease-in-out infinite alternate;
-}
-.flame-mid {
-  width: clamp(150px, 24vw, 280px);
-  height: clamp(150px, 24vw, 280px);
-  background: radial-gradient(115% 92% at 50% 100%, #ffcf6b 0%, rgba(255, 178, 66, .75) 40%, rgba(246, 124, 30, .25) 62%, transparent 78%);
-  animation: flameFlickMid 1.4s ease-in-out .2s infinite alternate;
-}
-.flame-inner {
-  width: clamp(92px, 15vw, 172px);
-  height: clamp(104px, 17vw, 196px);
-  background: radial-gradient(120% 96% at 50% 100%, #fff6dc 0%, rgba(255, 243, 205, .92) 34%, rgba(255, 205, 110, .45) 58%, transparent 76%);
-  filter: blur(1px);
-  animation: flameFlickMid 1.1s ease-in-out .4s infinite alternate;
-  box-shadow: 0 0 46px 16px rgba(255, 216, 140, .55);
-}
-@keyframes flameFlickOut {
-  from { transform: translateX(-50%) scaleY(.94) skewX(-1.5deg); opacity: .96; }
-  to   { transform: translateX(-50%) scaleY(1.06) skewX(1.5deg);  opacity: .88; }
-}
-@keyframes flameFlickMid {
-  from { transform: translateX(-50%) scaleY(.97) scaleX(.96); opacity: 1; }
-  to   { transform: translateX(-50%) scaleY(1.04) scaleX(1.03); opacity: .94; }
-}
-/* Brasas que vuelan */
-.flame-spark {
-  position: absolute;
-  bottom: -3vh;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffd98a, rgba(255, 150, 40, 0));
-  box-shadow: 0 0 8px 2px rgba(255, 180, 80, .45);
-  animation: flameRise linear infinite;
-  opacity: 0;
-}
-@keyframes flameRise {
-  0%   { transform: translateY(0) translateX(0) scale(.6); opacity: 0; }
-  14%  { opacity: .95; }
-  70%  { opacity: .65; }
-  100% { transform: translateY(-96vh) translateX(3vw) scale(1.3); opacity: 0; }
+@keyframes sxDrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(7vmax, -5vmax, 0) scale(1.14); }
 }
 
-/* Ajustes de pantallas chicas: menos altura, detalles más sutiles */
+/* Haces de luz difusos que salen desde la base */
+.sx-beams {
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  width: 150vmax;
+  height: 70vmax;
+  transform: translateX(-50%);
+  background: repeating-conic-gradient(from -12deg at 50% 100%, transparent 0deg 11deg, rgba(255, 226, 160, 0.06) 12deg, transparent 23deg);
+  -webkit-mask: linear-gradient(180deg, transparent, #000 52%);
+  mask: linear-gradient(180deg, transparent, #000 52%);
+  animation: sxBeams 26s ease-in-out infinite alternate;
+}
+@keyframes sxBeams {
+  from { opacity: 0.35; transform: translateX(-50%) rotate(-2deg); }
+  to   { opacity: 0.8;  transform: translateX(-50%) rotate(2deg); }
+}
+
+/* Resplandor que sube desde abajo: da profundidad a frase y barra */
+.sx-rise {
+  position: absolute;
+  left: 50%;
+  bottom: -40%;
+  width: min(88vmax, 900px);
+  height: 85%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 100%, rgba(233, 200, 124, 0.3), transparent 66%);
+  -webkit-mask: linear-gradient(180deg, transparent, #000 46%);
+  mask: linear-gradient(180deg, transparent, #000 46%);
+  animation: sxRise 7s ease-in-out infinite alternate;
+}
+@keyframes sxRise {
+  from { opacity: 0.5; transform: translateX(-50%) translateY(4%) scaleY(0.92); }
+  to   { opacity: 0.95; transform: translateX(-50%) translateY(-2%) scaleY(1.04); }
+}
+
+/* Destellos dorados ascendentes (tamaño y brillo vía CSS vars --s / --fl) */
+.sx-star {
+  position: absolute;
+  width: calc(2px * var(--s, 1));
+  height: calc(2px * var(--s, 1));
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6dc 0%, #e9c87c 55%, transparent 100%);
+  box-shadow: 0 0 calc(10px * var(--s, 1)) rgba(233, 200, 124, 0.75);
+  opacity: 0;
+  animation: sxTwinkle ease-in-out infinite;
+}
+@keyframes sxTwinkle {
+  0%, 100% { transform: translateY(0) scale(0.6); opacity: 0; }
+  30%      { opacity: var(--fl, 0.8); }
+  55%      { transform: translateY(-6vh) scale(1); opacity: calc(var(--fl, 0.8) * 0.75); }
+  85%      { transform: translateY(-11vh) scale(1.25); opacity: calc(var(--fl, 0.8) * 0.3); }
+}
+
+/* Pantallas chicas: auroras más suaves y un poco menos de destellos */
 @media (max-width: 640px) {
-  .dawn-cross { top: 4%; width: clamp(84px, 30vw, 130px); opacity: .8; }
-  .dawn-rays { height: 44vh; }
-  .flame-outer { width: clamp(200px, 62vw, 320px); height: clamp(160px, 50vw, 260px); }
-  .flame-mid { width: clamp(140px, 44vw, 220px); height: clamp(120px, 38vw, 190px); }
-  .flame-inner { width: clamp(84px, 28vw, 140px); height: clamp(84px, 28vw, 150px); }
+  .sx-aura-1 { width: 150vw; height: 150vw; left: -34vw; top: -36vw; filter: blur(44px); opacity: 0.42; }
+  .sx-aura-2 { width: 140vw; height: 140vw; right: -30vw; bottom: -32vw; filter: blur(44px); opacity: 0.38; }
+  .sx-star { width: 3px; height: 3px; }
+  .sx-star:nth-of-type(5n) { display: none; }
 }
 @media (max-height: 520px) {
-  .dawn-cross, .flame-glow { opacity: .45; }
-  .dawn-petals i { display: none; }
+  .sx-aura-1, .sx-aura-2 { opacity: 0.32; }
+  .sx-star:nth-of-type(4n) { display: none; }
 }
 
-/* Movimiento reducido: quietud total en todas las escenas */
+/* Movimiento reducido: quietud total del escenario */
 @media (prefers-reduced-motion: reduce) {
-  .sv-scene * {
+  .sx-scene, .sx-scene * {
     animation: none !important;
     transition: none !important;
+    filter: none !important;
+    transform: none !important;
   }
 }
 

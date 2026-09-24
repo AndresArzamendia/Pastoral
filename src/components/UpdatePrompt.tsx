@@ -9,9 +9,11 @@ export default function UpdatePrompt() {
     if (!('serviceWorker' in navigator)) return;
 
     function onControllerChange() {
+      // La recarga SOLO ocurre cuando el usuario toca "Actualizar ahora".
+      // Nunca se recarga sola al entrar: el cambio de controlador del SW
+      // (activación/claim) solo limpia el estado, sin recargar la página.
       setUpdateAvailable(false);
       setWaitingSw(null);
-      window.location.reload();
     }
 
     const register = async () => {

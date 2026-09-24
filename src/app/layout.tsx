@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Fraunces, Manrope, Libre_Baskerville } from "next/font/google";
 import ThemeLoader from "../components/ThemeLoader";
 import PwaInstallPrompt from "../components/PwaInstallPrompt";
@@ -103,15 +104,23 @@ export default function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html: [
-              /* El navbar nace oculto (opacity:0 en globals.css) y SOLO se
-                 revela cuando 'nav-entered' dispara su animación escalonada.
-                 El velo del splash lo mantiene oculto hasta entonces, y el
-                 useLayoutEffect de page.tsx siempre añade 'nav-entered', por
-                 lo que no existe ventana sin menú: un único fundido de entrada.
-                 Nada de sobreescribir opacity a 1 aquí (causaba doble refresco:
-                 flash visible -> re-animación desde 0). */
-              'html.show-splash:not(.pjl-reveal) body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
-              'html:not(.show-splash) #splash-pjl{display:none!important}',
+              /* El splash nace VISIBLE POR DEFECTO (sin depender de ninguna
+                 clase ni de que el JS corra): el icono de notificaciones y el
+                 contenido quedan ocultos desde el primer pintado hasta que
+                 page.tsx levanta el velo con 'pjl-reveal' o elimina el nodo.
+                 Así no puede aparecer contenido (campana, navbar) antes de la
+                 intro, ni existe una carga previa de ~1s mientras el bundle se
+                 descarga/hidrata. */
+              'body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
+              /* show-splash: estado explícito (igual que el default), se mantiene
+                 para compatibilidad con el código existente. */
+              'html.show-splash body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:hidden!important}',
+              /* no-splash: rutas sin intro (admin, instalar, internas) — el
+                 splash sale de escena y el contenido se muestra al instante. */
+              'html.no-splash #splash-pjl{display:none!important}',
+              'html.no-splash body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important}',
+              /* pjl-reveal: el contenido aparece con su propio fundido suave,
+                 cruzándose con el fundido de salida del splash. */
               'html.pjl-reveal body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important;animation:pjlPageIn .55s ease-out both}',
               /* IMPORTANTE: el navbar NO debe heredar pjlPageIn. Si lo recibe,
                  entraría con el fundido del contenido y LUEGO otra vez con su
@@ -119,28 +128,19 @@ export default function RootLayout({
                  animación de pjlPageIn y queda solamente con su fundido único. */
               'html.pjl-reveal body>.top-nav{animation:none!important;visibility:visible!important}',
               '@keyframes pjlPageIn{from{opacity:0}to{opacity:1}}',
-              'html.show-splash body:not(:has(> #splash-pjl))>*{visibility:visible!important}',
-              '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}html.show-splash body>*:not(#splash-pjl){visibility:visible!important}}',
+              /* Seguridad: si el nodo del splash ya no está en el DOM, el
+                 contenido se muestra aunque el velo quedara huérfano. */
+              'body:not(:has(> #splash-pjl))>*:not(script):not(style):not(noscript){visibility:visible!important}',
+              /* La campana de notificaciones se auto-fuerza visible en móvil
+                 (visibility/opacity !important en globals.css). Se oculta SOLO
+                 mientras el splash cubre la pantalla (nodo presente y sin
+                 'is-leaving'); en cuanto empieza la salida de la intro vuelve a
+                 mostrarse junto a las 3 barras, aunque el nodo tarde en borrarse.
+                 Con movimiento reducido nunca se oculta. */
+              '@media (prefers-reduced-motion: no-preference){body:has(> #splash-pjl:not(.is-leaving)) .nav-content .notif-bell{visibility:hidden!important;opacity:0!important}}',
+              '@media (prefers-reduced-motion:reduce){#splash-pjl{display:none!important}body>*:not(#splash-pjl):not(script):not(style):not(noscript){visibility:visible!important}}',
               '@media (prefers-reduced-motion:reduce){.top-nav .brand-logo-wrap,.top-nav .brand-text,.top-nav .nav-links .nav-item{opacity:1 !important}}',
             ].join(''),
-          }}
-        />
-        {/* Rotación de escenas de la intro: cada entrada muestra una escena
-            distinta (cielo / amanecer / llama) para que nunca canse ver la
-            misma de nuevo. Corre ANTES del primer pintado. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-              if(location.pathname!=='/')return;
-              var V=['b','c'], idx=1;
-              try{
-                var last=parseInt(localStorage.getItem('pjl_splash_variant')||'')|| -1;
-                if(last>=0 && last<V.length){ idx=(last+1+Math.floor(Math.random()*(V.length-1)))%V.length; }
-                else{ idx=Math.floor(Math.random()*V.length); }
-                localStorage.setItem('pjl_splash_variant', String(idx));
-              }catch(e){}
-              document.documentElement.setAttribute('data-splash-variant', V[idx]);
-            })();`,
           }}
         />
         <script
@@ -214,31 +214,31 @@ export default function RootLayout({
         {/* Marca <html> ANTES de pintar el splash: solo en la home ('/').
             El velo de contenido se gestiona junto con la intro; otras rutas
             no deben depender de ella. */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){if(location.pathname!=='/'){document.documentElement.classList.add('no-splash');return;}var skip=false;try{var ne=performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation');var nt=ne&&ne[0]?ne[0].type:'';var isReload=(nt==='reload')||(performance.navigation&&performance.navigation.type===1);if(!isReload){var ts=parseInt(sessionStorage.getItem('pjl_skip_splash')||'',10);if(ts&&Date.now()-ts<8000)skip=true;}}catch(e){skip=false;}if(!skip){document.documentElement.classList.add('show-splash');}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.documentElement;if(location.pathname!=='/'){h.classList.add('no-splash');return;}var skip=false;try{var ne=performance&&performance.getEntriesByType&&performance.getEntriesByType('navigation');var nt=ne&&ne[0]?ne[0].type:'';var isReload=(nt==='reload')||(performance.navigation&&performance.navigation.type===1);if(!isReload){var ts=parseInt(sessionStorage.getItem('pjl_skip_splash')||'',10);if(ts&&Date.now()-ts<8000)skip=true;}}catch(e){skip=false;}if(skip){h.classList.add('no-splash');return;}h.classList.add('show-splash');})();` }} />
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var h=location.hash;if(h&&h.indexOf('type=recovery')!==-1&&location.pathname.indexOf('/reset-password/recover')===-1){location.replace('/reset-password/recover'+h);}}catch(e){}})();` }} />
         {/* Pantalla de carga estática: vive FUERA del árbol que React intercambia,
             por eso se ve desde el primer pintado y sobrevive a la hidratación. */}
 <div id="splash-pjl" className="splash-screen" role="status" aria-label="Cargando Pastoral Juvenil Luqueña">
-          {/* Variante B · Amanecer de Esperanza: sol naciente, rayos de luz, cruz luminosa */}
-          <div className="sv-scene sv-dawn" aria-hidden="true">
-            <span className="dawn-rays"></span>
-            <span className="dawn-sun"></span>
-            <span className="dawn-haze"></span>
-            <span className="dawn-cross"></span>
-            <span className="dawn-petals" aria-hidden="true">
-              <i className="dp-1"></i><i className="dp-2"></i><i className="dp-3"></i><i className="dp-4"></i><i className="dp-5"></i>
+          {/* Fondo vivo "Noche de luz": aurora + destellos dorados + haz,
+              sincronizado con la barra de carga. Logo, frase y barra viven
+              en .splash-content (por encima, z-index 3). */}
+          <div className="sx-scene" aria-hidden="true">
+            <span className="sx-aura-1"></span>
+            <span className="sx-aura-2"></span>
+            <span className="sx-beams"></span>
+            <span className="sx-rise"></span>
+            <span className="sx-stars">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <i key={i} className="sx-star" style={{
+                  left: `${((i * 23 + 7) % 96) + 2}%`,
+                  top: `${((i * 41 + 13) % 86) + 4}%`,
+                  ['--s' as any]: String((i % 3) + 1),
+                  ['--fl' as any]: (0.55 + (i % 5) * 0.1).toFixed(2),
+                  animationDelay: `${(i % 7) * 0.55}s`,
+                  animationDuration: `${3.4 + (i % 5) * 0.9}s`,
+                }} />
+              ))}
             </span>
-          </div>
-
-          {/* Variante C · Llama de Fe: fuego vivo con brasas encendidas */}
-          <div className="sv-scene sv-flame" aria-hidden="true">
-            <span className="flame-glow"></span>
-            <span className="flame-outer"></span>
-            <span className="flame-mid"></span>
-            <span className="flame-inner"></span>
-            {Array.from({ length: 14 }).map((_, i) => (
-              <span key={i} className="flame-spark" style={{ left: `${30 + (i % 6) * 6.5}%`, animationDelay: `${(i * 0.43) % 3.4}s`, animationDuration: `${3.2 + (i % 4) * 0.7}s` }} />
-            ))}
           </div>
           <div className="splash-content">
             <div className="splash-logo-wrap">
@@ -255,16 +255,6 @@ export default function RootLayout({
                 </span>
               ))}
             </h1>
-            <p className="splash-tagline sv-t sv-t-b">
-              <span className="splash-flame" aria-hidden="true">✨</span>
-              <em>«Él hace nuevas todas las cosas»</em>
-              <cite>Ap 21,5</cite>
-            </p>
-            <p className="splash-tagline sv-t sv-t-c">
-              <span className="splash-flame" aria-hidden="true">🕊️</span>
-              <em>«Yo soy la luz del mundo»</em>
-              <cite>Jn 8,12</cite>
-            </p>
             <p className="splash-tagline splash-motto">
               <span className="splash-flame" aria-hidden="true">🔥</span>
               <em>«Avivando la llama de Cristo en tu corazón»</em>
@@ -293,6 +283,7 @@ export default function RootLayout({
         <InstalledToast />
         <UpdatePrompt />
         {children}
+        <SpeedInsights />
         <Script
           src="https://www.vaticannews.va/etc/designs/vaticannews/widget/widget.js"
           strategy="lazyOnload"
