@@ -3225,15 +3225,20 @@ function AdminContent() {
               : supabaseStatus
                 ? 'Sin nube · los cambios quedan solo en este dispositivo'
                 : 'Verificando sincronización…';
-            const activosCount = [branding.mainLogo, branding.androidLogo, branding.whiteLogo, branding.favLogo, branding.zona1Logo, branding.zona2Logo, branding.zona3Logo, branding.zona4Logo].filter(Boolean).length;
+            const activosArr = [branding.mainLogo, branding.androidLogo, branding.whiteLogo, branding.favLogo, branding.zona1Logo, branding.zona2Logo, branding.zona3Logo, branding.zona4Logo];
+            const activosCount = activosArr.filter(Boolean).length;
+            const pct = Math.round((activosCount / activosArr.length) * 100);
             return (
             <div className="animate-reveal pjl-card identity-shell">
 
               {/* HEADER */}
-              <div className="admin-section-header admin-stack-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '26px' }}>
-                <div className="admin-section-title-group">
-                  <h3 className="serif admin-section-title" style={{ margin: 0 }}>Identidad de Marca</h3>
-                  <p className="admin-section-desc">Logos, colores y escudos oficiales de la Pastoral. Cada cambio se refleja automáticamente en el sitio público.</p>
+              <div className="id-header">
+                <div className="id-header-left">
+                  <span className="id-header-icon">🎨</span>
+                  <div>
+                    <h3 className="serif id-header-title">Identidad de Marca</h3>
+                    <p className="id-header-desc">Logos, colores y escudos oficiales de la Pastoral. Cada cambio se refleja automáticamente en el sitio público.</p>
+                  </div>
                 </div>
                 <div className={`identity-sync-badge ${syncState}`}>
                   <span className="identity-sync-dot" />
@@ -3241,34 +3246,46 @@ function AdminContent() {
                 </div>
               </div>
 
-              {/* HERO PREVIEW */}
-              <div className="identity-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '16px', marginBottom: '28px' }}>
-                <div className="identity-hero">
-                  <div className="identity-hero-shine" />
-                  <div className="identity-hero-tag">Vista de marca</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
-                    <div className="identity-hero-logo">
+              {/* VISTA DE MARCA */}
+              <div className="id-stage">
+                <div className="id-stage-hero">
+                  <span className="id-stage-shine" aria-hidden="true" />
+                  <span className="id-stage-orbit" aria-hidden="true" />
+                  <div className="id-stage-tag">Vista de marca · previsualización en vivo</div>
+                  <div className="id-stage-content">
+                    <div className="id-stage-logo">
                       {branding.mainLogo ? <img src={branding.mainLogo} alt="Logo principal" /> : <span>⛪</span>}
                     </div>
                     <div>
-                      <div className="serif" style={{ fontSize: '1.5rem', lineHeight: 1.1 }}>PJL Luqueña</div>
-                      <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '6px' }}>Así se ve tu logo en el encabezado del sitio</div>
+                      <div className="serif id-stage-name">PJL Luqueña</div>
+                      <div className="id-stage-sub">Así se ve tu logo en el encabezado del sitio</div>
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <div className="identity-stat-box">
-                    <span className="identity-stat-icon">🖼️</span>
-                    <div>
-                      <div className="identity-stat-label">ACTIVOS VISUALES</div>
-                      <div className="identity-stat-value">{activosCount} <small>de 8</small></div>
+                <div className="id-stats">
+                  <div className="id-stat-card">
+                    <div className="id-stat-head">
+                      <span className="id-stat-icon">🖼️</span>
+                      <span className="id-stat-value">{activosCount}<small> / {activosArr.length}</small></span>
                     </div>
+                    <span className="id-stat-label">ACTIVOS VISUALES CONFIGURADOS</span>
+                    <div className="id-progress" role="progressbar" aria-valuenow={activosCount} aria-valuemin={0} aria-valuemax={activosArr.length}>
+                      <span className="id-progress-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="id-progress-caption">{pct}% de tu identidad visual completada</span>
                   </div>
-                  <div className="identity-stat-box is-cream">
-                    <span className="identity-stat-icon">💧</span>
-                    <div>
-                      <div className="identity-stat-label">MARCA DE AGUA</div>
-                      <div className="identity-stat-value" style={{ fontSize: '15px' }}>{branding.logoWatermark ? 'Activa en el sitio' : 'Desactivada'}</div>
+                  <div className="id-stat-card is-cream">
+                    <div className="id-stat-head">
+                      <span className="id-stat-icon">💧</span>
+                      <span className={`id-watermark-pill ${branding.logoWatermark ? 'is-on' : ''}`}>{branding.logoWatermark ? 'Activa' : 'Inactiva'}</span>
+                    </div>
+                    <span className="id-stat-label">MARCA DE AGUA DEL LOGO</span>
+                    <div className="id-switch-wrap">
+                      <span className="id-switch-label">{branding.logoWatermark ? 'Se muestra de fondo en todo el sitio' : 'Oculta por ahora en el sitio'}</span>
+                      <label className="pjl-switch">
+                        <input type="checkbox" checked={!!branding.logoWatermark} onChange={(e) => setBranding({...branding, logoWatermark: e.target.checked})} />
+                        <span className="pjl-slider"></span>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -3276,70 +3293,56 @@ function AdminContent() {
 
               {/* LOGOS PRINCIPALES */}
               <div className="identity-section-label"><span>Logos principales</span></div>
-              <div className="identity-blocks">
+              <div className="id-cards">
 
-                <div className="identity-logo-row identity-rise">
-                  <div className="identity-logo-preview">
+                <div className="id-card id-card-lg identity-rise">
+                  <div className="id-card-preview is-light">
                     {branding.mainLogo ? <img src={branding.mainLogo} alt="Logo principal" /> : <span>⛪</span>}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p className="premium-label" style={{ marginBottom: '4px' }}>LOGO PRINCIPAL DEL SITIO</p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 12px' }}>Aparece en el menú de navegación, el pie de página y los documentos.</p>
-                    <label className="btn-premium btn-premium-gold" style={{ padding: '9px 18px', fontSize: '11px' }}>
+                  <div className="id-card-body">
+                    <p className="id-card-title">LOGO PRINCIPAL DEL SITIO</p>
+                    <p className="id-card-desc">Aparece en el menú de navegación, el pie de página y los documentos.</p>
+                    <label className="btn-premium btn-premium-gold id-btn">
                       CAMBIAR LOGO
                       <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => { setBranding({...branding, mainLogo: url}); showToast('Logo principal actualizado ✔'); })} />
                     </label>
                   </div>
                 </div>
 
-                <div className="identity-logo-row identity-rise" style={{ animationDelay: '40ms', border: '1px solid var(--gold-pale)', borderRadius: '16px', background: 'linear-gradient(145deg, #fffdf8 0%, #fbf6ea 100%)' }}>
-                  <div className="identity-logo-preview" style={{ background: 'var(--navy)', padding: '14px', borderRadius: '14px' }}>
-                    {branding.androidLogo ? <img src={branding.androidLogo} alt="Logo app Android" style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }} /> : <span style={{ fontSize: '26px' }}>🤖</span>}
+                <div className="id-card id-card-lg identity-rise" style={{ animationDelay: '50ms' }}>
+                  <div className="id-card-preview is-dark">
+                    {branding.androidLogo ? <img src={branding.androidLogo} alt="Logo app Android" /> : <span>🤖</span>}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p className="premium-label" style={{ marginBottom: '4px' }}>LOGO APP ANDROID (ÍCONO)</p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 10px' }}>Ícono que se ve en la pantalla y en el teléfono cuando la app se instala. Si no lo subís, se usa el logo principal automáticamente.</p>
-                    <label className="btn-premium btn-premium-gold" style={{ padding: '9px 18px', fontSize: '11px' }}>
+                  <div className="id-card-body">
+                    <p className="id-card-title">LOGO APP ANDROID</p>
+                    <p className="id-card-desc">Ícono de la app instalada en el teléfono. Si no lo subís, se usa el logo principal automáticamente.</p>
+                    <label className="btn-premium btn-premium-gold id-btn">
                       SUBIR LOGO
                       <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => { setBranding({...branding, androidLogo: url}); showToast('Logo Android actualizado ✔'); })} />
                     </label>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '10px 0 0', lineHeight: 1.6 }}>
-                      <strong style={{ color: 'var(--navy)' }}>Tamaño recomendado: 512×512 px (PNG).</strong><br />
-                      Debe ser un <strong>cuadrado perfecto</strong> con fondo sólido (el navy del sitio o un color propio) y el símbolo ocupando el <strong>centro (66% del lienzo)</strong>, sin llegar al borde. Android recorta los íconos con máscara redondeada; si el símbolo toca el borde se verá cortado en el teléfono.
-                    </p>
+                    <details className="id-tip">
+                      <summary>Tamaño recomendado y buenas prácticas</summary>
+                      <p><strong>512×512 px (PNG)</strong>, cuadrado perfecto, con fondo sólido (el navy del sitio o un color propio) y el símbolo ocupando el <strong>centro (66% del lienzo)</strong>, sin llegar al borde. Android recorta los íconos con máscara redondeada: si el símbolo toca el borde se verá cortado en el teléfono.</p>
+                    </details>
                   </div>
                 </div>
 
-                <div className="identity-toggle-row identity-rise" style={{ animationDelay: '70ms' }}>
-                  <span className="identity-toggle-icon">💧</span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 700, color: 'var(--navy)', margin: 0, fontSize: '13px' }}>Marca de Agua del Logo</p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>Muestra el logo suave de fondo en todo el sitio</p>
-                  </div>
-                  <label className="pjl-switch">
-                    <input type="checkbox" checked={!!branding.logoWatermark} onChange={(e) => setBranding({...branding, logoWatermark: e.target.checked})} />
-                    <span className="pjl-slider"></span>
-                  </label>
-                </div>
-
-                <div className="identity-duo-grid">
+                <div className="id-duo">
                   {[
-                    { key: 'whiteLogo', label: 'LOGO BLANCO', desc: 'Para fondos oscuros', dark: true },
-                    { key: 'favLogo', label: 'FAVICON / SELLO', desc: 'Icono de la pestaña', dark: false }
+                    { key: 'whiteLogo', label: 'LOGO BLANCO', desc: 'Para fondos oscuros', dark: true, emoji: '🌙' },
+                    { key: 'favLogo', label: 'FAVICON / SELLO', desc: 'Ícono de la pestaña del navegador', dark: false, emoji: '📌' }
                   ].map((lg, i) => (
-                    <div key={lg.key} className="identity-mini-card identity-rise" style={{ animationDelay: `${140 + i * 70}ms` }}>
-                      <p className="premium-label" style={{ fontSize: '10px', marginBottom: '10px' }}>{lg.label}</p>
-                      <div className="identity-mini-body">
-                        <div className={`identity-mini-preview ${lg.dark ? 'is-dark' : ''}`}>
-                          <SafeImg src={branding[lg.key] as string} alt={lg.label} fallback="🖼️" fallbackStyle={{ fontSize: '22px', background: 'transparent' }} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 8px' }}>{lg.desc}</p>
-                          <label className="btn-premium btn-premium-outline" style={{ padding: '7px 14px', fontSize: '10px' }}>
-                            SUBIR
-                            <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => { setBranding({...branding, [lg.key]: url}); showToast(`${lg.label} actualizado ✔`); })} />
-                          </label>
-                        </div>
+                    <div key={lg.key} className="id-mini identity-rise" style={{ animationDelay: `${120 + i * 60}ms` }}>
+                      <div className={`id-mini-preview ${lg.dark ? 'is-dark' : ''}`}>
+                        <SafeImg src={branding[lg.key] as string} alt={lg.label} fallback={lg.emoji} fallbackStyle={{ fontSize: '22px', background: 'transparent' }} />
+                      </div>
+                      <div className="id-mini-info">
+                        <span className="id-mini-title">{lg.label}</span>
+                        <span className="id-mini-desc">{lg.desc}</span>
+                        <label className="btn-premium btn-premium-outline id-mini-btn">
+                          SUBIR
+                          <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => { setBranding({...branding, [lg.key]: url}); showToast(`${lg.label} actualizado ✔`); })} />
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -3352,28 +3355,26 @@ function AdminContent() {
                 {[1, 2, 3, 4].map((z, i) => {
                   const zColor = (branding[`zona${z}Color`] as string) || '#C8973A';
                   return (
-                    <div key={z} className="identity-zone-card identity-rise" style={{ animationDelay: `${i * 80}ms` }}>
-                      <div className="identity-zone-bar" style={{ background: zColor }} />
-                      <div className="identity-zone-head">
-                        <span className="identity-zone-name">Zona {z}</span>
+                    <div key={z} className="id-zone identity-rise" style={{ animationDelay: `${i * 70}ms` }}>
+                      <span className="id-zone-bar" style={{ background: zColor }} aria-hidden="true" />
+                      <div className="id-zone-top">
+                        <span className="id-zone-name">Zona {z}</span>
                         <label className="identity-color-swatch" title="Elegir color de la zona" style={{ background: zColor }}>
-                          <input
-                            type="color"
-                            value={zColor}
-                            onChange={(e) => setBranding({...branding, [`zona${z}Color`]: e.target.value})}
-                          />
+                          <input type="color" value={zColor} onChange={(e) => setBranding({...branding, [`zona${z}Color`]: e.target.value})} />
                         </label>
                       </div>
-                      <div className="identity-zone-body">
-                        <div className="identity-zone-shield">
+                      <div className="id-zone-body">
+                        <div className="id-zone-shield" style={{ borderColor: zColor }}>
                           <SafeImg src={branding[`zona${z}Logo`] as string} alt={`Escudo Zona ${z}`} fallback="🛡️" fallbackStyle={{ fontSize: '26px', background: 'transparent' }} />
                         </div>
-                        <label className="btn-premium btn-premium-outline identity-zone-upload">
-                          SUBIR ESCUDO
-                          <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => { setBranding({...branding, [`zona${z}Logo`]: url}); showToast(`Escudo Zona ${z} actualizado ✔`); })} />
-                        </label>
+                        <div className="id-zone-side">
+                          <span className="id-zone-hex">{zColor.toUpperCase()}</span>
+                          <label className="btn-premium btn-premium-outline id-zone-btn">
+                            SUBIR ESCUDO
+                            <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => { setBranding({...branding, [`zona${z}Logo`]: url}); showToast(`Escudo Zona ${z} actualizado ✔`); })} />
+                          </label>
+                        </div>
                       </div>
-                      <div className="identity-zone-hex">{zColor.toUpperCase()}</div>
                     </div>
                   );
                 })}
