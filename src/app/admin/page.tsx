@@ -1014,9 +1014,11 @@ function AdminContent() {
       if (placingChapelId) {
         const target = chapels.find(c => c.id === placingChapelId);
         if (target) {
-          setChapels(chapels.map(c => (c.id === placingChapelId ? { ...c, lat, lng } : c)));
-          showToast(`📍 ${target.name} ubicada en el mapa`);
-          addLog('ubicar capilla', 'territorio', `${target.name} (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
+          const detected = detectZoneFromPolygons(lat, lng) ?? target.zonaId;
+          setChapels(chapels.map(c => (c.id === placingChapelId ? { ...c, lat, lng, zonaId: detected } : c)));
+          const zoneText = detected === target.zonaId ? ` · Zona ${detected}` : ` · Zona actualizada a Zona ${detected}`;
+          showToast(`📍 ${target.name} ubicada${zoneText}`);
+          addLog('ubicar capilla', 'territorio', `${target.name} (${lat.toFixed(5)}, ${lng.toFixed(5)}) · Zona ${detected}`);
         }
         setPlacingChapelId(null);
       }
@@ -1053,6 +1055,14 @@ function AdminContent() {
       if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
     }
     return inside;
+  };
+
+  const detectZoneFromPolygons = (lat: number, lng: number): number | null => {
+    for (let n = 1; n <= 4; n++) {
+      const poly = branding[`zona${n}Polygon`] as [number, number][] | undefined;
+      if (poly && poly.length > 2 && pointInPolygon(lat, lng, poly)) return n;
+    }
+    return null;
   };
 
   const territoryStats = ([1, 2, 3, 4] as const).map(num => {
@@ -1180,23 +1190,38 @@ function AdminContent() {
   }, [modal]);
 
   // --- Geocoding Automático para Capillas ---
+  const parseGoogleMapsCoords = (url: string): [number, number] | null => {
+    const at = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (at) return [parseFloat(at[1]), parseFloat(at[2])];
+    const d = url.match(/!3d(-?\d+\.\d+)[^!]*!4d(-?\d+\.\d+)/);
+    if (d) return [parseFloat(d[1]), parseFloat(d[2])];
+    const ll = url.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (ll) return [parseFloat(ll[1]), parseFloat(ll[2])];
+    const q = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (q) return [parseFloat(q[1]), parseFloat(q[2])];
+    const bare = url.trim().match(/^(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)$/);
+    if (bare) return [parseFloat(bare[1]), parseFloat(bare[2])];
+    return null;
+  };
+
   useEffect(() => {
-    if (modal === 'capillas' && form.locationUrl && form.locationUrl.includes('google.com/maps')) {
-      const match = form.locationUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (match) {
-        const [_, lat, lon] = match;
-        // Nominatim reverse geocoding (OpenStreetMap)
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.display_name && !form.address) {
-              // Limpiar un poco la dirección para que no sea excesivamente larga
-              const cleanAddr = data.display_name.split(',').slice(0, 3).join(', ');
-              setForm((f: any) => ({ ...f, address: cleanAddr }));
-            }
-          })
-          .catch(e => console.error("Error recuperando dirección:", e));
+    if (modal !== 'capillas' || !form.locationUrl) return;
+    const coords = parseGoogleMapsCoords(form.locationUrl);
+    if (coords) {
+      if (form.lat !== coords[0] || form.lng !== coords[1]) {
+        setForm((f: any) => ({ ...f, lat: coords[0], lng: coords[1] }));
       }
+      // Nominatim reverse geocoding (OpenStreetMap)
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords[0]}&lon=${coords[1]}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.display_name && !form.address) {
+            // Limpiar un poco la dirección para que no sea excesivamente larga
+            const cleanAddr = data.display_name.split(',').slice(0, 3).join(', ');
+            setForm((f: any) => ({ ...f, address: cleanAddr }));
+          }
+        })
+        .catch(e => console.error("Error recuperando dirección:", e));
     }
   }, [form.locationUrl, modal]);
 
@@ -1220,6 +1245,17 @@ function AdminContent() {
       }
     }
   }, [form.locationUrl, modal]);
+
+  // --- Sincronización con zonas pastorales: si las coordenadas caen dentro de un polígono, se asigna esa zona ---
+  useEffect(() => {
+    if (modal !== 'capillas') return;
+    if (typeof form.lat !== 'number' || typeof form.lng !== 'number') return;
+    const detected = detectZoneFromPolygons(form.lat, form.lng);
+    if (detected !== null && Number(form.zonaId) !== detected) {
+      setForm((f: any) => ({ ...f, zonaId: detected }));
+      showToast(`🗺️ Coordenadas dentro de la Zona ${detected}: zona asignada automáticamente`);
+    }
+  }, [modal, form.lat, form.lng]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -1684,9 +1720,13 @@ function AdminContent() {
 
   const saveChapel = () => {
     if (!form.name) return;
+    const zonaFinal = (typeof form.lat === 'number' && typeof form.lng === 'number')
+      ? (detectZoneFromPolygons(form.lat, form.lng) || form.zonaId || 1)
+      : (form.zonaId || 1);
+    const chapelData = { ...form, zonaId: zonaFinal };
     const updated = editId
-      ? chapels.map(c => c.id === editId ? { ...c, ...form } : c)
-      : [...chapels, { ...form, id: Date.now().toString(), zonaId: form.zonaId || 1, estadoComunidad: form.estadoComunidad || 'Activo' }];
+      ? chapels.map(c => c.id === editId ? { ...c, ...chapelData } : c)
+      : [...chapels, { ...chapelData, id: Date.now().toString(), estadoComunidad: form.estadoComunidad || 'Activo' }];
     setChapels(updated); closeModal(); showToast('Capilla guardada ✔');
     addLog(editId ? 'editar' : 'crear', 'capillas', `Nombre: ${form.name}`);
   };

@@ -2343,6 +2343,12 @@ const [newsSearch, setNewsSearch] = useState('');
                     chapels={liveChapels.map(c => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, zonaId: c.zonaId, estadoComunidad: c.estadoComunidad, comunidadNombre: c.comunidadNombre }))}
                     selectedZone={null}
                     zoneColors={zoneColors}
+                    polygons={{
+                      1: branding.zona1Polygon as [number, number][],
+                      2: branding.zona2Polygon as [number, number][],
+                      3: branding.zona3Polygon as [number, number][],
+                      4: branding.zona4Polygon as [number, number][],
+                    }}
                     height="480px"
                   />
                 </div>
@@ -2610,6 +2616,12 @@ const [newsSearch, setNewsSearch] = useState('');
                         selectedZone={selectedZone}
                         zoneColors={zoneColors}
                         showAllZones={branding.showAllZones}
+                        polygons={{
+                          1: branding.zona1Polygon as [number, number][],
+                          2: branding.zona2Polygon as [number, number][],
+                          3: branding.zona3Polygon as [number, number][],
+                          4: branding.zona4Polygon as [number, number][],
+                        }}
                         height="520px"
                       />
                     </div>
