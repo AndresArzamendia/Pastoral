@@ -1282,7 +1282,7 @@ const [newsSearch, setNewsSearch] = useState('');
               <span className="brand-logo-ring" aria-hidden="true"></span>
               <span className="brand-logo-halo" aria-hidden="true"></span>
               {branding.mainLogo ? (
-                <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '60px', width: '60px' }} alt="Logotipo Principal PJL" />
+                <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '64px', width: '64px' }} alt="Logotipo Principal PJL" />
               ) : (
                 <span className="brand-logo brand-logo-fallback">†</span>
               )}
@@ -1440,7 +1440,7 @@ const [newsSearch, setNewsSearch] = useState('');
           <div className="logo-area brand-lockup" style={{ cursor: 'pointer' }} onClick={() => { navigate('home'); setIsMobileMenuOpen(false); }}>
             <span className="brand-logo-wrap">
               <span className="brand-logo-halo" aria-hidden="true"></span>
-              {branding.mainLogo ? <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '50px', width: '50px' }} alt="Logotipo Principal PJL" /> : <span className="brand-logo brand-logo-fallback" style={{ fontSize: '24px' }}>†</span>}
+              {branding.mainLogo ? <img src={branding.mainLogo} className="logo-img-circular site-logo-img brand-logo" style={{ height: '54px', width: '54px' }} alt="Logotipo Principal PJL" /> : <span className="brand-logo brand-logo-fallback" style={{ fontSize: '24px' }}>†</span>}
             </span>
             <div>
               <h2>PJL</h2>
