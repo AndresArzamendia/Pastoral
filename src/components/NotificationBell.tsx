@@ -36,7 +36,7 @@ function relLabel(iso: string, now: number): string {
 }
 
 export default function NotificationBell() {
-  const { supported, permission, subscribed, isSubscribing, backendReady, subscribe, unsubscribe } = useNotifications();
+  const { supported, permission, subscribed, isSubscribing, backendReady, subscribe, unsubscribe, refreshState } = useNotifications();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -188,7 +188,12 @@ export default function NotificationBell() {
                     {isSubscribing ? 'Activando…' : '🔕 Activar avisos push'}
                   </button>
                 ) : (
-                  <small className="notif-push-err">Permiso bloqueado. Activá las notificaciones desde la configuración del navegador.</small>
+                  <>
+                    <small className="notif-push-err">Permiso bloqueado. Desbloqueá este sitio desde el candado 🔒 de la barra de direcciones (Notificaciones → Permitir) y luego tocá Reintentar.</small>
+                    <button type="button" className="notif-push-btn notif-push-off" onClick={() => refreshState()}>
+                      🔄 Reintentar
+                    </button>
+                  </>
                 )}
                 {pushMsg && <small className="notif-push-err">{pushMsg}</small>}
               </div>
