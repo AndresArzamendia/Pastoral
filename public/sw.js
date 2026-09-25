@@ -35,6 +35,11 @@ const NETWORK_FIRST_ASSETS = [
 
 const ICON_URLS = ['/android-chrome-192.png', '/android-chrome-512.png', '/maskable-512.png'];
 
+/* Se marca como true cuando el usuario pide actualizar (mensaje SKIP_WAITING).
+   Al activar el nuevo SW, se avisa a todas las pestañas para que recarguen:
+   así la versión nueva queda activa sin depender de 'controllerchange'. */
+let userRequestedUpdate = false;
+
 /* InstalaciÃ³n: cachea la shell y avisa de la actualizaciÃ³n.
    NO se llama a self.skipWaiting() aquÃ­ a propÃ³sito: cuando ya existe un
    service worker activo, el nuevo queda en estado "waiting" y el
@@ -62,11 +67,22 @@ self.addEventListener('activate', (event) => {
         )
       )
       .then(() => self.clients.claim())
+      .then(() => {
+        if (!userRequestedUpdate) return;
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+          clients.forEach((client) => {
+            if (client.url && !client.url.includes('chrome-extension://')) {
+              client.postMessage({ type: 'SW_ACTIVATED' });
+            }
+          });
+        });
+      })
   );
 });
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    userRequestedUpdate = true;
     event.waitUntil(self.skipWaiting());
     return;
   }
