@@ -164,7 +164,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: '/android-chrome-192.png',
+      icon: data.icon || '/android-chrome-192.png',
       badge: '/favicon-192.png',
       ...(data.image ? { image: data.image } : {}),
       data: { url: data.url },

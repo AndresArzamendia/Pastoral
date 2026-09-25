@@ -28,6 +28,7 @@ export async function POST(request: Request) {
   const content = body?.body?.trim();
   const url = body?.url?.trim() || '/';
   const image = body?.image?.trim() || '';
+  const icon = body?.icon?.trim() || '';
   if (!title || !content) {
     return NextResponse.json({ success: false, error: 'Faltan título o mensaje' }, { status: 400 });
   }
@@ -44,6 +45,6 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const result = await sendPushToAll(title, content, url, image);
+  const result = await sendPushToAll(title, content, url, image, icon);
   return NextResponse.json({ success: true, ...result });
 }

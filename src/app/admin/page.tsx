@@ -878,7 +878,7 @@ function AdminContent() {
   // --- NOTIFICACIONES PUSH ---
   const [pushConfig, setPushConfig] = useState<{ configured: boolean; publicKey: string; count: number } | null>(null);
   const [pushVapidKeys, setPushVapidKeys] = useState<{ publicKey: string; privateKey: string; subject: string }>({ publicKey: '', privateKey: '', subject: 'mailto:pastoral@luque.edu.py' });
-  const [pushMsg, setPushMsg] = useState<{ title: string; body: string; url: string; image: string }>({ title: '', body: '', url: '/', image: '' });
+  const [pushMsg, setPushMsg] = useState<{ title: string; body: string; url: string; image: string; icon: string }>({ title: '', body: '', url: '/', image: '', icon: '' });
   const [pushStatus, setPushStatus] = useState<{ type: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushAdminToken, setPushAdminToken] = useState<string>(() => {
@@ -984,7 +984,7 @@ function AdminContent() {
       const res = await fetch('/api/push/send', {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ title: pushMsg.title, body: pushMsg.body, url: pushMsg.url || '/', image: pushMsg.image || '' }),
+        body: JSON.stringify({ title: pushMsg.title, body: pushMsg.body, url: pushMsg.url || '/', image: pushMsg.image || '', icon: pushMsg.icon || '' }),
       });
       const json = await res.json();
       if (json?.success) {
@@ -6526,21 +6526,19 @@ function AdminContent() {
                         onChange={e => setPushMsg({ ...pushMsg, url: e.target.value })}
                         placeholder="/  o  /?page=noticias"
                       />
-                      <label className="premium-label">IMAGEN (URL opcional)</label>
-                      <input
-                        className="pjl-input"
-                        value={pushMsg.image}
-                        onChange={e => setPushMsg({ ...pushMsg, image: e.target.value })}
-                        placeholder="https://… (se muestra en grande dentro de la notificación)"
+                      <PushImageField
+                        label="ICONO DE NOTIFICACIÓN (opcional)"
+                        value={pushMsg.icon}
+                        onChange={(v) => setPushMsg({ ...pushMsg, icon: v })}
+                        placeholder="https://… (si no ponés, se usa el logo de la Pastoral)"
+                        hint="Viene per imágenes: https://tuweb.com/logo.png"
                       />
-                      {pushMsg.image && (
-                        <img
-                          src={pushMsg.image}
-                          alt="Vista previa de la notificación"
-                          style={{ width: '100%', borderRadius: '12px', maxHeight: '160px', objectFit: 'cover', marginTop: '2px' }}
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      )}
+                      <PushImageField
+                        label="IMAGEN EN GRANDE (opcional)"
+                        value={pushMsg.image}
+                        onChange={(v) => setPushMsg({ ...pushMsg, image: v })}
+                        placeholder="https://… (se muestra como banner dentro de la notificación)"
+                      />
                       <button
                         className="btn-premium btn-premium-gold"
                         style={{ width: '100%' }}
@@ -6890,6 +6888,79 @@ function AdminContent() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function PushImageField({ label, value, onChange, placeholder, hint }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const url = await uploadFileToR2(file);
+      if (url) onChange(url);
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const small = label.toLowerCase().includes('icono');
+
+  return (
+    <div>
+      <label className="premium-label">{label}</label>
+      <input
+        className="pjl-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+      {hint && <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '6px 0 0' }}>{hint}</p>}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+        <button
+          type="button"
+          className="btn-premium btn-premium-outline"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          style={{ fontSize: '12.5px', padding: '8px 14px' }}
+        >
+          {busy ? 'Subiendo…' : '📁 Elegir archivo'}
+        </button>
+        {value && (
+          <button
+            type="button"
+            className="btn-premium btn-premium-outline"
+            onClick={() => onChange('')}
+            style={{ fontSize: '12.5px', padding: '8px 14px' }}
+          >
+            ✕ Quitar
+          </button>
+        )}
+        <input ref={inputRef} type="file" accept="image/*" hidden onChange={pick} />
+      </div>
+      {value && (
+        <img
+          src={value}
+          alt={label}
+          style={
+            small
+              ? { width: '48px', height: '48px', borderRadius: '12px', objectFit: 'cover', marginTop: '8px', border: '1px solid var(--gold-pale)' }
+              : { width: '100%', borderRadius: '12px', maxHeight: '160px', objectFit: 'cover', marginTop: '8px' }
+          }
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
       )}
     </div>
   );
