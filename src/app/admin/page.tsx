@@ -895,6 +895,8 @@ function AdminContent() {
   const genAdminToken = async () => {
     // Genera un token corto aleatorio y lo guarda en pjl_store (por seguridad sencilla).
     const tok = Array.from({ length: 3 }, () => Math.random().toString(36).slice(2, 10)).join('-');
+    setPushBusy(true);
+    setPushStatus(null);
     try {
       const res = await fetch('/api/push/token', {
         method: 'POST',
@@ -905,13 +907,15 @@ function AdminContent() {
       if (json?.success) {
         setPushAdminToken(tok);
         try { localStorage.setItem('pjl_pushAdminToken', tok); } catch {}
-        setPushStatus({ type: 'ok', text: 'Token de autorización generado.' });
+        setPushStatus({ type: 'ok', text: 'Token de autorización generado y guardado.' });
         await loadPushConfig(tok);
       } else {
         setPushStatus({ type: 'err', text: json?.error || 'No se pudo generar el token.' });
       }
     } catch {
       setPushStatus({ type: 'err', text: 'Error de red al generar el token.' });
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -6436,8 +6440,9 @@ function AdminContent() {
                         className="btn-premium btn-premium-gold"
                         style={{ width: '100%' }}
                         onClick={genAdminToken}
+                      disabled={pushBusy}
                       >
-                        🔑 GENERAR TOKEN DE AUTORIZACIÓN
+                        {pushBusy ? 'GENERANDO TOKEN…' : '🔑 GENERAR TOKEN DE AUTORIZACIÓN'}
                       </button>
                     )}
                   </div>

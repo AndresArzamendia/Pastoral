@@ -17,11 +17,12 @@ function decodeSecret(raw?: string): string {
 }
 
 // Guard provisorio: el panel manda un "secret" derivado del usuario logueado
-// (email|rol). No es infalible, pero evita que cualquiera envíe avisos.
+// (email|rol, o usuario|rol en el login de prueba). No es infalible, pero
+// evita que cualquiera envíe avisos.
 function acceptableSecret(secret?: string): boolean {
   const s = decodeSecret(secret);
   if (!s) return false;
-  return /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\|(superadmin|desarrollador|admin|editor)/i.test(s);
+  return /(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|[A-Za-z0-9_.-]+)\|(superadmin|desarrollador|admin|editor)/i.test(s);
 }
 
 export async function POST(request: Request) {
