@@ -1,13 +1,122 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { getSupabaseRouteConfig } from '@/lib/supabaseRoute';
 import { CURIOSITIES, type Curiosity } from '@/lib/facts';
 import { evgHoyClassify, evgHoyDecode } from '@/lib/vaticanEvangelio';
 
 export const dynamic = 'force-dynamic';
 
-/* Fuentes oficiales del Vaticano (mismo feed ya usado por "Evangelio del día"
-   + su archivo histórico por día). El pool crece solo cada día. Las fichas de
-   santos llevan su conmemoración y las lecturas; la biografía se resuelve en
-   el navegador (Wikipedia ES, CORS público) en FactWidget. */
+/* ============================================================
+   ROTACIÓN GLOBAL "sin repetir en NINGÚN dispositivo"
+   ============================================================
+   Antes, cada navegador armaba su baraja con un historial LOCAL (localStorage
+   de 3 días) → el mismo dato curioso se repetía: entre días y entre aparatos.
+   Ahora la API marca en Supabase (tabla pjl_store, patrón de pushServer) los
+   ids que YA se sirvieron GLOBALMENTE. El primer origen del día elige hasta
+   MAX_DAILY datos que ningún dispositivo ha visto, los marca como servidos y
+   los devuelve; la caché edge (s-maxage 43200 + ?d=) hace que durante ese día
+   TODOS los dispositivos reciban el MISMO lote. Al agotarse el catálogo, el
+   ciclo se reinicia. Los items "auto-*" (santo y liturgia del día) son únicos
+   por fecha y siempre entran, sin chocar con la rotación. */
+
+const STORE_TABLE = 'pjl_store';
+const ROTATION_KEY = 'curiosities_rotation';
+const MAX_DAILY = 6;
+
+type RotationState = { ymd: string; servedIds: string[]; batchIds: string[] };
+
+async function readRotation(): Promise<RotationState | null> {
+  const cfg = getSupabaseRouteConfig();
+  if (!cfg) return null;
+  const supabase = createClient(cfg.url, cfg.key);
+  try {
+    const { data, error } = await supabase
+      .from(STORE_TABLE)
+      .select('value')
+      .eq('key', ROTATION_KEY)
+      .maybeSingle();
+    if (error || !data?.value) return null;
+    const v = data.value as RotationState;
+    return (v && typeof v.ymd === 'string' && Array.isArray(v.servedIds))
+      ? { ymd: v.ymd, servedIds: v.servedIds, batchIds: Array.isArray(v.batchIds) ? v.batchIds : [] }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeRotation(state: RotationState): Promise<void> {
+  const cfg = getSupabaseRouteConfig();
+  if (!cfg) return;
+  const supabase = createClient(cfg.url, cfg.key);
+  try {
+    await supabase
+      .from(STORE_TABLE)
+      .upsert({ key: ROTATION_KEY, value: state }, { onConflict: 'key' });
+  } catch { /* sin Supabase: el widget usa su rotación local como respaldo */ }
+}
+
+function shuffleArr<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Baraja GLOBAL del día a partir del pool completo del bloc de notas y del
+ *  Vaticano. Devuelve: los items "auto-*" (únicos por fecha) + hasta MAX_DAILY
+ *  datos del catálogo que NINGÚN dispositivo ha visto todavía. */
+async function globalDeck(items: Curiosity[], todayYmd: string): Promise<Curiosity[]> {
+  const autos = items.filter((c) => c.id.startsWith('auto-'));
+  const staticPool = items.filter((c) => !c.id.startsWith('auto-'));
+
+  const rot = await readRotation();
+  if (rot && rot.ymd === todayYmd && rot.batchIds.length > 0) {
+    const byId = new Map(items.map((c) => [c.id, c]));
+    const batch = rot.batchIds
+      .map((id) => byId.get(id))
+      .filter((c): c is Curiosity => !!c);
+    return [...autos, ...batch];
+  }
+
+  const served = new Set<string>(rot ? rot.servedIds : []);
+  let fresh = staticPool.filter((c) => !served.has(c.id));
+  if (fresh.length < MAX_DAILY) {
+    served.clear();
+    fresh = [...staticPool];
+  }
+
+  const byCat = new Map<string, Curiosity[]>();
+  fresh.forEach((c) => {
+    const arr = byCat.get(c.cat) ?? [];
+    arr.push(c);
+    byCat.set(c.cat, arr);
+  });
+
+  const batch: Curiosity[] = [];
+  for (const cat of shuffleArr([...byCat.keys()])) {
+    if (batch.length >= MAX_DAILY) break;
+    const arr = byCat.get(cat)!;
+    batch.push(arr[Math.floor(Math.random() * arr.length)]);
+  }
+  let i = 0;
+  while (batch.length < MAX_DAILY && i < fresh.length) {
+    if (!batch.includes(fresh[i])) batch.push(fresh[i]);
+    i++;
+  }
+
+  const batchIds = batch.map((c) => c.id);
+  await writeRotation({
+    ymd: todayYmd,
+    servedIds: [...new Set([...served, ...batchIds])],
+    batchIds,
+  });
+
+  return [...autos, ...batch];
+}
+
 const FEED_URL = 'https://www.vaticannews.va/content/vaticannews/es/evangelio-de-hoy.rss.xml';
 const SITE_URL = 'https://www.vaticannews.va/es/evangelio-de-hoy.html';
 const ARCHIVE_URL = 'https://www.vaticannews.va/es/evangelio-de-hoy';
@@ -227,7 +336,12 @@ export async function GET() {
     });
   });
 
-  return NextResponse.json({ ok: true, dateKey: todayYmd, items }, {
+  /* Rotación GLOBAL: mismo lote para todos los dispositivos, sin repetir
+     ninguno hasta agotar el catálogo. Los auto-* (santo y evangelio del día)
+     ya son únicos por fecha y se conservan siempre. */
+  const rotated = await globalDeck(items, todayYmd);
+
+  return NextResponse.json({ ok: true, dateKey: todayYmd, items: rotated }, {
     headers: { 'Cache-Control': 'public, s-maxage=43200, stale-while-revalidate=604800' },
   });
 }
