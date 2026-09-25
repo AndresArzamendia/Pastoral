@@ -31,12 +31,12 @@ export default function PushPromptBanner() {
   const activate = async () => {
     setBusy(true);
     setError(null);
-    const ok = await subscribe();
+    const r = await subscribe();
     setBusy(false);
-    if (ok) {
+    if (r.ok) {
       setShow(false);
     } else {
-      setError('No se pudo activar. Revisá los permisos del navegador.');
+      setError(r.reason || 'No se pudo activar. Revisá los permisos del navegador.');
     }
   };
 

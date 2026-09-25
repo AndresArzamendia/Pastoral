@@ -25,6 +25,15 @@ function isPushSupported(): boolean {
   );
 }
 
+export interface PushSubscribeResult {
+  ok: boolean;
+  reason?: string;
+}
+
+function pushReason(r: string) {
+  return { ok: false, reason: r } as PushSubscribeResult;
+}
+
 export function useNotifications() {
   const [supported] = useState<boolean>(isPushSupported());
   const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -64,16 +73,24 @@ export function useNotifications() {
     checkKeys();
   }, [supported, refreshState]);
 
-  const subscribe = useCallback(async (): Promise<boolean> => {
-    if (!supported) return false;
-    if (Notification.permission === 'denied') return false;
+  const subscribe = useCallback(async (): Promise<PushSubscribeResult> => {
+    if (!supported) return pushReason('Tu navegador no soporta notificaciones.');
+    if (Notification.permission === 'denied') {
+      return pushReason('El navegador bloqueó las notificaciones de este sitio. Desbloquealo desde el candado 🔒 y probá de nuevo.');
+    }
     setIsSubscribing(true);
     try {
       // Pedir permiso en el gesto del usuario.
       if (Notification.permission === 'default') {
         const p = await Notification.requestPermission();
         setPermission(p);
-        if (p !== 'granted') return false;
+        if (p !== 'granted') {
+          return pushReason(
+            p === 'denied'
+              ? 'No aceptaste el permiso en el navegador. Para volver a preguntar, desbloqueá el sitio desde el candado 🔒 y recargá la página.'
+              : 'El navegador no mostró el pedido de permiso. Recargá la página y volvé a tocarlo.'
+          );
+        }
       }
       if (!navigator.serviceWorker.controller) {
         await navigator.serviceWorker.ready;
@@ -81,7 +98,7 @@ export function useNotifications() {
       const keysRes = await fetch('/api/push/keys', { cache: 'no-store' });
       const keysJson = await keysRes.json();
       if (!keysJson?.publicKey) {
-        throw new Error('Web Push no configurado');
+        return pushReason('Las notificaciones todavía no están configuradas en el panel.');
       }
       const reg = await navigator.serviceWorker.ready;
       let sub = await reg.pushManager.getSubscription();
@@ -98,12 +115,15 @@ export function useNotifications() {
         body: JSON.stringify({ subscription: payload }),
       });
       const json = await res.json();
-      if (!json?.success) throw new Error('No se pudo guardar la suscripción');
+      if (!json?.success) return pushReason('No se pudo guardar la suscripción.');
       setSubscribed(true);
-      return true;
+      return { ok: true };
     } catch (e) {
       console.error('Push subscribe error:', e);
-      return false;
+      const msg = e instanceof Error && /permission|not allowed|abort/i.test(e.message)
+        ? 'El navegador rechazó la suscripción. Revisá los permisos desde el candado 🔒.'
+        : 'No se pudo activar. Revisá la conexión y los permisos del navegador.';
+      return pushReason(msg);
     } finally {
       setIsSubscribing(false);
     }

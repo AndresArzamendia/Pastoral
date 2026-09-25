@@ -127,8 +127,8 @@ export default function NotificationBell() {
 
   const handlePush = async () => {
     setPushMsg(null);
-    const ok = await subscribe();
-    if (!ok) setPushMsg('No se pudo activar. Revisá los permisos del navegador y la conexión.');
+    const r = await subscribe();
+    if (!r.ok) setPushMsg(r.reason || 'No se pudo activar. Revisá los permisos del navegador.');
   };
 
   const handlePushOff = async () => {
