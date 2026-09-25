@@ -66,6 +66,14 @@ export default function UpdatePrompt() {
 
   const applyUpdate = () => {
     if (waitingSw) {
+      let reloaded = false;
+      const doReload = () => {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.reload();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', doReload, { once: true });
+      setTimeout(doReload, 2500);
       waitingSw.postMessage({ type: 'SKIP_WAITING' });
     } else {
       window.location.reload();

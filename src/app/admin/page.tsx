@@ -961,7 +961,12 @@ function AdminContent() {
       });
       const json = await res.json();
       if (json?.success) {
-        setPushStatus({ type: 'ok', text: 'Claves VAPID guardadas correctamente.' });
+        setPushStatus({
+          type: json.subsReset ? 'info' : 'ok',
+          text: json.subsReset
+            ? 'Claves VAPID guardadas. Las suscripciones anteriores quedaron inválidas (usaban la clave vieja) y se eliminaron: pedirá permiso de notificación de nuevo en cada dispositivo.'
+            : 'Claves VAPID guardadas correctamente.',
+        });
         await loadPushConfig();
       } else {
         setPushStatus({ type: 'err', text: json?.error || 'Error al guardar las claves.' });

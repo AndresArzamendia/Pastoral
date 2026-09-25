@@ -126,6 +126,15 @@ export async function removeSubscription(endpoint: string): Promise<boolean> {
   return !error;
 }
 
+export async function clearSubscriptions(): Promise<boolean> {
+  const supabase = await getSupabase();
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from(STORE_TABLE)
+    .upsert({ key: SUBS_KEY, value: [] }, { onConflict: 'key' });
+  return !error;
+}
+
 async function sendOne(config: VapidConfig, sub: PushSubscriptionRecord, payload: string) {
   try {
     await webpush.sendNotification(
@@ -145,8 +154,11 @@ async function sendOne(config: VapidConfig, sub: PushSubscriptionRecord, payload
     );
     return { ok: true, endpoint: sub.endpoint };
   } catch (err: any) {
-    // 404/410 => suscripción inválida/borrada: quitarla.
-    if (err?.statusCode === 404 || err?.statusCode === 410) {
+    // La suscripción no es válida ni para reintentos: quitarla del listado
+    // (404/410 = ya no existe en el push service; 400/401/403 = la clave
+    // de VAPID cambió o la suscripción quedó huérfana).
+    const code = err?.statusCode;
+    if (code === 404 || code === 410 || code === 400 || code === 401 || code === 403) {
       await removeSubscription(sub.endpoint);
       return { ok: false, gone: true, endpoint: sub.endpoint };
     }

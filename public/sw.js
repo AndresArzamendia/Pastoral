@@ -67,7 +67,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    event.waitUntil(self.skipWaiting());
     return;
   }
   if (event.data && event.data.type === 'UPDATE_PWA_ICONS') {

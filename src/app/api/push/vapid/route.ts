@@ -1,9 +1,26 @@
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { getVapidConfig, saveVapidConfig, isAdminRequest } from '@/lib/pushServer';
+import {
+  getVapidConfig,
+  saveVapidConfig,
+  isAdminRequest,
+  clearSubscriptions,
+} from '@/lib/pushServer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Al cambiar el par de claves VAPID, las suscripciones viejas quedan ligadas
+// al publicKey anterior y ya nunca podrán recibir avisos. Se vacían para que
+// el contador de dispositivos refleje la realidad.
+async function invalidateSubsIfKeyChanged(newConfig: { publicKey: string }) {
+  const old = await getVapidConfig();
+  if (old?.publicKey && newConfig.publicKey && old.publicKey !== newConfig.publicKey) {
+    await clearSubscriptions();
+    return true;
+  }
+  return false;
+}
 
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');
@@ -35,7 +52,8 @@ export async function POST(request: Request) {
     if (!ok) {
       return NextResponse.json({ success: false, error: 'No se pudo guardar en Supabase' }, { status: 500 });
     }
-    return NextResponse.json({ success: true, publicKey: keys.publicKey });
+    const subsReset = await invalidateSubsIfKeyChanged(keys);
+    return NextResponse.json({ success: true, publicKey: keys.publicKey, subsReset });
   }
 
   // Guardar claves pegadas manualmente.
@@ -49,5 +67,6 @@ export async function POST(request: Request) {
   if (!ok) {
     return NextResponse.json({ success: false, error: 'No se pudo guardar en Supabase' }, { status: 500 });
   }
-  return NextResponse.json({ success: true, publicKey });
+  const subsReset = await invalidateSubsIfKeyChanged({ publicKey });
+  return NextResponse.json({ success: true, publicKey, subsReset });
 }
