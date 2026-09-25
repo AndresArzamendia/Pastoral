@@ -109,5 +109,31 @@ export function useNotifications() {
     }
   }, [supported]);
 
-  return { supported, permission, subscribed, isSubscribing, backendReady, subscribe, refreshState };
+  const unsubscribe = useCallback(async (): Promise<boolean> => {
+    if (!supported) return false;
+    setIsSubscribing(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) return true;
+      // Quitarla del servidor (best effort) y después dar de baja local.
+      try {
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+      } catch {}
+      await sub.unsubscribe();
+      setSubscribed(false);
+      return true;
+    } catch (e) {
+      console.error('Push unsubscribe error:', e);
+      return false;
+    } finally {
+      setIsSubscribing(false);
+    }
+  }, [supported]);
+
+  return { supported, permission, subscribed, isSubscribing, backendReady, subscribe, unsubscribe, refreshState };
 }

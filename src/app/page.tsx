@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import NavDownloadButton from '@/components/NavDownloadButton';
 import NotificationBell from '@/components/NotificationBell';
+import PushPromptBanner from '@/components/PushPromptBanner';
 import FactWidget from '@/components/FactWidget';
 import ShareButton from '@/components/ShareButton';
 import { buildIcs, IcsItem } from '@/lib/ics';
@@ -435,8 +436,6 @@ function HomeContent() {
   const [activeConsejoTab, setActiveConsejoTab] = useState('coordinacion');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [globalCommFilter, setGlobalCommFilter] = useState<number | 'all'>('all');
-  const [newsEmail, setNewsEmail] = useState('');
-  const [newsSubscribed, setNewsSubscribed] = useState(false);
   const [expandedCommIds, setExpandedCommIds] = useState<Set<string>>(new Set());
   const toggleExpandedComm = (id: string) => {
     setExpandedCommIds(prev => {
@@ -3711,30 +3710,9 @@ const [newsSearch, setNewsSearch] = useState('');
                   </li>
                 )}
               </ul>
-            </div>
 
-            {/* Columna 5: Suscríbete / Horarios */}
-            <div className="footer-col footer-col-news">
-              <h4 className="footer-title">✉️ Boletín Pastoral</h4>
-              <p className="footer-news-note">Recibí novedades, retiros y celebraciones en tu correo.</p>
-              {newsSubscribed ? (
-                <div className="footer-news-ok">✓ ¡Gracias por suscribirte! Te avisaremos de cada novedad.</div>
-              ) : (
-                <form className="footer-news-form" onSubmit={(e) => { e.preventDefault(); if (newsEmail.includes('@')) { setNewsSubscribed(true); } }}>
-                  <input
-                    type="email"
-                    className="footer-news-input"
-                    placeholder="tucorreo@ejemplo.com"
-                    value={newsEmail}
-                    onChange={(e) => setNewsEmail(e.target.value)}
-                    aria-label="Correo electrónico"
-                    required
-                  />
-                  <button type="submit" className="footer-news-btn">Suscribirme</button>
-                </form>
-              )}
               <div className="footer-hours">
-                <h4 className="footer-title" style={{ marginTop: '26px' }}>🕐 Encuentros</h4>
+                <h4 className="footer-title" style={{ marginTop: '28px' }}>🕐 Encuentros</h4>
                 <ul className="footer-contact">
                   {hoursTrim.length ? hoursTrim.map((h, i) => (
                     <li key={i} className="fc-item fc-item-mini"><span className="fc-ico">{h.ico}</span><div><p className="fc-label">{h.label}</p><p className="fc-val">{h.val}</p></div></li>
@@ -3795,6 +3773,9 @@ const [newsSearch, setNewsSearch] = useState('');
           <span className="evg-toast-msg">¡Texto copiado!</span>
         </div>
       )}
+
+      {/* Banner de activación de notificaciones push */}
+      <PushPromptBanner />
       
       {/* Styles inline for footer links just to keep it clean */}
       <style dangerouslySetInnerHTML={{__html: `
@@ -3814,7 +3795,7 @@ const [newsSearch, setNewsSearch] = useState('');
         .footer-topline i { color: var(--gold); font-style: normal; animation: footCross 3s ease-in-out infinite; display: inline-block; }
         @keyframes footCross { 0%,100%{ transform: rotate(0) scale(1); } 50%{ transform: rotate(180deg) scale(1.25); } }
 
-        .footer-grid { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1.2fr 1.3fr; gap: 40px; margin-bottom: 70px; }
+        .footer-grid { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1.9fr; gap: 40px; margin-bottom: 70px; }
         .footer-col { padding-top: 4px; }
 
         .footer-title { color: var(--gold); margin: 0 0 22px; letter-spacing: 2px; font-size: 13px; text-transform: uppercase; position: relative; display: inline-flex; align-items: center; gap: 8px; }
@@ -3851,19 +3832,6 @@ const [newsSearch, setNewsSearch] = useState('');
         .fc-label { margin: 0; font-size: 10px; letter-spacing: 1.5px; color: var(--gold); text-transform: uppercase; }
         .fc-val { margin: 3px 0 0; font-size: 13.5px; color: rgba(255,255,255,.8); line-height: 1.45; }
 
-        /* Boletín */
-        .footer-news-note { color: rgba(255,255,255,.62); font-size: 13px; line-height: 1.6; margin: 0 0 16px; }
-        .footer-news-form { display: flex; flex-direction: column; gap: 10px; }
-        .footer-news-input { width: 100%; box-sizing: border-box; padding: 13px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: #fff; font-family: inherit; font-size: 14px; outline: none; transition: .3s; }
-        .footer-news-input::placeholder { color: rgba(255,255,255,.35); }
-        .footer-news-input:focus { border-color: var(--gold); background: rgba(255,255,255,.1); box-shadow: 0 0 0 3px rgba(200,151,58,.15); }
-        .footer-news-btn { position: relative; overflow: hidden; width: 100%; padding: 13px 16px; border-radius: 12px; border: none; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .5px; color: var(--navy); background: linear-gradient(120deg, #f0d9a6, var(--gold) 55%, #e8c36a); transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s; }
-        .footer-news-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(200,151,58,.4); }
-        .footer-news-btn::after { content: ''; position: absolute; top: 0; bottom: 0; left: -80%; width: 45%; background: linear-gradient(105deg, transparent, rgba(255,255,255,.6), transparent); transition: left .55s ease; }
-        .footer-news-btn:hover::after { left: 130%; }
-        .footer-news-ok { padding: 14px 16px; border-radius: 12px; background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.4); color: #7ee3a8; font-size: 13px; line-height: 1.5; animation: footOk .5s cubic-bezier(.34,1.56,.64,1); }
-        @keyframes footOk { 0%{ opacity:0; transform: scale(.9); } 100%{ opacity:1; transform: scale(1); } }
-
         /* Bottom */
         .footer-bottom { margin-top: 30px; padding: 28px 0 0; border-top: 1px solid rgba(255,255,255,.08); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
         .fb-copy { color: rgba(255,255,255,.5); font-size: 13px; }
@@ -3894,7 +3862,7 @@ const [newsSearch, setNewsSearch] = useState('');
         .modal-scroll::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 
         @media (prefers-reduced-motion: reduce) {
-          .footer-ornament span, .footer-topline i, .footer-title::after, .fs-badge, .footer-news-btn::after, .footer-link-btn, .fc-item { animation: none !important; transition: none !important; }
+          .footer-ornament span, .footer-topline i, .footer-title::after, .fs-badge, .footer-link-btn, .fc-item { animation: none !important; transition: none !important; }
         }
 
         /* ===== EVANGELIO DEL DÍA ===== */

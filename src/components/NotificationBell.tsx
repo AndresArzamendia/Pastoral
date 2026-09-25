@@ -36,7 +36,7 @@ function relLabel(iso: string, now: number): string {
 }
 
 export default function NotificationBell() {
-  const { supported, permission, subscribed, isSubscribing, backendReady, subscribe } = useNotifications();
+  const { supported, permission, subscribed, isSubscribing, backendReady, subscribe, unsubscribe } = useNotifications();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -131,6 +131,12 @@ export default function NotificationBell() {
     if (!ok) setPushMsg('No se pudo activar. Revisá los permisos del navegador y la conexión.');
   };
 
+  const handlePushOff = async () => {
+    setPushMsg(null);
+    const ok = await unsubscribe();
+    if (!ok) setPushMsg('No se pudo desactivar. Intentá de nuevo.');
+  };
+
   const badge = unread > 99 ? '99+' : String(unread);
 
   return (
@@ -171,12 +177,19 @@ export default function NotificationBell() {
             {supported && backendReady && (
               <div className="notif-push-row">
                 {subscribed ? (
-                  <span className="notif-push-ok">📣 Avisos push activados</span>
+                  <>
+                    <span className="notif-push-ok">📣 Avisos push activados</span>
+                    <button type="button" className="notif-push-btn notif-push-off" onClick={handlePushOff} disabled={isSubscribing}>
+                      {isSubscribing ? 'Desactivando…' : '🔕 Desactivar'}
+                    </button>
+                  </>
                 ) : permission !== 'denied' ? (
                   <button type="button" className="notif-push-btn" onClick={handlePush} disabled={isSubscribing}>
                     {isSubscribing ? 'Activando…' : '🔕 Activar avisos push'}
                   </button>
-                ) : null}
+                ) : (
+                  <small className="notif-push-err">Permiso bloqueado. Activá las notificaciones desde la configuración del navegador.</small>
+                )}
                 {pushMsg && <small className="notif-push-err">{pushMsg}</small>}
               </div>
             )}
