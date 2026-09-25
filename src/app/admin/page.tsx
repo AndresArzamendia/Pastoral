@@ -881,7 +881,10 @@ function AdminContent() {
   const [pushMsg, setPushMsg] = useState<{ title: string; body: string; url: string }>({ title: '', body: '', url: '/' });
   const [pushStatus, setPushStatus] = useState<{ type: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
-  const [pushAdminToken, setPushAdminToken] = useState('');
+  const [pushAdminToken, setPushAdminToken] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    try { return localStorage.getItem('pjl_pushAdminToken') || ''; } catch { return ''; }
+  });
 
   const authHeaders = () => {
     const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -901,7 +904,9 @@ function AdminContent() {
       const json = await res.json();
       if (json?.success) {
         setPushAdminToken(tok);
+        try { localStorage.setItem('pjl_pushAdminToken', tok); } catch {}
         setPushStatus({ type: 'ok', text: 'Token de autorización generado.' });
+        await loadPushConfig(tok);
       } else {
         setPushStatus({ type: 'err', text: json?.error || 'No se pudo generar el token.' });
       }
@@ -910,12 +915,14 @@ function AdminContent() {
     }
   };
 
-  const loadPushConfig = async () => {
-    if (!pushAdminToken) return;
+  const loadPushConfig = async (token?: string) => {
+    const tk = token || pushAdminToken;
+    if (!tk) return;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` };
     try {
       const [v, s] = await Promise.all([
-        fetch('/api/push/vapid', { headers: authHeaders() }),
-        fetch('/api/push/send', { headers: authHeaders() }),
+        fetch('/api/push/vapid', { headers }),
+        fetch('/api/push/send', { headers }),
       ]);
       const vj = await v.json();
       const sj = await s.json();
@@ -928,6 +935,12 @@ function AdminContent() {
       setPushStatus({ type: 'err', text: 'No se pudo leer la configuración push.' });
     }
   };
+
+  // Al entrar en Configuración → Notificaciones con un token guardado, recargar el estado.
+  useEffect(() => {
+    if (pushAdminToken) loadPushConfig(pushAdminToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveVapid = async (action: 'generate' | 'save') => {
     setPushBusy(true);
@@ -6422,7 +6435,7 @@ function AdminContent() {
                       <button
                         className="btn-premium btn-premium-gold"
                         style={{ width: '100%' }}
-                        onClick={() => { genAdminToken().then(() => loadPushConfig()); }}
+                        onClick={genAdminToken}
                       >
                         🔑 GENERAR TOKEN DE AUTORIZACIÓN
                       </button>
