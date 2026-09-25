@@ -878,7 +878,7 @@ function AdminContent() {
   // --- NOTIFICACIONES PUSH ---
   const [pushConfig, setPushConfig] = useState<{ configured: boolean; publicKey: string; count: number } | null>(null);
   const [pushVapidKeys, setPushVapidKeys] = useState<{ publicKey: string; privateKey: string; subject: string }>({ publicKey: '', privateKey: '', subject: 'mailto:pastoral@luque.edu.py' });
-  const [pushMsg, setPushMsg] = useState<{ title: string; body: string; url: string }>({ title: '', body: '', url: '/' });
+  const [pushMsg, setPushMsg] = useState<{ title: string; body: string; url: string; image: string }>({ title: '', body: '', url: '/', image: '' });
   const [pushStatus, setPushStatus] = useState<{ type: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushAdminToken, setPushAdminToken] = useState<string>(() => {
@@ -984,7 +984,7 @@ function AdminContent() {
       const res = await fetch('/api/push/send', {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ title: pushMsg.title, body: pushMsg.body, url: pushMsg.url || '/' }),
+        body: JSON.stringify({ title: pushMsg.title, body: pushMsg.body, url: pushMsg.url || '/', image: pushMsg.image || '' }),
       });
       const json = await res.json();
       if (json?.success) {
@@ -6526,6 +6526,21 @@ function AdminContent() {
                         onChange={e => setPushMsg({ ...pushMsg, url: e.target.value })}
                         placeholder="/  o  /?page=noticias"
                       />
+                      <label className="premium-label">IMAGEN (URL opcional)</label>
+                      <input
+                        className="pjl-input"
+                        value={pushMsg.image}
+                        onChange={e => setPushMsg({ ...pushMsg, image: e.target.value })}
+                        placeholder="https://… (se muestra en grande dentro de la notificación)"
+                      />
+                      {pushMsg.image && (
+                        <img
+                          src={pushMsg.image}
+                          alt="Vista previa de la notificación"
+                          style={{ width: '100%', borderRadius: '12px', maxHeight: '160px', objectFit: 'cover', marginTop: '2px' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
                       <button
                         className="btn-premium btn-premium-gold"
                         style={{ width: '100%' }}

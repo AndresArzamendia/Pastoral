@@ -157,14 +157,15 @@ async function sendOne(config: VapidConfig, sub: PushSubscriptionRecord, payload
 export async function sendPushToAll(
   title: string,
   body: string,
-  url: string
+  url: string,
+  image = ''
 ): Promise<{ sent: number; failed: number; removed: number }> {
   const config = await getVapidConfig();
   const subs = await getSubscriptions();
   if (!config || subs.length === 0) {
     return { sent: 0, failed: 0, removed: 0 };
   }
-  const payload = JSON.stringify({ title, body, url });
+  const payload = JSON.stringify({ title, body, url, ...(image ? { image } : {}) });
   let sent = 0;
   let failed = 0;
   let removed = 0;

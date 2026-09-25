@@ -166,6 +166,7 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: '/android-chrome-192.png',
       badge: '/favicon-192.png',
+      ...(data.image ? { image: data.image } : {}),
       data: { url: data.url },
     })
   );
