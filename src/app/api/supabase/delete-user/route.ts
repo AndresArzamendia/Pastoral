@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 const PROFILE_TABLES = ['user_profiles', 'profiles'] as const;
 type ProfileTableName = (typeof PROFILE_TABLES)[number];
@@ -22,6 +23,9 @@ async function findProfileTable(supabase: any): Promise<ProfileTableName> {
 }
 
 export async function POST(request: Request) {
+  // Operacion del panel: exige sesion iniciada.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL; 
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

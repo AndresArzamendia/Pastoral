@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { generateSlug } from '@/lib/newsValidation';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
 import { withEdgeCache } from '@/lib/edgeCache';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
@@ -134,6 +135,18 @@ async function buildResponse(request: NextRequest) {
 
 // POST: Crear nuevo artículo
 export async function POST(request: NextRequest) {
+  // Crear noticias es una operación del panel: exige sesión iniciada.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
+  // Cliente con el token del usuario, para que la base de datos aplique sus
+  // propias reglas de permiso sobre quién puede escribir.
+  const supabase = supabaseConfig
+    ? createClient(supabaseConfig.url, supabaseConfig.key, {
+        global: { headers: { Authorization: 'Bearer ' + auth.token } },
+      })
+    : null;
+
   try {
     if (!supabase) return missingSupabaseConfigResponse();
 

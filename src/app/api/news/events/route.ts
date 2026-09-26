@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
 import { withEdgeCache } from '@/lib/edgeCache';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
@@ -77,6 +78,18 @@ async function buildResponse(request: NextRequest) {
 
 // POST: Crear nuevo evento
 export async function POST(request: NextRequest) {
+  // Operacion del panel: exige sesion iniciada.
+  // Cliente con el token del usuario, para que la base de datos aplique sus
+  const auth = await requireAdminWriter(request);
+  // propias reglas de permiso sobre quién puede escribir.
+  if (!auth.ok) return auth.response;
+  const supabase = supabaseConfig
+
+    ? createClient(supabaseConfig.url, supabaseConfig.key, {
+        global: { headers: { Authorization: 'Bearer ' + auth.token } },
+      })
+    : null;
+
   try {
     // Verificación de Supabase para corregir error de TypeScript en Vercel
     if (!supabase) return missingSupabaseConfigResponse();

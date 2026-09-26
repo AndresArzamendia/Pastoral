@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './supabase';
 import { siteUrlOf } from './siteUrl';
+import { adminFetch } from './adminAuth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const PROFILE_TABLES = ['user_profiles', 'profiles'] as const;
@@ -236,25 +237,10 @@ export async function fetchPendingProfiles(): Promise<SupabaseProfile[]> {
 }
 
 export async function approveProfile(profileId: string): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  let tableName: ProfileTableName;
-  try {
-    tableName = await getProfileTableName(supabase);
-  } catch (error) {
-    console.error('Supabase approveProfile error:', error);
-    return false;
-  }
-  const { error } = await supabase
-    .from(tableName)
-    .update({ status: 'activo' })
-    .eq('id', profileId);
-
-  if (error) {
-    console.error('Supabase approveProfile error:', error.message);
-    return false;
-  }
-
-  return true;
+  // Aprobar una cuenta es una acción del panel: la hace el servidor, que
+  // comprueba la sesión. Antes se escribía desde el navegador con el token
+  // público, y eso dejaba cambiar el estado de cualquier cuenta.
+  return updateProfile(profileId, { status: 'activo' } as Partial<SupabaseProfile>);
 }
 
 export async function updateAuthUser(email?: string, password?: string) {
@@ -281,26 +267,35 @@ export async function fetchAllProfiles(): Promise<SupabaseProfile[]> {
 }
 
 export async function updateProfile(profileId: string, updates: Partial<SupabaseProfile>) {
-  const supabase = getSupabaseClient();
-  let tableName: ProfileTableName;
+  // Va por el servidor: el rol y el estado los decide una sesión autorizada.
   try {
-    tableName = await getProfileTableName(supabase);
+    const payload: Record<string, unknown> = { id: profileId };
+    if (typeof updates.name === 'string') payload.name = updates.name;
+    if (typeof updates.role === 'string') payload.role = updates.role;
+    if (typeof updates.status === 'string') payload.status = updates.status;
+    if (Array.isArray(updates.permissions)) payload.permissions = updates.permissions;
+
+    const response = await adminFetch('/api/profiles', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      console.error('Supabase updateProfile failed:', result?.error || response.statusText);
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error('Supabase updateProfile error:', error);
     return false;
   }
-
-  const { error } = await supabase.from(tableName).update(updates).eq('id', profileId);
-  if (error) {
-    console.error('Supabase updateProfile error:', error.message);
-    return false;
-  }
-  return true;
 }
 
 export async function deleteProfile(profileId: string, authUid?: string) {
   try {
-    const response = await fetch('/api/supabase/delete-user', {
+    const response = await adminFetch('/api/supabase/delete-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profileId, authUid }),

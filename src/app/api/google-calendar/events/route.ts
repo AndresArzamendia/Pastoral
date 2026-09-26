@@ -7,10 +7,14 @@ import {
   updateGoogleCalendarEvent,
 } from '@/lib/googleCalendar';
 import { resolveGoogleCalendarCredentials } from '@/lib/googleCalendarServer';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 type GoogleCalendarEventAction = 'create' | 'update' | 'delete';
 
 export async function POST(request: NextRequest) {
+  // Operacion del panel: exige sesion iniciada.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
   const credentials = await resolveGoogleCalendarCredentials();
   const clientId = credentials?.clientId;
   const clientSecret = credentials?.clientSecret;

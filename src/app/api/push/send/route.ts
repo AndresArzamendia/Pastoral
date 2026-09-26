@@ -2,27 +2,32 @@ import { NextResponse } from 'next/server';
 import {
   sendPushToAll,
   getSubscriptions,
-  isAdminRequest,
   getVapidConfig,
 } from '@/lib/pushServer';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * Enviar avisos a los celulares que·suscribieron.
+ *
+ * Se exige sesión del panel. Antes se aceptaba un token que el mismo panel podía
+ * cambiar, así que cualquiera que se hiciera pasar por administrador podía enviar
+ * avisos con el nombre del sitio.
+ */
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (!(await isAdminRequest(auth))) {
-    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
   const subs = await getSubscriptions();
   return NextResponse.json({ success: true, count: subs.length, subscriptions: subs });
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (!(await isAdminRequest(auth))) {
-    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
-  }
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
   const body = await request.json().catch(() => null);
   const title = body?.title?.trim();
   const content = body?.body?.trim();

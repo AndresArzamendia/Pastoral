@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { NewsEvent } from '@/lib/newsTypes';
+import { adminFetch } from '@/lib/adminAuth';
 
 interface NewsEventFormProps {
   articleId: string;
@@ -83,7 +84,7 @@ export function NewsEventForm({ articleId, event, onSave, onCancel }: NewsEventF
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
       };
 
-      const response = await fetch(endpoint, {
+      const response = await adminFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

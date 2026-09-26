@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseIcs, classifyActivity, type ActivityCategory } from '@/lib/ics';
 import type { Activity } from '@/lib/pjlStore';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 const VALID_CATS: readonly string[] = ['Formación', 'Liturgia', 'Organización', 'Social'];
 
@@ -18,6 +19,9 @@ const pickCategory = (title: string, description: string | undefined, googleCate
 };
 
 export async function POST(request: NextRequest) {
+  // Operacion del panel: exige sesion iniciada.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
   try {
     let body: { text?: unknown; activities?: unknown };
     try {

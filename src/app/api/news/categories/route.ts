@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { generateSlug } from '@/lib/newsValidation';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
 import { withEdgeCache } from '@/lib/edgeCache';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 // GET: Listar todas las categorías
 export async function GET(request: NextRequest) {
@@ -52,10 +53,18 @@ async function buildResponse(request: NextRequest) {
 
 // POST: Crear nueva categoría
 export async function POST(request: NextRequest) {
+  // Operacion del panel: exige sesion iniciada.
   try {
+  const auth = await requireAdminWriter(request);
     const config = getSupabaseRouteConfig();
+  if (!auth.ok) return auth.response;
     if (!config) return missingSupabaseConfigResponse();
-    const supabase = createClient(config.url, config.key);
+
+    // Cliente con el token del usuario, para que la base de datos aplique sus
+    // propias reglas de permiso sobre quién puede escribir.
+    const supabase = createClient(config.url, config.key, {
+      global: { headers: { Authorization: 'Bearer ' + auth.token } },
+    });
 
     const body = await request.json();
 

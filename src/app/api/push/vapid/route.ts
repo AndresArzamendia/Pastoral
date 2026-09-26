@@ -3,9 +3,9 @@ import webpush from 'web-push';
 import {
   getVapidConfig,
   saveVapidConfig,
-  isAdminRequest,
   clearSubscriptions,
 } from '@/lib/pushServer';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,10 +23,9 @@ async function invalidateSubsIfKeyChanged(newConfig: { publicKey: string }) {
 }
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (!(await isAdminRequest(auth))) {
-    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
-  }
+  const admin = await requireAdminWriter(request);
+  if (!admin.ok) return admin.response;
+
   const config = await getVapidConfig();
   return NextResponse.json({
     success: true,
@@ -38,10 +37,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (!(await isAdminRequest(auth))) {
-    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
-  }
+  const admin = await requireAdminWriter(request);
+  if (!admin.ok) return admin.response;
+
   const body = await request.json().catch(() => null);
   const action = body?.action;
 

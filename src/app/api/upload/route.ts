@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,12 @@ function randomToken(): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Solo quien inició sesión en el panel puede subir archivos. Antes esta ruta
+  // era pública: cualquiera podía guardar hasta 50 MB en el bucket y generar
+  // costo, o dejar archivos servidos desde el dominio del sitio.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
   let file: File | null = null;
   try {
     const form = await request.formData();

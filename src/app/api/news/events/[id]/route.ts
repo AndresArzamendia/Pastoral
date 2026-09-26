@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
@@ -51,6 +52,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 // PATCH: Actualizar un evento
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  // Operacion del panel: exige sesion iniciada.
+  // Cliente con el token del usuario, para que la base de datos aplique sus
+  const auth = await requireAdminWriter(request);
+  // propias reglas de permiso sobre quién puede escribir.
+  if (!auth.ok) return auth.response;
+  const supabase = supabaseConfig
+
+    ? createClient(supabaseConfig.url, supabaseConfig.key, {
+        global: { headers: { Authorization: 'Bearer ' + auth.token } },
+      })
+    : null;
+
   try {
     if (!supabase) return missingSupabaseConfigResponse();
 

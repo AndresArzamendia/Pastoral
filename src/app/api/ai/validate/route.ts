@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export async function POST(req: Request) {
+  // Operacion del panel: exige sesion iniciada.
+  const auth = await requireAdminWriter(req);
+  if (!auth.ok) return auth.response;
   try {
     const { apiKey } = await req.json();
 

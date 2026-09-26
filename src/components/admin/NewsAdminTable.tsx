@@ -8,6 +8,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import { NewsArticleWithDetails } from '@/lib/newsTypes';
+import { adminFetch } from '@/lib/adminAuth';
 
 interface NewsAdminTableProps {
   onEdit?: (article: NewsArticleWithDetails) => void;
@@ -75,7 +76,7 @@ export function NewsAdminTable({ onEdit, onDelete, onEvent }: NewsAdminTableProp
 
   const handlePin = async (id: string) => {
     try {
-      const response = await fetch(`/api/news/articles/${id}/actions`, {
+      const response = await adminFetch(`/api/news/articles/${id}/actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'pin', pin_order: 0 }),
@@ -92,7 +93,7 @@ export function NewsAdminTable({ onEdit, onDelete, onEvent }: NewsAdminTableProp
 
   const handlePublish = async (id: string) => {
     try {
-      const response = await fetch(`/api/news/articles/${id}/actions`, {
+      const response = await adminFetch(`/api/news/articles/${id}/actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'publish' }),
@@ -111,7 +112,7 @@ export function NewsAdminTable({ onEdit, onDelete, onEvent }: NewsAdminTableProp
     if (!confirm('¿Estás seguro de que deseas eliminar este artículo?')) return;
 
     try {
-      const response = await fetch(`/api/news/articles/${id}`, {
+      const response = await adminFetch(`/api/news/articles/${id}`, {
         method: 'DELETE',
       });
 

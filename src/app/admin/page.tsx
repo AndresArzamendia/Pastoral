@@ -15,6 +15,7 @@ import {
 } from '@/lib/pjlStore';
 import { buildGoogleCalendarCreateUrl } from '@/lib/googleCalendar';
 import { fetchStoreValue, upsertStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
+import { hasAdminSession, signOutAdmin, adminFetch } from '@/lib/adminAuth';
 import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingProfiles, approveProfile, signInProfile, signUpProfile, subscribeProfileChanges, deleteProfile, resendVerificationEmail, updateProfile } from '@/lib/supabaseProfiles';
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
@@ -36,7 +37,10 @@ type Module = 'dashboard' | 'identidad' | 'apariencia' | 'contenido' | 'activida
 
 // Read PageStat from pjlStore
 
-const CREDS = { user: 'admin', pass: 'admin' };
+/* No hay ningún acceso de prueba en el código. El panel solo entra con una
+   cuenta real de Supabase, y el servidor valida esa sesión en cada operación.
+   Antes había un atajo "admin/admin" escrito aquí, que cualquiera podía leer en
+   el JavaScript de la web. */
 
 const NAV_ITEMS = [
   { id: 'dashboard',      iconKey: 'adminIconDashboard', label: 'Dashboard', defaultIcon: '📊' },
@@ -503,8 +507,43 @@ function AdminContent() {
     }
   }, [allUsers]);
 
+  /* La marca del navegador ("pjl_admin_auth") no alcanza para entrar: el servidor
+     exige el token de sesión de Supabase. Si ese token ya no existe (se cerró la
+     sesión en otra pestaña, se venció, o la cuenta fue dada de baja), se limpia
+     el panel en vez de mostrar botones que van a fallar. */
   useEffect(() => {
-    if (!loggedIn || !currentUser || currentUser.id === 'master') return;
+    if (!loggedIn) return;
+    let cancel = false;
+    hasAdminSession().then((ok) => {
+      if (cancel || ok) return;
+      localStorage.removeItem('pjl_admin_auth');
+      localStorage.removeItem('pjl_current_user');
+      setLoggedIn(false);
+      setCurrentUser(null);
+      setLoginErr(true);
+      setLoginErrorMessage('Tu sesión venció. Volvé a iniciar sesión.');
+    }).catch(() => {});
+    return () => { cancel = true; };
+  }, [loggedIn]);
+
+  /* Aviso de solo lectura: si el rol no puede escribir, o si el servidor acaba de
+     rechazar un cambio, se muestra arriba para que nadie crea que se guardó. */
+  const [writeBlocked, setWriteBlocked] = useState(false);
+  const roleCanWrite =
+    currentUser?.role === 'desarrollador' || currentUser?.role === 'superadmin';
+
+  useEffect(() => {
+    if (currentUser) setWriteBlocked(!roleCanWrite);
+  }, [currentUser?.role]);
+
+  useEffect(() => {
+    const onBlocked = () => setWriteBlocked(true);
+    window.addEventListener('pjl_write_blocked', onBlocked);
+    return () => window.removeEventListener('pjl_write_blocked', onBlocked);
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn || !currentUser) return;
     const email = currentUser.email;
     let cancel = false;
     fetchProfileByEmail(email).then((profile) => {
@@ -706,7 +745,7 @@ function AdminContent() {
   useEffect(() => {
     const loadGoogleCalendarStatus = async () => {
       try {
-        const response = await fetch('/api/google-calendar/status');
+        const response = await adminFetch('/api/google-calendar/status');
         const json = await response.json();
         setGoogleCalendarStatus(json);
       } catch {
@@ -726,7 +765,7 @@ function AdminContent() {
 
     const loadStats = async () => {
       try {
-        const res = await fetch('/api/track?days=30', { cache: 'no-store' });
+        const res = await adminFetch('/api/track?days=30', { cache: 'no-store' });
         const json = await res.json();
         if (!isMounted) return;
 
@@ -874,7 +913,7 @@ function AdminContent() {
   const [darkPreview, setDarkPreview] = useState(false);
 
   useEffect(() => {
-    if (!currentUser || currentUser.id === 'master') return;
+    if (!currentUser) return;
 
     const freshUser = allUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
     if (!freshUser) return;
@@ -893,7 +932,7 @@ function AdminContent() {
   }, [allUsers, currentUser]);
 
   useEffect(() => {
-    if (!loggedIn || !currentUser || currentUser.id === 'master') return;
+    if (!loggedIn || !currentUser) return;
     if (mod && !hasPermission(mod)) {
       setMod('dashboard');
       router.replace('/admin?mod=dashboard');
@@ -979,7 +1018,7 @@ function AdminContent() {
     setPushBusy(true);
     setPushStatus(null);
     try {
-      const res = await fetch('/api/push/token', {
+      const res = await adminFetch('/api/push/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: tok, secret: btoa(`${currentUser?.email}|${currentUser?.role}`) }),
@@ -1006,8 +1045,8 @@ function AdminContent() {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` };
     try {
       const [v, s] = await Promise.all([
-        fetch('/api/push/vapid', { headers }),
-        fetch('/api/push/send', { headers }),
+        adminFetch('/api/push/vapid', { headers }),
+        adminFetch('/api/push/send', { headers }),
       ]);
       const vj = await v.json();
       const sj = await s.json();
@@ -1031,7 +1070,7 @@ function AdminContent() {
     setPushBusy(true);
     setPushStatus(null);
     try {
-      const res = await fetch('/api/push/vapid', {
+      const res = await adminFetch('/api/push/vapid', {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(
@@ -1067,7 +1106,7 @@ function AdminContent() {
     setPushBusy(true);
     setPushStatus(null);
     try {
-      const res = await fetch('/api/push/send', {
+      const res = await adminFetch('/api/push/send', {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ title: pushMsg.title, body: pushMsg.body, url: pushMsg.url || '/', image: pushMsg.image || '', icon: pushMsg.icon || '' }),
@@ -1386,22 +1425,11 @@ function AdminContent() {
     };
 
     const inputEmail = resolveEmail();
-    const isMaster = normalize(inputUser) === CREDS.user && inputPass === CREDS.pass;
     const supabaseAvailable = supabaseStatus?.ok !== false;
     let authUser: User | null = null;
 
     try {
-      if (isMaster) {
-        authUser = {
-          id: 'master',
-          name: 'Desarrollador',
-          email: CREDS.user,
-          role: 'desarrollador',
-          status: 'activo',
-          permissions: NAV_ITEMS.map(n => n.id),
-          lastActive: new Date().toISOString(),
-        };
-      } else if (inputEmail) {
+      if (inputEmail) {
         if (!supabaseAvailable) {
           setLoginErr(true);
           setLoginErrorMessage('Supabase no está disponible. Intenta más tarde.');
@@ -1469,6 +1497,9 @@ function AdminContent() {
     setCurrentUser(null);
     localStorage.removeItem('pjl_admin_auth');
     localStorage.removeItem('pjl_current_user');
+    // También se cierra la sesión de Supabase: si no, el token sigue vivo en el
+    // navegador y las peticiones seguirían siendo aceptadas.
+    void signOutAdmin();
     router.push('/');
   };
 
@@ -1568,7 +1599,7 @@ function AdminContent() {
     action: 'create' | 'update' | 'delete',
     calendarEventId?: string
   ) => {
-    const response = await fetch('/api/google-calendar/events', {
+    const response = await adminFetch('/api/google-calendar/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1594,7 +1625,7 @@ function AdminContent() {
     action: 'create' | 'update' | 'delete',
     calendarEventId?: string
   ) => {
-    const response = await fetch('/api/google-calendar/events', {
+    const response = await adminFetch('/api/google-calendar/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1784,7 +1815,7 @@ function AdminContent() {
     setIcsResult('');
     try {
       const text = await icsFile.text();
-      const response = await fetch('/api/calendar/import', {
+      const response = await adminFetch('/api/calendar/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, activities }),
@@ -1916,7 +1947,7 @@ function AdminContent() {
   const resetStats = async () => {
     if (!confirm('¿Deseas borrar todas las estadísticas guardadas? Esta acción no se puede deshacer.')) return;
     try {
-      const res = await fetch('/api/track', { method: 'DELETE' });
+      const res = await adminFetch('/api/track', { method: 'DELETE' });
       const json = await res.json();
       if (!res.ok || !json?.ok) throw new Error(json?.error || 'error');
       setPageStats(DEFAULT_STATS.map(s => ({ ...s })));
@@ -2217,6 +2248,27 @@ function AdminContent() {
 
       {/* MAIN */}
       <main className="admin-main" data-module={mod}>
+        {writeBlocked && (
+          <div
+            role="alert"
+            style={{
+              background: '#fef3c7',
+              border: '1px solid #f59e0b',
+              color: '#78350f',
+              padding: '10px 16px',
+              fontSize: 13,
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+            }}
+          >
+            <strong>Solo lectura.</strong>
+            <span>
+              Esta cuenta puede ver el panel pero no guardar cambios
+              {currentUser?.email ? ` (${currentUser.email})` : ''}. Pedile permiso a quien administra el sitio.
+            </span>
+          </div>
+        )}
         <header className="admin-topbar">
           <div className="topbar-left">
             {/* Hamburger for mobile */}
@@ -2619,7 +2671,7 @@ function AdminContent() {
                 const finalPrompt =
                   `[Instrucción]: Redacta ${activeMode.hint} para la Pastoral Juvenil Luqueña. ` +
                   `Responde directamente con el contenido solicitado.\n\n[Solicitud]: ${aiPrompt}`;
-                const res = await fetch('/api/ai', {
+                const res = await adminFetch('/api/ai', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ prompt: finalPrompt, apiKey: aiKeyStored || undefined })
@@ -2701,7 +2753,7 @@ function AdminContent() {
                         if (!k) { showToast('Escribe una clave primero'); return; }
                         setAiKeyStatus('validating');
                         try {
-                          const res = await fetch('/api/ai/validate', {
+                          const res = await adminFetch('/api/ai/validate', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ apiKey: k })

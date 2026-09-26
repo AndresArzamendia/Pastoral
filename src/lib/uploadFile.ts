@@ -25,11 +25,14 @@ async function readAsDataUrl(file: File): Promise<string | null> {
   });
 }
 
+import { adminFetch } from './adminAuth';
+
 export async function uploadFileToR2(file: File): Promise<string | null> {
   try {
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    // adminFetch: la ruta de subida exige sesión del panel.
+    const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
     if (!res.ok) return null;
     const json = (await res.json().catch(() => null)) as { ok?: boolean; url?: string } | null;
     return json?.ok && json.url ? json.url : null;

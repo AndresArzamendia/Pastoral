@@ -8,6 +8,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { NewsArticleWithDetails, NewsCategory } from '@/lib/newsTypes';
 import { uploadFile } from '@/lib/uploadFile';
+import { adminFetch } from '@/lib/adminAuth';
 
 interface NewsArticleFormProps {
   article?: NewsArticleWithDetails;
@@ -106,7 +107,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
       const method = article ? 'PATCH' : 'POST';
       const endpoint = article ? `/api/news/articles/${article.id}` : '/api/news/articles';
 
-      const response = await fetch(endpoint, {
+      const response = await adminFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

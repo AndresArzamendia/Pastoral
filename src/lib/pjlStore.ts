@@ -522,9 +522,16 @@ function save<T>(key: string, value: T): void {
   localStorage.setItem('pjl_' + key, JSON.stringify(value));
   setLocalTs(key, new Date().toISOString());
   window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
-  upsertStoreValue(key, value).catch(() => {
-    // Si Supabase no está disponible, seguimos guardando localmente.
-  });
+  upsertStoreValue(key, value)
+    .then((ok) => {
+      // El servidor rechaza el cambio si la sesión no tiene permiso de escritura
+      // (cuenta vencida, rol de solo lectura, etc.). Se avisa para que el panel
+      // no dé la impresión de que se guardó.
+      if (!ok) window.dispatchEvent(new CustomEvent('pjl_write_blocked', { detail: { key } }));
+    })
+    .catch(() => {
+      // Si Supabase no está disponible, seguimos guardando localmente.
+    });
   journalUpdate(key);
 }
 

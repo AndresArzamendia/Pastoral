@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,13 +120,17 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true, day });
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  // Borrar las estadísticas es una operación del panel: exige sesión.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
   const db = await getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'estadisticas-no-disponibles' }, { status: 503 });
   try {
     await db.prepare('DELETE FROM daily_views').run();
     await db.prepare('DELETE FROM daily_devices').run();
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, borradoPor: auth.session.email });
   } catch (e) {
     console.error('reset stats error:', (e as Error).message);
     return NextResponse.json({ ok: false, error: 'no-se-pudo-borrar' }, { status: 500 });
@@ -133,6 +138,10 @@ export async function DELETE() {
 }
 
 export async function GET(request: NextRequest) {
+  // La lista de visitantes solo se muestra en el panel: exige sesión.
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
   const db = await getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'estadisticas-no-disponibles' }, { status: 503 });
 

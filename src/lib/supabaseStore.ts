@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase';
+import { adminFetch } from './adminAuth';
 
 export const STORE_TABLE = 'pjl_store';
 
@@ -79,24 +80,32 @@ export async function fetchAllStoreRows(keys: string[]): Promise<Array<{ key: st
 }
 
 export async function upsertStoreValue(key: string, value: unknown): Promise<boolean> {
-  let supabase;
+  // Las escrituras pasan por el servidor, que comprueba la sesión del panel.
+  // Escribir desde el navegador con el token público permitía cambiar el
+  // contenido del sitio a cualquiera que copiara ese token del código.
   try {
-    supabase = getSupabaseClient();
+    const res = await adminFetch('/api/store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value }),
+    });
+
+    if (!res.ok) {
+      let detail = '';
+      try {
+        detail = ((await res.json()) as { error?: string })?.error || '';
+      } catch {
+        /* respuesta sin cuerpo */
+      }
+      console.error('upsertStoreValue: no se pudo guardar', key, res.status, detail);
+      return false;
+    }
+
+    return true;
   } catch (e) {
-    console.warn('upsertStoreValue: Supabase not configured:', (e as Error).message);
+    console.error('Supabase upsertStoreValue error:', (e as Error).message);
     return false;
   }
-
-  const { error } = await supabase
-    .from(STORE_TABLE)
-    .upsert({ key, value }, { onConflict: 'key' });
-
-  if (error) {
-    console.error('Supabase upsertStoreValue error:', error.message);
-    return false;
-  }
-
-  return true;
 }
 
 type SupabaseStoreChangePayload = {

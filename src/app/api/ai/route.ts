@@ -1,9 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 const GEMINI_MODEL = 'gemini-3.7-flash';
 
 export async function POST(req: Request) {
+  // Operacion del panel: exige sesion iniciada.
+  const auth = await requireAdminWriter(req);
+  if (!auth.ok) return auth.response;
   try {
     const { prompt, apiKey } = await req.json();
 
