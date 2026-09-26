@@ -64,8 +64,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Logo remoto (storage, blob, CDN...)
+  // Logo remoto (storage, blob, CDN...) — puede ser una ruta relativa (/api/files/...).
+  // Se redirige en lugar de pasar el archivo por el servidor: menos trabajo y la
+  // imagen la sirve Cloudflare desde el borde, ya cacheada.
   if (logo) {
+    if (logo.startsWith('/')) {
+      return NextResponse.redirect(new URL(logo, request.url), 302);
+    }
     try {
       const res = await fetch(logo, { next: { revalidate: 3600 } });
       if (res.ok) {

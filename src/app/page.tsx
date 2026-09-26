@@ -511,6 +511,46 @@ const [newsSearch, setNewsSearch] = useState('');
   const [heroIntervalSecs, setHeroIntervalSecs] = useState<number>(3);
   const [liveHeroIndex, setLiveHeroIndex] = useState(0);
   const [liveDocs, setLiveDocs] = useState<DocItem[]>([]);
+
+  // Contador de descargas agrupado: se acumulan los clics y se escribe una
+  // sola vez en la base de datos en lugar de una por cada descarga.
+  const pendingDownloadsRef = useRef<Record<number, number>>({});
+  const downloadFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushDownloads = () => {
+    if (downloadFlushRef.current) {
+      clearTimeout(downloadFlushRef.current);
+      downloadFlushRef.current = null;
+    }
+    const pending = pendingDownloadsRef.current;
+    const ids = Object.keys(pending);
+    if (ids.length === 0) return;
+    pendingDownloadsRef.current = {};
+    setLiveDocs(prev => {
+      const next = prev.map(d => {
+        const n = pending[d.id];
+        return n ? { ...d, downloads: (d.downloads || 0) + n } : d;
+      });
+      store.docs.set(next);
+      return next;
+    });
+  };
+
+  const countDownload = (docId: number) => {
+    pendingDownloadsRef.current[docId] = (pendingDownloadsRef.current[docId] || 0) + 1;
+    if (downloadFlushRef.current) clearTimeout(downloadFlushRef.current);
+    downloadFlushRef.current = setTimeout(flushDownloads, 8000);
+  };
+
+  // No perder las descargas pendientes si el visitante cierra la pestaña.
+  useEffect(() => {
+    const onHide = () => flushDownloads();
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      flushDownloads();
+    };
+  }, []);
   const [splashDone, setSplashDone] = useState(false);
 
   // --- EVANGELIO DEL DÍA ---
@@ -915,128 +955,63 @@ const [newsSearch, setNewsSearch] = useState('');
     return () => observer.disconnect();
   }, [currentPage, activeZoneTab, activeConsejoTab, selectedZone, globalCommFilter, liveChapels]);
 
-  // --- INTERACTION TRACKING ---
-  const updateStat = async (id: string, field: 'visits' | 'interactions') => {
-    try {
-      const mappedId = id === 'home' ? '/' : id.startsWith('/') ? id : `/${id}`;
-      const deviceType = detectDeviceType();
-      const localStats = store.stats.get();
-      let baseStats = localStats;
-
-      try {
-        const remoteStats = await fetchStoreValue<PageStat[]>('stats');
-        if (Array.isArray(remoteStats)) {
-          baseStats = mergePageStats(localStats, remoteStats);
-        }
-      } catch {
-        baseStats = localStats;
-      }
-
-      baseStats = mergePageStats(store.stats.get(), baseStats);
-      const s = mergePageStats(DEFAULT_STATS, baseStats);
-      let existing = s.find(x => x.page === mappedId);
-
-      if (!existing) {
-        existing = { page: mappedId, label: humanizeStatLabel(mappedId), visits: 0, interactions: 0, desktopVisits: 0, tabletVisits: 0, mobileVisits: 0 };
-        s.push(existing);
-      }
-
-      existing[field] += 1;
-      if (field === 'visits') {
-        if (deviceType === 'desktop') existing.desktopVisits = (existing.desktopVisits || 0) + 1;
-        if (deviceType === 'tablet') existing.tabletVisits = (existing.tabletVisits || 0) + 1;
-        if (deviceType === 'mobile') existing.mobileVisits = (existing.mobileVisits || 0) + 1;
-      }
-      store.stats.set(s);
-    } catch (e) {}
-  };
-
-  const trackVisit = (id: string) => {
-    void updateStat(id, 'visits');
-  };
-
-  const trackInteraction = (id: string) => {
-    try {
-      const mappedId = id === 'home' ? '/' : `/${id}`;
-      void updateStat(mappedId, 'interactions');
-    } catch (e) {}
-  };
-
-  // --- DETECCIÓN DE DISPOSITIVOS (IP · nombre · red · visitas) ---
+  // --- ESTADÍSTICAS (Cloudflare D1) ---
+  // Antes cada visita leía y reescribía en Supabase la lista completa de dispositivos
+  // y pedía la IP a un servicio externo. Ahora es un solo envío a /api/track,
+  // que guarda un contador por día y sección dentro de Cloudflare.
   const getDeviceId = () => {
     try {
       let id = localStorage.getItem('pjl_device_id');
       if (!id) {
-        id = (crypto?.randomUUID?.() || `dev-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
+        id = crypto?.randomUUID?.() || `dev-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
         localStorage.setItem('pjl_device_id', id);
       }
       return id;
-    } catch { return 'anon'; }
+    } catch { return 'anonimo'; }
   };
 
-  const registerDeviceVisit = async () => {
+  const deviceInfo = () => {
+    const uaLower = navigator.userAgent.toLowerCase();
+    return {
+      deviceId: getDeviceId(),
+      deviceType: detectDeviceType(),
+      browser: /edg/i.test(uaLower) ? 'Edge' : /opr|opera/i.test(uaLower) ? 'Opera' : /chrome|crios/i.test(uaLower) ? 'Chrome' : /firefox|fxios/i.test(uaLower) ? 'Firefox' : /safari/i.test(uaLower) ? 'Safari' : 'Otro',
+      os: /windows/i.test(uaLower) ? 'Windows' : /android/i.test(uaLower) ? 'Android' : /iphone|ipad|ios/i.test(uaLower) ? 'iOS' : /mac os/i.test(uaLower) ? 'macOS' : /linux/i.test(uaLower) ? 'Linux' : 'Otro',
+    };
+  };
+
+  const sendStat = (section: string, kind: 'visit' | 'interaction') => {
     try {
-      const id = getDeviceId();
-      const type = detectDeviceType();
-      const uaLower = navigator.userAgent.toLowerCase();
-      const browser = /edg/i.test(uaLower) ? 'Edge' : /opr|opera/i.test(uaLower) ? 'Opera' : /chrome|crios/i.test(uaLower) ? 'Chrome' : /firefox|fxios/i.test(uaLower) ? 'Firefox' : /safari/i.test(uaLower) ? 'Safari' : 'Otro';
-      const os = /windows/i.test(uaLower) ? 'Windows' : /android/i.test(uaLower) ? 'Android' : /iphone|ipad|ios/i.test(uaLower) ? 'iOS' : /mac os/i.test(uaLower) ? 'macOS' : /linux/i.test(uaLower) ? 'Linux' : 'Otro';
-      const name = `${browser} · ${os}`;
-
-      let network = 'Desconocida';
-      try {
-        const conn = (navigator as any).connection;
-        const ssid = conn?.name || conn?.ssid;
-        const NET_TYPES: Record<string, string> = { wifi: 'Wi-Fi', cellular: 'Datos móviles', ethernet: 'Ethernet', bluetooth: 'Bluetooth', mixed: 'Mixta', other: 'Otra', unknown: 'Desconocida' };
-        const typeLabel = conn?.type ? NET_TYPES[String(conn.type)] || String(conn.type) : '';
-        const eff = conn?.effectiveType ? String(conn.effectiveType).toUpperCase() : '';
-        network = ssid || [typeLabel, eff].filter(Boolean).join(' · ') || (navigator.onLine ? 'Conectado' : 'Desconectado');
-      } catch { /* ignore */ }
-
-      let ip = '';
-      try {
-        ip = localStorage.getItem('pjl_device_ip') || '';
-        const ipAt = Number(localStorage.getItem('pjl_device_ip_at')) || 0;
-        if (!ip || Date.now() - ipAt > 12 * 36e5) {
-          const res = await fetch('/api/device/info', { cache: 'no-store' });
-          const json = await res.json();
-          ip = json.ip || '';
-          if (ip) { localStorage.setItem('pjl_device_ip', ip); localStorage.setItem('pjl_device_ip_at', String(Date.now())); }
-        }
-      } catch { /* ignore */ }
-
-      const now = new Date().toISOString();
-      const local = Array.isArray(store.devices.get()) ? store.devices.get() : [];
-      let base = local;
-      try {
-        const remote = await fetchStoreValue<DeviceLog[]>('devices');
-        if (Array.isArray(remote)) base = mergeDevices(local, remote);
-      } catch { base = local; }
-
-      const sessionSeen = sessionStorage.getItem('pjl_session_seen');
-      const idx = base.findIndex((d) => d.id === id);
-
-      if (idx === -1) {
-        base.push({
-          id, name, type, browser, os, ip, network,
-          firstSeen: now, lastSeen: now, visits: 1, pages: 1,
-        });
-      } else {
-        const rec = base[idx];
-        rec.lastSeen = now;
-        if (ip) rec.ip = ip;
-        if (!sessionSeen) rec.visits = (rec.visits || 0) + 1;
-        rec.pages = (rec.pages || 0) + 1;
+      // Una vez por sección y por sesión: abrir y cerrar la web no infla el número.
+      const flag = `pjl_${kind}_${section}`;
+      if (sessionStorage.getItem(flag)) return;
+      sessionStorage.setItem(flag, '1');
+      const body = JSON.stringify({ section, kind, ...deviceInfo() });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
+        return;
       }
-      try { sessionStorage.setItem('pjl_session_seen', '1'); } catch { /* ignore */ }
-      store.devices.set(base);
-    } catch (e) { /* ignore */ }
+      void fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* ignore */ }
+  };
+
+  const trackVisit = (id: string) => {
+    sendStat(id === 'home' ? '/' : id.startsWith('/') ? id : `/${id}`, 'visit');
+  };
+
+  const trackInteraction = (id: string) => {
+    sendStat(id === 'home' ? '/' : id.startsWith('/') ? id : `/${id}`, 'interaction');
   };
 
   useEffect(() => {
     trackVisit(currentPage);
-    void registerDeviceVisit();
   }, [currentPage]);
+
 
   // --- VATICAN WIDGET SCRIPT ---
   useEffect(() => {
@@ -3260,10 +3235,9 @@ const [newsSearch, setNewsSearch] = useState('');
                           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px' }}
                           onClick={() => {
                             if (!doc.url) return;
-                            // Increment downloads count locally & sync
-                            const updatedDocs = liveDocs.map(d => d.id === doc.id ? { ...d, downloads: (d.downloads || 0) + 1 } : d);
-                            store.docs.set(updatedDocs);
-                            setLiveDocs(updatedDocs);
+                            // El contador se anota en el lote: 20 descargas seguidas
+                            // escriben una sola vez en vez de 20.
+                            countDownload(doc.id);
                             // Download
                             handleDownload(doc.url, doc.name);
                           }}

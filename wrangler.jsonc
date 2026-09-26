@@ -11,6 +11,33 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  /*
+   * PENDIENTE: almacenamiento de archivos (R2).
+   *
+   * R2 todavía NO está habilitado en la cuenta, por eso las subidas caen en la
+   * base de datos (ver src/lib/uploadFile.ts, que solo lo permite para
+   * imágenes muy pequeñas).
+   *
+   * Pasos:
+   *   1) Panel de Cloudflare -> R2 -> "Enable R2" (pide método de pago; el
+   *      primer gigabyte por mes es gratis).
+   *   2) Crear un bucket, por ejemplo "pastoral-uploads".
+   *   3) Descomentar el bloque de abajo (el binding se llama UPLOADS_BUCKET y
+   *      es el que leen src/app/api/upload y src/app/api/files/[key]).
+   */
+  // "r2_buckets": [
+  //   { "binding": "UPLOADS_BUCKET", "bucket_name": "pastoral-uploads" }
+  // ],
+  "r2_buckets": [
+    { "binding": "UPLOADS_BUCKET", "bucket_name": "pastoral-uploads" }
+  ],
+  "d1_databases": [
+    {
+      "binding": "STATS_DB",
+      "database_name": "pastoral-stats",
+      "database_id": "31d83fce-dd13-4b81-b85e-ef26ea190a65"
+    }
+  ],
   "vars": {
     "SUPABASE_URL": "https://rtqzphmqnsaxirifdzvu.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_89BBzim5CKpxFWpj2qvuLQ_nVir3Jpv",

@@ -11,14 +11,14 @@ import {
   Branding, ThemePalette, PageStat, Chapel, HeroSlide, User, DeviceLog,
   DEFAULT_NEWS, DEFAULT_ACTIVITIES, DEFAULT_FAQ,
   DEFAULT_DOCS, DEFAULT_CONTENT, DEFAULT_SOCIAL, DEFAULT_SECTIONS, DEFAULT_BRANDING,
-  DEFAULT_STATS, DEFAULT_THEME_PALETTE, DEFAULT_USERS, mergePageStats
+  DEFAULT_STATS, DEFAULT_THEME_PALETTE, DEFAULT_USERS
 } from '@/lib/pjlStore';
 import { buildGoogleCalendarCreateUrl } from '@/lib/googleCalendar';
 import { fetchStoreValue, upsertStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
 import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingProfiles, approveProfile, signInProfile, signUpProfile, subscribeProfileChanges, deleteProfile, resendVerificationEmail, updateProfile } from '@/lib/supabaseProfiles';
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
-import { uploadFileToR2 } from '@/lib/uploadFile';
+import { uploadFile, uploadFileToR2 } from '@/lib/uploadFile';
 import { LIT_COLORS, liturgicalColor, type LitColorKey } from '@/lib/liturgy';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
@@ -155,6 +155,38 @@ function KpiCard({ icon, label, value, sub, tone, delay, text }: {
     </div>
   );
 }
+
+/* Nombre legible de una sección a partir de su ruta (/agenda → Agenda). */
+const SECTION_LABELS: Record<string, string> = {
+  '/': 'Página Principal',
+  '/agenda': 'Agenda / Calendario',
+  '/noticias': 'Noticias',
+  '/zonas': 'Zonas Pastorales',
+  '/curriculos': 'Currículos',
+  '/documentos': 'Documentos',
+  '/mision': 'Misión / Visión',
+  '/contacto': 'Contacto',
+  '/estatuto': 'Estatuto',
+  '/historia': 'Historia',
+  '/institucional': 'Institucional',
+  '/consejo': 'Consejo PJL',
+  '/equipos': 'Equipos',
+  '/preguntas': 'Preguntas Frecuentes',
+  '/faq': 'Preguntas Frecuentes',
+  '/home': 'Página Principal',
+};
+
+const statSectionLabel = (path: string) => {
+  const p = String(path || '/');
+  if (SECTION_LABELS[p]) return SECTION_LABELS[p];
+  const rest = p.replace(/^\//, '');
+  if (!rest) return 'Página Principal';
+  return rest
+    .split(/[-_/]/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
 
 /* Gráfico de dona animado e interactivo */
 const DONUT_COLORS = ['#1A2744', '#C8973A', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899'];
@@ -661,8 +693,12 @@ function AdminContent() {
   const [heroIntervalSecs, setHeroIntervalSecs] = useLS<number>('heroInterval', 3);
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
   const [chapels, setChapels] = useLS<Chapel[]>('chapels', []);
-  const [pageStats, setPageStats] = useLS<PageStat[]>('stats', DEFAULT_STATS);
-  const [devices, setDevices] = useLS<DeviceLog[]>('devices', []);
+  // Las estadísticas ya NO se guardan en Supabase: viven en Cloudflare D1.
+  const [pageStats, setPageStats] = useState<PageStat[]>(DEFAULT_STATS);
+  const [devices, setDevices] = useState<DeviceLog[]>([]);
+  const [statsMeta, setStatsMeta] = useState<{ updatedAt: string; days: number; visitors: number } | null>(null);
+  // Mientras D1 no tenga datos, se muestran los contadores históricos de Supabase.
+  const [statsLegacy, setStatsLegacy] = useState(false);
   const [logs, setLogs] = useLS<any[]>('logs', []);
   const [googleCalendarStatus, setGoogleCalendarStatus] = useState<{ connected: boolean; account?: string } | null>(null);
   const [googleCalendarSyncing, setGoogleCalendarSyncing] = useState(false);
@@ -681,46 +717,91 @@ function AdminContent() {
     loadGoogleCalendarStatus();
   }, []);
 
+  // --- ESTADÍSTICAS DESDE CLOUDFLARE D1 ---
+  // El sitio público ya no escribe nada en Supabase al entrar: solo envía un
+  // POST a /api/track. Aquí se leen los contadores y la lista de visitantes.
   useEffect(() => {
     let isMounted = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const updateStatsFromRemote = (remoteValue: unknown) => {
-      if (!remoteValue) return;
+    const loadStats = async () => {
       try {
-        const currentStats = store.stats.get();
-        const stats = mergePageStats(currentStats, remoteValue as PageStat[]);
-        setPageStats(stats);
-        const serialized = JSON.stringify(stats);
-        const current = localStorage.getItem('pjl_stats');
-        if (current !== serialized) {
-          localStorage.setItem('pjl_stats', serialized);
-          window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key: 'stats' } }));
+        const res = await fetch('/api/track?days=30', { cache: 'no-store' });
+        const json = await res.json();
+        if (!isMounted) return;
+
+        const bySection = Array.isArray(json?.bySection) ? json.bySection : [];
+
+        if (!json?.ok || !bySection.length) {
+          // D1 todavía vacío: se muestran los contadores antiguos de Supabase.
+          const old = await fetchStoreValue<PageStat[]>('stats').catch(() => null);
+          if (isMounted && Array.isArray(old) && old.length) {
+            setPageStats(old);
+            setStatsLegacy(true);
+            setStatsMeta(null);
+          }
+          return;
         }
+        const byPage = new Map<string, PageStat>();
+        for (const s of DEFAULT_STATS) byPage.set(s.page, { ...s });
+        for (const row of bySection) {
+          const page = String(row.section || '/');
+          const base = byPage.get(page) || {
+            page,
+            label: statSectionLabel(page),
+            visits: 0,
+            interactions: 0,
+            desktopVisits: 0,
+            tabletVisits: 0,
+            mobileVisits: 0,
+          };
+          base.visits = Number(row.views || 0);
+          base.interactions = Number(row.interactions || 0);
+          base.desktopVisits = Number(row.desktopVisits || 0);
+          base.tabletVisits = Number(row.tabletVisits || 0);
+          base.mobileVisits = Number(row.mobileVisits || 0);
+          byPage.set(page, base);
+        }
+        // Las secciones sin visitas se conservan para que sigan apareciendo.
+        setPageStats([...byPage.values()]);
+        setStatsLegacy(false);
+        setStatsMeta({
+          updatedAt: String(json.generatedAt || ''),
+          days: Number(json.days || 30),
+          visitors: Number(json.totals?.visitors || 0),
+        });
+
+        const recent = Array.isArray(json.recent) ? json.recent : [];
+        setDevices(
+          recent.map((r: Record<string, unknown>) => {
+            const browser = String(r.browser || '');
+            const os = String(r.os || '');
+            return {
+              id: `${r.day}-${r.deviceId}`,
+              name: [browser, os].filter(Boolean).join(' · ') || 'Visitante',
+              type: String(r.deviceType || 'mobile'),
+              browser,
+              os,
+              section: String(r.section || '/'),
+              country: String(r.country || ''),
+              firstSeen: String(r.day || ''),
+              lastSeen: String(r.lastSeen || ''),
+              visits: Number(r.visits || 0),
+            } as unknown as DeviceLog;
+          }),
+        );
       } catch (error) {
-        console.error('Error parsing remote dashboard stats:', error);
+        console.error('Error cargando estadísticas:', error);
+      } finally {
+        if (isMounted) timer = setTimeout(loadStats, 60_000);
       }
     };
 
-    const fetchInitialStats = async () => {
-      try {
-        const remoteStats = await fetchStoreValue<PageStat[]>('stats');
-        if (!isMounted || !remoteStats) return;
-        updateStatsFromRemote(remoteStats);
-      } catch (error) {
-        console.error('Error cargando estadísticas iniciales:', error);
-      }
-    };
-
-    fetchInitialStats();
-
-    const unsubscribe = subscribeStoreChanges((changedKey, changedValue) => {
-      if (changedKey !== 'stats') return;
-      updateStatsFromRemote(changedValue);
-    });
+    loadStats();
 
     return () => {
       isMounted = false;
-      try { unsubscribe(); } catch (e) {}
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
@@ -1832,26 +1913,31 @@ function AdminContent() {
     addLog('eliminar', type, `ID: ${id}`);
   };
 
-  const resetStats = () => {
-    if (!confirm('¿Deseas reiniciar todas las estadísticas a cero? Esta acción no se puede deshacer.')) return;
-    const resetData = DEFAULT_STATS.map(s => ({ ...s, visits: 0, interactions: 0, desktopVisits: 0, tabletVisits: 0, mobileVisits: 0 }));
-    setPageStats(resetData);
-    showToast('Estadísticas reiniciadas ✔');
-    addLog('reiniciar estadísticas', 'dashboard');
+  const resetStats = async () => {
+    if (!confirm('¿Deseas borrar todas las estadísticas guardadas? Esta acción no se puede deshacer.')) return;
+    try {
+      const res = await fetch('/api/track', { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) throw new Error(json?.error || 'error');
+      setPageStats(DEFAULT_STATS.map(s => ({ ...s })));
+      setDevices([]);
+      showToast('Estadísticas borradas ✔');
+      addLog('reiniciar estadisticas', 'dashboard');
+    } catch {
+      showToast('No se pudieron borrar las estadísticas');
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    const url = await uploadFileToR2(file);
-    if (url) {
-      callback(url);
+    const res = await uploadFile(file);
+    if (res.ok) {
+      callback(res.url);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => callback(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    window.alert(res.error);
   };
 
   const handleDocumentFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2259,7 +2345,11 @@ function AdminContent() {
                         <span className="anal-sec-ico" style={{ width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--navy), var(--navy-mid))', color: '#fff', fontSize: '16px' }}>📊</span>
                         Visitas por Sección
                       </h3>
-                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>Rendimiento de cada sección del sitio</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>
+                        {statsLegacy
+                          ? 'Contadores históricos (guardados antes del cambio). En cuanto entren visitors, se sustituyen por los nuevos.'
+                          : 'Rendimiento de cada sección del sitio (últimos 30 días, guardado en Cloudflare)'}
+                      </p>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       <span className="anal-total-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: 'var(--navy)', background: 'linear-gradient(120deg, #f5e9cf, #fbf6ec)', border: '1px solid var(--gold-pale)', padding: '7px 14px', borderRadius: '30px' }}>
@@ -2267,7 +2357,7 @@ function AdminContent() {
                         {liveVisits.toLocaleString('es-ES')} visitas
                       </span>
                       <div className="anal-actions" style={{ display: 'flex', gap: '6px' }}>
-                        <button onClick={() => { const s = store.stats.get(); const csv = 'Sección,Visitas,Interacciones,Desktop,Tablet,Móvil\n' + s.map(e => `"${e.label}",${e.visits},${e.interactions},${e.desktopVisits||0},${e.tabletVisits||0},${e.mobileVisits||0}`).join('\n'); const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv); a.download = 'reporte_pjl.csv'; a.click(); showToast('CSV descargado ✔'); }} title="Exportar reporte" style={{ fontSize: '10px', padding: '5px 12px', background: 'var(--cream)', border: '1px solid var(--gold-pale)', borderRadius: '8px', cursor: 'pointer', color: 'var(--navy)', fontWeight: 700, transition: 'all .25s', boxShadow: '0 2px 6px rgba(0,0,0,.05)' }}>📥 CSV</button>
+                        <button onClick={() => { const s = (Array.isArray(pageStats) ? pageStats : []); const csv = 'Sección,Visitas,Interacciones,Desktop,Tablet,Móvil\n' + s.map(e => `"${e.label}",${e.visits},${e.interactions},${e.desktopVisits||0},${e.tabletVisits||0},${e.mobileVisits||0}`).join('\n'); const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv); a.download = 'reporte_pjl.csv'; a.click(); showToast('CSV descargado ✔'); }} title="Exportar reporte" style={{ fontSize: '10px', padding: '5px 12px', background: 'var(--cream)', border: '1px solid var(--gold-pale)', borderRadius: '8px', cursor: 'pointer', color: 'var(--navy)', fontWeight: 700, transition: 'all .25s', boxShadow: '0 2px 6px rgba(0,0,0,.05)' }}>📥 CSV</button>
                         <button onClick={resetStats} title="Reiniciar contadores" style={{ fontSize: '10px', padding: '5px 12px', background: '#fff0f0', border: '1px solid #fca5a5', borderRadius: '8px', cursor: 'pointer', color: '#b91c1c', fontWeight: 700, transition: 'all .25s', boxShadow: '0 2px 6px rgba(0,0,0,.05)' }}>🗑️ Reset</button>
                         <span style={{ fontSize: '10px', background: '#d1fae5', color: '#065f46', padding: '5px 10px', borderRadius: '20px', fontWeight: 700, alignSelf: 'center' }}>● Auto-sync</span>
                       </div>
@@ -4635,7 +4725,9 @@ function AdminContent() {
               .filter(d => {
                 if (devType !== 'all' && d.type !== devType) return false;
                 if (!dq) return true;
-                return [d.name, d.browser, d.os, d.ip, d.network].some(v => (v || '').toLowerCase().includes(dq));
+                const sec = (d as unknown as { section?: string }).section || '';
+                const pais = (d as unknown as { country?: string }).country || '';
+                return [d.name, d.browser, d.os, sec, pais].some(v => (v || '').toLowerCase().includes(dq));
               })
               .sort((a, b) => (b.visits || 0) - (a.visits || 0) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
             const devTot = Math.max(1, Math.ceil(filteredDevs.length / 10));
@@ -4648,12 +4740,14 @@ function AdminContent() {
             const exportDevicesCSV = () => {
               if (!filteredDevs.length) { showToast('No hay dispositivos para exportar'); return; }
               const rows: string[][] = [
-                ['Dispositivo', 'Tipo', 'Navegador', 'Sistema Operativo', 'IP', 'Red', 'Primera visita', 'Última visita', 'Visitas', 'Páginas'],
+                ['Visitante', 'Tipo', 'Navegador', 'Sistema Operativo', 'Sección', 'País', 'Fecha', 'Última actividad', 'Visitas'],
                 ...filteredDevs.map(d => [
-                  d.name, d.type, d.browser || '', d.os || '', d.ip || '', d.network || '',
-                  d.firstSeen ? new Date(d.firstSeen).toLocaleString('es-PY') : '',
+                  d.name, d.type, d.browser || '', d.os || '',
+                  statSectionLabel((d as unknown as { section?: string }).section || '/'),
+                  (d as unknown as { country?: string }).country || '',
+                  d.firstSeen ? new Date(d.firstSeen).toLocaleDateString('es-PY') : '',
                   d.lastSeen ? new Date(d.lastSeen).toLocaleString('es-PY') : '',
-                  String(d.visits || 0), String(d.pages || 0),
+                  String(d.visits || 0),
                 ]),
               ];
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
@@ -4671,14 +4765,23 @@ function AdminContent() {
               <>
                 <div className="admin-section-header admin-stack-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                   <div className="admin-section-title-group">
-                    <h3 className="serif" style={{ fontSize: '2rem', color: 'var(--navy)', margin: 0 }}>Dispositivos</h3>
-                    <p className="premium-label" style={{ color: 'var(--gold)', marginTop: '5px' }}>VISITANTES QUE ENTRARON AL SITIO</p>
+                    <h3 className="serif" style={{ fontSize: '2rem', color: 'var(--navy)', margin: 0 }}>Personas que entran</h3>
+                    <p className="premium-label" style={{ color: 'var(--gold)', marginTop: '5px' }}>QUIÉN ENTRA, DESDE DÓNDE Y A QUÉ SECCIÓN</p>
                   </div>
                   <div className="admin-stack-mobile" style={{ display: 'flex', gap: '10px' }}>
                     <button className="btn-premium btn-premium-outline admin-section-action lg-export" onClick={exportDevicesCSV}>
                       <span className="lg-xico">{'\u2913'}</span> EXPORTAR CSV
                     </button>
                   </div>
+                </div>
+
+                {/* Aclaración: qué muestra esta lista y cada cuánto se actualiza. */}
+                <div style={{ background: '#f7f9fc', border: '1px solid #e3e9f2', borderLeft: '4px solid var(--gold)', borderRadius: '10px', padding: '14px 18px', marginBottom: '22px', fontSize: '13px', color: '#3d4a5c', lineHeight: 1.6 }}>
+                  <b>Cómo se arma esta lista:</b> cada persona aparece una vez por día, en la sección que estaba viendo.
+                  <br />• <b>Sección:</b> la última pantalla visitada de la web (Inicio, Noticias, Agenda…).
+                  <br />• <b>País:</b> lo indica Cloudflare automáticamente. <b>No se guarda la IP</b> ni ningún dato personal.
+                  <br />• <b>Se actualiza sola cada 1 minuto</b> mientras el panel está abierto, y al entrar.
+                  <br />• Solo se muestran los <b>60 visitantes más recientes de los últimos 30 días</b>. Las cifras de «Visitas por Sección» sí llevan la cuenta completa.
                 </div>
 
                 <div className="lg-stats">
@@ -4693,7 +4796,7 @@ function AdminContent() {
                     <span>{'\u{1F50D}'}</span>
                     <input
                       type="text"
-                      placeholder="Buscar dispositivo, IP o red…"
+                      placeholder="Buscar por sección, navegador o país…"
                       value={devSearch}
                       onChange={e => { setDevSearch(e.target.value); setDevPage(1); }}
                       aria-label="Buscar dispositivos"
@@ -4722,9 +4825,9 @@ function AdminContent() {
 
                 {devList.length === 0 ? (
                   <div className="lg-empty">
-                    <span className="lge-ico">{'\u{1F4F1}'}</span>
-                    <h4>Aún no hay dispositivos</h4>
-                    <p>Cuando alguien entre al sitio público, su dispositivo (nombre, IP, red y visitas) aparecerá aquí.</p>
+                    <span className="lge-ico">{'📱'}</span>
+                    <h4>Aún no hay visitantes</h4>
+                    <p>Cuando alguien entre al sitio público, aquí verás la sección que estaba viendo, desde qué país y con qué navegador.</p>
                   </div>
                 ) : devPageRows.length === 0 ? (
                   <div className="lg-empty">
@@ -4737,7 +4840,7 @@ function AdminContent() {
                     {devPageRows.map((d, idx) => (
                       <article key={d.id} className={`dv-card dv-${d.type || 'mobile'}`} style={{ '--d': `${idx * 40}ms` } as CSSProperties}>
                         <div className="dv-head">
-                          <span className="dv-ico">{d.type === 'desktop' ? '\u{1F5A5}\uFE0F' : '\u{1F4F1}'}</span>
+                          <span className="dv-ico">{d.type === 'desktop' ? '🖥️' : '📱'}</span>
                           <div className="dv-title">
                             <b>{d.name}</b>
                             <small>{[d.browser, d.os].filter(Boolean).join(' · ')}</small>
@@ -4745,14 +4848,13 @@ function AdminContent() {
                           <span className="lg-dot">{d.type === 'desktop' ? 'Desktop' : d.type === 'tablet' ? 'Tablet' : 'Móvil'}</span>
                         </div>
                         <div className="dv-stats">
-                          <div className="dv-key"><span>IP</span><b>{d.ip || '—'}</b></div>
-                          <div className="dv-key"><span>Red</span><b>{d.network || '—'}</b></div>
+                          <div className="dv-key"><span>Sección</span><b>{statSectionLabel((d as unknown as { section?: string }).section || '/')}</b></div>
+                          <div className="dv-key"><span>País</span><b>{(d as unknown as { country?: string }).country || '—'}</b></div>
                           <div className="dv-key"><span>Visitas</span><b>{d.visits || 0}</b></div>
-                          <div className="dv-key"><span>Páginas</span><b>{d.pages || 0}</b></div>
+                          <div className="dv-key"><span>Fecha</span><b>{d.firstSeen ? new Date(d.firstSeen).toLocaleDateString('es-PY', { day: '2-digit', month: 'short' }) : '—'}</b></div>
                         </div>
                         <div className="dv-foot">
-                          <span>Primera vez <b>{new Date(d.firstSeen).toLocaleString('es-PY', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</b></span>
-                          <span>Última vez <b>{new Date(d.lastSeen).toLocaleString('es-PY', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</b></span>
+                          <span>Última actividad <b>{d.lastSeen ? new Date(d.lastSeen).toLocaleString('es-PY', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</b></span>
                         </div>
                       </article>
                     ))}
@@ -6913,8 +7015,9 @@ function PushImageField({ label, value, onChange, placeholder, hint }: {
     if (!file) return;
     setBusy(true);
     try {
-      const url = await uploadFileToR2(file);
-      if (url) onChange(url);
+      const res = await uploadFile(file);
+      if (res.ok) onChange(res.url);
+      else window.alert(res.error);
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';

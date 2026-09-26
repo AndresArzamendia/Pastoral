@@ -7,7 +7,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { NewsArticleWithDetails, NewsCategory } from '@/lib/newsTypes';
-import { uploadFileToR2 } from '@/lib/uploadFile';
+import { uploadFile } from '@/lib/uploadFile';
 
 interface NewsArticleFormProps {
   article?: NewsArticleWithDetails;
@@ -83,31 +83,18 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
       return;
     }
 
-    const url = await uploadFileToR2(file);
-    if (url) {
-      setFormData(prev => ({
-        ...prev,
-        featured_image_url: url,
-      }));
-      setError(null);
+    const res = await uploadFile(file);
+    if (!res.ok) {
+      setError(res.error);
       return;
     }
-
-    if (file.size > 1.5 * 1024 * 1024) {
-      setError('La imagen no puede superar 1.5 MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({
-        ...prev,
-        featured_image_url: String(reader.result || ''),
-      }));
-      setError(null);
-    };
-    reader.onerror = () => setError('No se pudo leer la imagen seleccionada.');
-    reader.readAsDataURL(file);
+    setFormData(prev => ({
+      ...prev,
+      featured_image_url: res.url,
+    }));
+    setError(res.inDatabase
+      ? 'Aviso: la imagen quedó guardada dentro de la base de datos porque el almacenamiento de archivos no está activo.'
+      : null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
