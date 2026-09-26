@@ -126,6 +126,8 @@ type SupabaseProfileChangePayload = {
   eventType?: string;
 };
 
+let profileChannelSeq = 0;
+
 export function subscribeProfileChanges(
   onChange: (profile: SupabaseProfile, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
 ): () => void {
@@ -139,10 +141,14 @@ export function subscribeProfileChanges(
   let disposed = false;
   let cleanup: (() => void) | null = null;
 
+  // Topic único por suscripción: supabase-js 2.108 reutiliza el canal si el
+  // topic ya existe, y un .on() posterior al subscribe() rompe la página.
+  const topic = `profile_changes_${++profileChannelSeq}`;
+
   getProfileTableName(supabase)
     .then((tableName) => {
       if (disposed) return;
-      const channel = (supabase.channel('profile_changes') as any).on(
+      const channel = (supabase.channel(topic) as any).on(
         'postgres_changes',
         { event: '*', schema: 'public', table: tableName },
         (payload: SupabaseProfileChangePayload) => {

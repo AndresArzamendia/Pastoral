@@ -113,31 +113,54 @@ type SupabaseStoreChangePayload = {
   old?: { key?: string; value?: unknown; updated_at?: string | null };
 };
 
-export function subscribeStoreChanges(onChange: (key: string, value: unknown, updatedAt?: string | null) => void): () => void {
+type StoreChangeListener = (key: string, value: unknown, updatedAt?: string | null) => void;
+
+const STORE_CHANNEL_TOPIC = 'pjl_store_changes';
+const storeListeners = new Set<StoreChangeListener>();
+let storeChannelStarted = false;
+
+/* Un solo canal de Realtime para todo el sitio, con muchos suscriptores locales.
+   Antes cada llamada a subscribeStoreChanges() abría su propio canal con el mismo
+   topic, y supabase-js 2.108 devuelve el canal ya existente en vez de crear uno
+   nuevo: el segundo .on() tras el subscribe() lanzaba
+   "cannot add postgres_changes callbacks ... after subscribe()" y tumbaba la
+   página con el error global. */
+function startStoreChannel() {
+  if (storeChannelStarted) return;
+
   let supabase;
   try {
     supabase = getSupabaseClient();
   } catch (e) {
     console.warn('subscribeStoreChanges: Supabase not configured:', (e as Error).message);
-    return () => {};
+    return;
   }
 
+  storeChannelStarted = true;
+
   const channel = (supabase as any)
-    .channel('pjl_store_changes')
+    .channel(STORE_CHANNEL_TOPIC)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: STORE_TABLE },
       (payload: SupabaseStoreChangePayload) => {
         const key = payload.new?.key ?? payload.old?.key;
+        if (!key) return;
         const value = payload.new?.value ?? payload.old?.value;
         const updatedAt = payload.new?.updated_at ?? payload.old?.updated_at ?? null;
-        if (key) onChange(key, value, updatedAt);
+        for (const listener of Array.from(storeListeners)) {
+          try { listener(key, value, updatedAt); } catch (e) { console.error('Error en un suscriptor de pjl_store:', e); }
+        }
       }
     );
 
   (channel as any).subscribe();
+}
 
+export function subscribeStoreChanges(onChange: StoreChangeListener): () => void {
+  storeListeners.add(onChange);
+  startStoreChannel();
   return () => {
-    try { supabase.removeChannel(channel); } catch (e) { /* ignore */ }
+    storeListeners.delete(onChange);
   };
 }
