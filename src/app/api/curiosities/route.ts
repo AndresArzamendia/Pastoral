@@ -45,15 +45,18 @@ async function readRotation(): Promise<RotationState | null> {
   }
 }
 
-async function writeRotation(state: RotationState): Promise<void> {
+async function writeRotation(state: RotationState): Promise<boolean> {
   const cfg = getSupabaseRouteConfig();
-  if (!cfg) return;
+  if (!cfg) return false;
   const supabase = createClient(cfg.url, cfg.key);
   try {
-    await supabase
+    const { error } = await supabase
       .from(STORE_TABLE)
       .upsert({ key: ROTATION_KEY, value: state }, { onConflict: 'key' });
-  } catch { /* sin Supabase: el widget usa su rotación local como respaldo */ }
+    return !error;
+  } catch {
+    return false; /* sin Supabase: se usa el lote determinista de la fecha */
+  }
 }
 
 function shuffleArr<T>(arr: T[]): T[] {
@@ -120,25 +123,29 @@ async function globalDeck(items: Curiosity[], todayYmd: string): Promise<Curiosi
   const byId = new Map(items.map((c) => [c.id, c]));
   const todaySaintId = `auto-santo-${todayYmd}`;
 
-  /* Sin Supabase no hay memoria global, pero el lote SIGUE siendo el mismo en
-     todos los dispositivos: se sortea con una semilla de la fecha. */
-  if (!getSupabaseRouteConfig()) {
+  /* Lote determinista por fecha: sin memoria global sigue siendo el MISMO en
+     todos los dispositivos. Se usa si Supabase no está o no se puede guardar. */
+  const deterministic = (): Curiosity[] => {
     const rand = mulberry32(seedFrom(todayYmd));
     const saint = byId.get(todaySaintId);
     const pool = items.filter((c) => c.id !== todaySaintId);
     return saint
       ? [saint, ...fillByCategory(pool, MAX_DAILY - 1, rand)]
       : fillByCategory(pool, MAX_DAILY, rand);
-  }
+  };
+
+  if (!getSupabaseRouteConfig()) return deterministic();
 
   const rot = await readRotation();
   const served = new Set<string>(rot ? rot.servedIds : []);
   const save = async (batch: Curiosity[]) => {
-    await writeRotation({
+    const ok = await writeRotation({
       ymd: todayYmd,
       servedIds: [...new Set([...served, ...batch.map((c) => c.id)])],
       batchIds: batch.map((c) => c.id),
     });
+    if (!ok) return deterministic();
+    return batch;
   };
 
   /* Mismo día: se reutiliza el lote ya elegido (idempotente para todos). */
@@ -152,10 +159,7 @@ async function globalDeck(items: Curiosity[], todayYmd: string): Promise<Curiosi
       ...batch,
       ...fillByCategory(items.filter((c) => !chosen.has(c.id)), MAX_DAILY - batch.length, Math.random),
     ];
-    if (full.length >= MAX_DAILY) {
-      await save(full);
-      return full;
-    }
+    if (full.length >= MAX_DAILY) return save(full);
   }
 
   /* Día nuevo: santo de hoy + los no servidos todavía. */
@@ -168,8 +172,7 @@ async function globalDeck(items: Curiosity[], todayYmd: string): Promise<Curiosi
   const batch = saint
     ? [saint, ...fillByCategory(pool, MAX_DAILY - 1, Math.random)]
     : fillByCategory(pool, MAX_DAILY, Math.random);
-  await save(batch);
-  return batch;
+  return save(batch);
 }
 
 const FEED_URL = 'https://www.vaticannews.va/content/vaticannews/es/evangelio-de-hoy.rss.xml';
