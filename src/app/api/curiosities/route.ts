@@ -12,12 +12,12 @@ export const dynamic = 'force-dynamic';
    Antes, cada navegador armaba su baraja con un historial LOCAL (localStorage
    de 3 días) → el mismo dato curioso se repetía: entre días y entre aparatos.
    Ahora la API marca en Supabase (tabla pjl_store, patrón de pushServer) los
-   ids que YA se sirvieron GLOBALMENTE. El primer origen del día elige hasta
-   MAX_DAILY datos que ningún dispositivo ha visto, los marca como servidos y
-   los devuelve; la caché edge (s-maxage 43200 + ?d=) hace que durante ese día
-   TODOS los dispositivos reciban el MISMO lote. Al agotarse el catálogo, el
-   ciclo se reinicia. Los items "auto-*" (santo y liturgia del día) son únicos
-   por fecha y siempre entran, sin chocar con la rotación. */
+   ids que YA se sirvieron GLOBALMENTE. El primer origen del día elige un lote
+   de exactamente MAX_DAILY (6) datos que ningún dispositivo ha visto, los
+   marca como servidos y los devuelve; la caché edge (s-maxage 43200 + ?d=)
+   hace que durante ese día TODOS los dispositivos reciban el MISMO lote de 6.
+   Al agotarse el catálogo, el ciclo se reinicia. El santo del día (id
+   "auto-santo-<ymd>") entra siempre y es único por fecha. */
 
 const STORE_TABLE = 'pjl_store';
 const ROTATION_KEY = 'curiosities_rotation';
@@ -57,64 +57,119 @@ async function writeRotation(state: RotationState): Promise<void> {
 }
 
 function shuffleArr<T>(arr: T[]): T[] {
+  return shuffleWith(arr, Math.random);
+}
+
+function shuffleWith<T>(arr: T[], rand: () => number): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
 
-/** Baraja GLOBAL del día a partir del pool completo del bloc de notas y del
- *  Vaticano. Devuelve: los items "auto-*" (únicos por fecha) + hasta MAX_DAILY
- *  datos del catálogo que NINGÚN dispositivo ha visto todavía. */
-async function globalDeck(items: Curiosity[], todayYmd: string): Promise<Curiosity[]> {
-  const autos = items.filter((c) => c.id.startsWith('auto-'));
-  const staticPool = items.filter((c) => !c.id.startsWith('auto-'));
+/** PRNG determinista: mismo seed → misma secuencia. */
+function mulberry32(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  const rot = await readRotation();
-  if (rot && rot.ymd === todayYmd && rot.batchIds.length > 0) {
-    const byId = new Map(items.map((c) => [c.id, c]));
-    const batch = rot.batchIds
-      .map((id) => byId.get(id))
-      .filter((c): c is Curiosity => !!c);
-    return [...autos, ...batch];
+function seedFrom(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
+  return h >>> 0;
+}
 
-  const served = new Set<string>(rot ? rot.servedIds : []);
-  let fresh = staticPool.filter((c) => !served.has(c.id));
-  if (fresh.length < MAX_DAILY) {
-    served.clear();
-    fresh = [...staticPool];
-  }
-
+/** Elige hasta n candidatos, un dato por tema (variedad) y, si no alcanzan
+ *  temas, completa con los que falten. */
+function fillByCategory(candidates: Curiosity[], n: number, rand: () => number): Curiosity[] {
+  const out: Curiosity[] = [];
   const byCat = new Map<string, Curiosity[]>();
-  fresh.forEach((c) => {
+  candidates.forEach((c) => {
     const arr = byCat.get(c.cat) ?? [];
     arr.push(c);
     byCat.set(c.cat, arr);
   });
-
-  const batch: Curiosity[] = [];
-  for (const cat of shuffleArr([...byCat.keys()])) {
-    if (batch.length >= MAX_DAILY) break;
+  for (const cat of shuffleWith([...byCat.keys()], rand)) {
+    if (out.length >= n) break;
     const arr = byCat.get(cat)!;
-    batch.push(arr[Math.floor(Math.random() * arr.length)]);
+    out.push(arr[Math.floor(rand() * arr.length)]);
   }
-  let i = 0;
-  while (batch.length < MAX_DAILY && i < fresh.length) {
-    if (!batch.includes(fresh[i])) batch.push(fresh[i]);
-    i++;
+  for (const c of candidates) {
+    if (out.length >= n) break;
+    if (!out.some((o) => o.id === c.id)) out.push(c);
+  }
+  return out.slice(0, n);
+}
+
+/** Lote GLOBAL del día: EXACTAMENTE MAX_DAILY (6) datos, el mismo para todos
+ *  los dispositivos. El santo/liturgia del día del Vaticano entra siempre; los
+ *  demás se eligen del catálogo (bloc de notas) y del archivo del Vaticano, sin
+ *  repetir ninguno hasta agotar el catálogo (entonces el ciclo se reinicia). */
+async function globalDeck(items: Curiosity[], todayYmd: string): Promise<Curiosity[]> {
+  const byId = new Map(items.map((c) => [c.id, c]));
+  const todaySaintId = `auto-santo-${todayYmd}`;
+
+  /* Sin Supabase no hay memoria global, pero el lote SIGUE siendo el mismo en
+     todos los dispositivos: se sortea con una semilla de la fecha. */
+  if (!getSupabaseRouteConfig()) {
+    const rand = mulberry32(seedFrom(todayYmd));
+    const saint = byId.get(todaySaintId);
+    const pool = items.filter((c) => c.id !== todaySaintId);
+    return saint
+      ? [saint, ...fillByCategory(pool, MAX_DAILY - 1, rand)]
+      : fillByCategory(pool, MAX_DAILY, rand);
   }
 
-  const batchIds = batch.map((c) => c.id);
-  await writeRotation({
-    ymd: todayYmd,
-    servedIds: [...new Set([...served, ...batchIds])],
-    batchIds,
-  });
+  const rot = await readRotation();
+  const served = new Set<string>(rot ? rot.servedIds : []);
+  const save = async (batch: Curiosity[]) => {
+    await writeRotation({
+      ymd: todayYmd,
+      servedIds: [...new Set([...served, ...batch.map((c) => c.id)])],
+      batchIds: batch.map((c) => c.id),
+    });
+  };
 
-  return [...autos, ...batch];
+  /* Mismo día: se reutiliza el lote ya elegido (idempotente para todos). */
+  if (rot && rot.ymd === todayYmd && rot.batchIds.length > 0) {
+    const batch = rot.batchIds
+      .map((id) => byId.get(id))
+      .filter((c): c is Curiosity => !!c);
+    if (batch.length >= MAX_DAILY) return batch;
+    const chosen = new Set(batch.map((c) => c.id));
+    const full = [
+      ...batch,
+      ...fillByCategory(items.filter((c) => !chosen.has(c.id)), MAX_DAILY - batch.length, Math.random),
+    ];
+    if (full.length >= MAX_DAILY) {
+      await save(full);
+      return full;
+    }
+  }
+
+  /* Día nuevo: santo de hoy + los no servidos todavía. */
+  const saint = byId.get(todaySaintId);
+  let pool = items.filter((c) => !served.has(c.id) && c.id !== todaySaintId);
+  if (pool.length < MAX_DAILY - 1) {
+    served.clear();
+    pool = items.filter((c) => c.id !== todaySaintId);
+  }
+  const batch = saint
+    ? [saint, ...fillByCategory(pool, MAX_DAILY - 1, Math.random)]
+    : fillByCategory(pool, MAX_DAILY, Math.random);
+  await save(batch);
+  return batch;
 }
 
 const FEED_URL = 'https://www.vaticannews.va/content/vaticannews/es/evangelio-de-hoy.rss.xml';
@@ -336,9 +391,8 @@ export async function GET() {
     });
   });
 
-  /* Rotación GLOBAL: mismo lote para todos los dispositivos, sin repetir
-     ninguno hasta agotar el catálogo. Los auto-* (santo y evangelio del día)
-     ya son únicos por fecha y se conservan siempre. */
+  /* Rotación GLOBAL: el mismo lote de 6 para todos los dispositivos, sin
+     repetir ninguno hasta agotar el catálogo. El santo del día entra siempre. */
   const rotated = await globalDeck(items, todayYmd);
 
   return NextResponse.json({ ok: true, dateKey: todayYmd, items: rotated }, {

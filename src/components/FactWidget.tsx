@@ -9,10 +9,10 @@ const LS_POS = 'pjl_fact_pos';          /* posición del botón arrastrado */
 const MAX_PER_DAY = 6;
 const NO_REPEAT_DAYS = 3;  /* nunca repetir un dato visto en los últimos 3 días */
 
-/* "Dato del día": se actualiza solo. Cada día se arma una baraja pequeña
-   (máx. MAX_PER_DAY) sacada del pool que crece solo con contenido oficial del
-   Vaticano (/api/curiosities). La baraja de hoy nunca repite los datos de los
-   últimos NO_REPEAT_DAYS días: mañana será totalmente diferente a hoy. */
+/* "Dato del día": se actualiza solo. Cada día muestra MAX_PER_DAY (6) datos,
+   siempre el MISMO lote en todos los dispositivos: lo elige la API
+   (/api/curiosities) con la rotación global de Supabase a partir del catálogo
+   (bloc de notas) + contenido del Vaticano, sin repetir hasta agotar. */
 
 function localYmd(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -30,7 +30,7 @@ function readHistory(): DayEntry[] {
     if (!raw) return [];
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
-    const floor = daysAgoYmd(6);
+    const floor = daysAgoYmd(NO_REPEAT_DAYS);
     return arr
       .filter((e): e is DayEntry => !!e && typeof e.d === 'string' && Array.isArray(e.ids))
       .filter((e) => typeof e.d === 'string' && e.d >= floor); // solo la última semana
@@ -181,39 +181,42 @@ export default function FactWidget() {
     setHydrated(true);
   }, []);
 
-  /* Baraja de hoy: 1 por tema (sin repetir), aleatoria por dispositivo y
-     siempre distinta a los últimos NO_REPEAT_DAYS días (nunca igual a ayer). */
+  /* Baraja de hoy: el LOTE GLOBAL de 6 que ya eligió la API (idéntico en todos
+     los dispositivos). Si la API no responde, se arma en local: 1 por tema y
+     sin repetir nada de los días anteriores. */
   useEffect(() => {
     if (!hydrated || !ready) return;
     const today = localYmd();
     const hist = readHistory();
+    let todayDeck: Curiosity[];
 
-    // Excluye lo mostrado en los últimos NO_REPEAT_DAYS días (incluye hoy).
-    const excl = new Set<string>();
-    hist.forEach((e) => {
-      if (e.d >= daysAgoYmd(NO_REPEAT_DAYS - 1)) e.ids.forEach((id) => excl.add(id));
-    });
-    let cand = pool.filter((c) => !excl.has(c.id));
+    if (pool.length === MAX_PER_DAY) {
+      todayDeck = pool;               // lote global del servidor: se respeta tal cual
+    } else {
+      // Fallback sin API: excluye lo visto en días anteriores (nunca hoy).
+      const prevIds = new Set<string>();
+      hist.forEach((e) => { if (e.d < today) e.ids.forEach((id) => prevIds.add(id)); });
+      const cand = pool.filter((c) => !prevIds.has(c.id));
+      const source = cand.length >= MAX_PER_DAY ? cand : pool;
 
-    // Si no alcanzan 6 candidatos, se afloja SOLO a ayer (nunca se repite el
-    // día de hoy ni el de ayer, así mañana es totalmente diferente).
-    if (cand.length < MAX_PER_DAY) {
-      const yExcl = new Set<string>();
-      hist.forEach((e) => { if (e.d === daysAgoYmd(1)) e.ids.forEach((id) => yExcl.add(id)); });
-      cand = pool.filter((c) => !yExcl.has(c.id) && !excl.has(c.id));
+      const byCat: Record<string, Curiosity[]> = {};
+      source.forEach((c) => {
+        (byCat[c.cat] ??= []).push(c);
+      });
+
+      todayDeck = [];
+      for (const cat of shuffleArr(Object.keys(byCat))) {
+        if (todayDeck.length >= MAX_PER_DAY) break;
+        todayDeck.push(shuffleArr(byCat[cat])[0]); // uno por tema, nunca dos iguales
+      }
+      for (const c of source) {
+        if (todayDeck.length >= MAX_PER_DAY) break;
+        if (!todayDeck.some((d) => d.id === c.id)) todayDeck.push(c);
+      }
+      if (todayDeck.length === 0 && pool.length) {
+        todayDeck.push(pool[Math.floor(Math.random() * pool.length)]);
+      }
     }
-
-    const byCat: Record<string, Curiosity[]> = {};
-    cand.forEach((c) => {
-      (byCat[c.cat] ??= []).push(c);
-    });
-
-    const todayDeck: Curiosity[] = [];
-    for (const cat of shuffleArr(Object.keys(byCat))) {
-      if (todayDeck.length >= MAX_PER_DAY) break;
-      todayDeck.push(shuffleArr(byCat[cat])[0]); // uno por tema, nunca dos iguales
-    }
-    if (todayDeck.length === 0) todayDeck.push(pool[Math.floor(Math.random() * pool.length)]);
 
     setDeck(todayDeck);
     setDeckIdx(0);
@@ -264,7 +267,6 @@ export default function FactWidget() {
       setBioLoading(false);
     });
     return () => { live = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckIdx, deck, hydrated]);
 
   if (!hydrated) return null;
