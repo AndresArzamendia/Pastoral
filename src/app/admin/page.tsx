@@ -20,6 +20,7 @@ import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingPro
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 import { uploadFile, uploadFileToR2 } from '@/lib/uploadFile';
+import { deleteStoredFiles, type StoredFileRef } from '@/lib/fileCleanup';
 import { LIT_COLORS, liturgicalColor, type LitColorKey } from '@/lib/liturgy';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
@@ -1908,6 +1909,14 @@ function AdminContent() {
     if (!confirm('¿Estás seguro de eliminar este elemento?')) return;
     const newsToDelete = type === 'news' ? news.find(n => n.id === id) : null;
     const activityToDelete = type === 'activities' ? activities.find(a => a.id === id) : null;
+    // Se juntan los archivos ANTES de sacar la fila: después ya no se sabe qué
+    // imágenes tenía. Sin esta limpieza quedan huérfanas en R2, ocupando espacio
+    // y se pagando por ellas, y la base queda desincronizada del bucket.
+    const archivos = type === 'docs'
+      ? docs.find(d => d.id === id)
+      : type === 'chapels'
+        ? chapels.find(c => c.id === id)
+        : newsToDelete;
     if (newsToDelete?.calendarEventId) {
       try {
         await syncNewsToGoogleCalendar(newsToDelete, 'delete', newsToDelete.calendarEventId);
@@ -1940,6 +1949,10 @@ function AdminContent() {
       setAllUsers(allUsers.filter(u => u.id !== id));
       setPendingProfiles(prev => prev.filter(p => p.id !== id));
     }
+    // La fila ya sale de la base; el archivo se borra del bucket después y sin
+    // bloquear la interfaz. Si falla, el elemento igual está borrado.
+    if (archivos) void deleteStoredFiles(archivos as StoredFileRef);
+
     showToast('Elemento eliminado 🗑️');
     addLog('eliminar', type, `ID: ${id}`);
   };
@@ -5897,6 +5910,9 @@ function AdminContent() {
                       className="profile-delete-btn"
                       onClick={() => {
                         if (confirm(`¿Seguro que deseas eliminar a ${p.name}?`)) {
+                          // La foto y el currículum viven en el bucket: se borran
+                          // junto con la fila, o quedan huérfanos ahí para siempre.
+                          void deleteStoredFiles(p);
                           setProfiles(profiles.filter(x => x.id !== p.id));
                           showToast('Miembro eliminado ✖');
                         }

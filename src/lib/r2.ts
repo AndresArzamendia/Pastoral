@@ -250,11 +250,47 @@ export async function r2S3PutObject(
   }
 }
 
-/** Descarga un objeto con la API S3. Solo se usa como respaldo si el bucket no es público. */
+/**
+ * Borra un objeto del bucket.
+ *
+ * Sirve para que cuando se elimina un documento o un currículum del panel no
+ * quede el archivo huérfano en R2 cobrando almacenamiento para siempre.
+ *
+ * El borrado es idempotente: R2 responde 204 tanto si el objeto estaba como si
+ * ya no estaba, así que el valor de retorno confirma que la petición se atendió,
+ * no que había algo que borrar.
+ */
+export async function r2S3DeleteObject(config: R2S3Config, key: string): Promise<boolean> {
+  const host = `${config.accountId}.r2.cloudflarestorage.com`;
+  const path = `/${config.bucket}/${key}`;
+
+  const signed = await sigV4Headers({
+    method: 'DELETE',
+    host,
+    path,
+    accessKeyId: config.accessKeyId,
+    secretAccessKey: config.secretAccessKey,
+    date: new Date(),
+    signedExtraHeaders: { 'x-amz-content-sha256': UNSIGNED_PAYLOAD },
+  });
+
+  const res = await fetch(`https://${host}${canonicalUri(path)}`, { method: 'DELETE', headers: signed });
+
+  if (res.status === 404) return false;
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`R2 respondió ${res.status}${detail ? `: ${detail.slice(0, 300)}` : ''}`);
+  }
+  // R2 contesta 204 cuando el objeto no existía, así que un 2xx no alcanza
+  // para saber si había algo que borrar.
+  return true;
+}
+
+/** Descarga un objeto con la API S3. Solo se usa si el bucket no es público. */
 export async function r2S3GetObject(
   config: R2S3Config,
   key: string,
-): Promise<{ body: ReadableStream<Uint8Array>; contentType: string } | null> {
+): Promise<{ stream: ReadableStream<Uint8Array>; contentType: string } | null> {
   const host = `${config.accountId}.r2.cloudflarestorage.com`;
   const path = `/${config.bucket}/${key}`;
 
@@ -275,7 +311,7 @@ export async function r2S3GetObject(
   if (!res.body) return null;
 
   return {
-    body: res.body as ReadableStream<Uint8Array>,
+    stream: res.body as ReadableStream<Uint8Array>,
     contentType: res.headers.get('content-type') || 'application/octet-stream',
   };
 }

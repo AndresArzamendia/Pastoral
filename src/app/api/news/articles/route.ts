@@ -14,7 +14,11 @@ const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
 
 function isValidImageSource(value: string) {
-  if (value.startsWith('data:image/')) return true;
+  /* No se aceptan imágenes embebidas en base64. Cada noticia se guarda en la
+     tabla news_articles, así que un data URL de 1 MB se descarga entero en cada
+     visita a la portada y engorda la base sin ningún beneficio. Las imágenes van
+     al bucket de R2 y aquí solo se guarda su dirección. */
+  if (value.startsWith('data:')) return false;
 
   try {
     const url = new URL(value);

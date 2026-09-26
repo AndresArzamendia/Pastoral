@@ -1,15 +1,23 @@
 /**
- * Punto único de subida de archivos.
+ * Almacén de archivos del bucket.
  *
- * Elige el motor disponible en el runtime actual:
- *   1. el binding `UPLOADS_BUCKET` de Cloudflare, que existe solo en el Worker;
- *   2. la API S3 de R2 firmada, que es lo que hay en Vercel.
+ * El proyecto se despliega en dos sitios y cada uno tiene una forma distinta de
+ * llegar al mismo bucket de Cloudflare R2:
  *
- * Si no hay ninguno, devuelve null y la ruta de subida responde 503 con un
- * mensaje claro en vez de fallar en silencio.
+ *   - En el Worker de Cloudflare existe el binding `UPLOADS_BUCKET` y se usa
+ *     directamente (rápido, sin firmar nada).
+ *   - En Vercel no hay binding, así que se habla con la API S3 de R2 firmando la
+ *     petición con SigV4.
+ *
+ * Para LEER hay una tercera vía, la mejor de todas: si el bucket se entrega con
+ * su URL pública, la respuesta es un redirect y el archivo baja del edge de
+ * Cloudflare sin pasar por el servidor. Cuando esa URL no está configurada se
+ * cae al binding o a la API S3, que sí consumen invocaciones, pero al menos la
+ * imagen aparece. Antes no había ninguna de las dos y por eso en Vercel las
+ * imágenes no se veían.
  */
 
-import { readR2S3Config, r2S3PutObject } from './r2';
+import { readR2S3Config, r2S3PutObject, r2S3GetObject, r2S3DeleteObject } from './r2';
 
 export type PutOptions = {
   contentType: string;
@@ -17,10 +25,19 @@ export type PutOptions = {
   size: number;
 };
 
-export type UploadStorage = {
+export type StoredFile = {
+  stream: ReadableStream<Uint8Array>;
+  contentType: string;
+  /** Nombre original, si el bucket lo guarda. */
+  name?: string;
+};
+
+export type FileStorage = {
   /** Identifica el motor usado, solo para diagnóstico en los logs del servidor. */
   driver: 'r2-binding' | 'r2-s3';
   put: (key: string, body: BodyInit, options: PutOptions) => Promise<void>;
+  get: (key: string) => Promise<StoredFile | null>;
+  delete: (key: string) => Promise<boolean>;
 };
 
 /* Las claves del bucket son únicas y el contenido no se edita, así que un año
@@ -28,15 +45,15 @@ export type UploadStorage = {
    se visita la página o pedirla una sola vez. */
 const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
 
-let cached: Promise<UploadStorage | null> | null = null;
+let cached: Promise<FileStorage | null> | null = null;
 
-/** Se resuelve una vez por proceso: detectar el motor no debe repetirse en cada subida. */
-export function getUploadStorage(): Promise<UploadStorage | null> {
-  if (!cached) cached = resolveUploadStorage();
+/** Se resuelve una vez por proceso: detectar el motor no debe repetirse en cada petición. */
+export function getFileStorage(): Promise<FileStorage | null> {
+  if (!cached) cached = resolveFileStorage();
   return cached;
 }
 
-async function resolveUploadStorage(): Promise<UploadStorage | null> {
+async function resolveFileStorage(): Promise<FileStorage | null> {
   // 1) Cloudflare Workers: el binding ya está dentro del runtime.
   try {
     const { getCloudflareContext } = await import('@opennextjs/cloudflare');
@@ -54,6 +71,19 @@ async function resolveUploadStorage(): Promise<UploadStorage | null> {
             customMetadata: { name: options.name, size: String(options.size) },
           });
         },
+        get: async (key) => {
+          const obj = await bucket.get(key);
+          if (!obj) return null;
+          return {
+            stream: obj.body as ReadableStream<Uint8Array>,
+            contentType: obj.httpMetadata?.contentType || 'application/octet-stream',
+            name: obj.customMetadata?.name,
+          };
+        },
+        delete: async (key) => {
+          await bucket.delete(key);
+          return true;
+        },
       };
     }
   } catch {
@@ -66,12 +96,10 @@ async function resolveUploadStorage(): Promise<UploadStorage | null> {
 
   return {
     driver: 'r2-s3',
-    put: async (key, body, options) => {
-      await r2S3PutObject(config, key, body, {
-        contentType: options.contentType,
-        cacheControl: IMMUTABLE_CACHE,
-      });
-    },
+    put: (key, body, options) =>
+      r2S3PutObject(config, key, body, { contentType: options.contentType, cacheControl: IMMUTABLE_CACHE }),
+    get: (key) => r2S3GetObject(config, key),
+    delete: (key) => r2S3DeleteObject(config, key),
   };
 }
 
@@ -79,5 +107,12 @@ async function resolveUploadStorage(): Promise<UploadStorage | null> {
    de Cloudflare a los archivos que solo necesitan la API S3. */
 type R2BucketLike = {
   put: (key: string, value: unknown, options?: unknown) => Promise<unknown>;
+  get: (key: string) => Promise<R2ObjectLike | null>;
+  delete: (key: string) => Promise<unknown>;
 };
 type R2PutBody = string | ArrayBuffer | ArrayBufferView | ReadableStream | null;
+type R2ObjectLike = {
+  body: ReadableStream<Uint8Array> | null;
+  httpMetadata?: { contentType?: string };
+  customMetadata?: Record<string, string>;
+};

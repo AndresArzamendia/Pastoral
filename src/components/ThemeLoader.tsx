@@ -148,10 +148,21 @@ export default function ThemeLoader() {
         .catch(() => {});
     };
     pollRemote();
-    // Realtime de Supabase no está activo en este proyecto, así que el polling
-    // es el puente de sincronización entre dispositivos: 8s mantiene el cambio
-    // casi instantáneo sin martillar la API.
-    const remoteTimer = window.setInterval(pollRemote, 8000);
+    /* El cambio llega al instante por el canal de Realtime (suscripción
+       compartida en lib/supabaseStore). Este sondeo es solo la red de seguridad
+       para cuando ese canal no está disponible.
+
+       Antes corría cada 8 segundos: 7.500 lecturas a la base por día y por
+       visitante, que para un sitio con 300 visitas diarias son más de 2 millones
+       de lecturas al día solo para el color del tema. Con 5 minutos esa cifra
+       baja 37 veces y el cambio se sigue viendo al instante por el canal y al
+       volver a la pestaña.
+
+       Con la pestaña oculta no se consulta nada: no hay nada que mostrar y cada
+       pestaña en segundo plano estaba gastando lecturas. */
+    const remoteTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') pollRemote();
+    }, 5 * 60 * 1000);
     const refreshOnVisible = () => {
       if (document.visibilityState === 'visible') pollRemote();
     };

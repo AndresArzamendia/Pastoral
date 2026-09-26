@@ -12,7 +12,9 @@ const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
 
 function isValidImageSource(value: string) {
-  if (value.startsWith('data:image/')) return true;
+  /* No se aceptan imágenes embebidas en base64: se guardan en la tabla y se
+     descargarían enteras en cada visita. Las imágenes van al bucket de R2. */
+  if (value.startsWith('data:')) return false;
 
   try {
     const url = new URL(value);

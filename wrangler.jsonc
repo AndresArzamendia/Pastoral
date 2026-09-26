@@ -38,9 +38,26 @@
       "database_id": "31d83fce-dd13-4b81-b85e-ef26ea190a65"
     }
   ],
+  /*
+   * PENDIENTE: acceso público del bucket.
+   *
+   * R2 → pastoral-uploads → Settings → Public access → Enable.
+   *
+   * Con el bucket legible, /api/files/<clave> responde con un redirect a la URL
+   * pública en vez de transmitir el archivo: el navegador lo baja del edge de
+   * Cloudflare y el sitio no gasta invocaciones ni ancho de banda en imágenes.
+   * Las claves son aleatorias y /api/files nunca pedir credenciales, así que
+   * abrir la lectura no expone archivos que antes no se pudieran descargar.
+   *
+   * R2_ACCOUNT_ID hace falta para armar esa URL (src/lib/r2.ts). R2_ACCESS_KEY_ID
+   * y R2_SECRET_ACCESS_KEY solo hacen falta si el sitio llegara a correr en un
+   * runtime sin bindings; en el Worker se usa el binding de arriba.
+   */
   "vars": {
     "SUPABASE_URL": "https://rtqzphmqnsaxirifdzvu.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_89BBzim5CKpxFWpj2qvuLQ_nVir3Jpv",
-    "SITE_URL": "https://pastoral.arzamendiaandres-6d2.workers.dev"
+    "SITE_URL": "https://pastoral.arzamendiaandres-6d2.workers.dev",
+    "R2_ACCOUNT_ID": "6d2938b9cc6bb72e2f08c4f0caababaa",
+    "R2_BUCKET_NAME": "pastoral-uploads"
   }
 }

@@ -535,11 +535,14 @@ function save<T>(key: string, value: T): void {
   journalUpdate(key);
 }
 
-/* Claves pesadas que NO se bajan en el sondeo: 'hero' son imágenes en base64
-   (1,3 MB) y 'chapels' 1,6 MB. Llegaron siempre por la suscripción en tiempo
-   real (subscribeStoreChanges) y bajarlas aquí cada 45 s disparaba el egress de
-   la base y llenaba el almacenamiento local del navegador. */
-const POLL_SKIP_KEYS = new Set(['hero', 'chapels']);
+/* 'hero' y 'chapels' estaban fuera del sondeo porque guardaban las fotos
+   embebidas en base64 (1,3 MB y 1,6 MB) y bajarlas cada 45 s disparaba el
+   egress de la base y llenaba el localStorage del navegador. Ahora que las
+   imágenes viven en el bucket y la base solo guarda su dirección, ambas claves
+   pesan unos pocos kilobytes: entran en el sondeo como cualquier otra, y así un
+   dispositivo nuevo las recibe en la primera sincronización en vez de esperar a
+   la suscripción de Realtime. */
+const POLL_SKIP_KEYS = new Set<string>();
 const POLL_KEYS = STORE_KEYS.filter((k) => !POLL_SKIP_KEYS.has(k));
 
 /* Margen de seguridad del localStorage (lo normal es 5 MB por origen): si al
@@ -620,7 +623,17 @@ async function syncRemoteValues() {
 function initializeRemoteStoreSync() {
   if (typeof window === 'undefined') return;
   setTimeout(syncRemoteValues, 200);
-  const poll = setInterval(syncRemoteValues, 45000);
+  /* Con la pestaña oculta no se sondea nada. Antes seguía cada 45 segundos
+     aunque nadie estuviera mirando, y cada sondeo es una lectura a la base: las
+     pestañas que quedan abiertas en segundo plano se acumulan y multiplican el
+     gasto sin aportar nada. Al volver a la pestaña se sincroniza al instante. */
+  const poll = setInterval(() => {
+    if (document.visibilityState === 'visible') void syncRemoteValues();
+  }, 45000);
+  const syncWhenVisible = () => {
+    if (document.visibilityState === 'visible') void syncRemoteValues();
+  };
+  document.addEventListener('visibilitychange', syncWhenVisible);
   const unsubscribe = subscribeStoreChanges((key, value, updatedAt) => {
     if (!key) return;
     try {
@@ -646,6 +659,7 @@ function initializeRemoteStoreSync() {
   window.addEventListener('beforeunload', () => {
     unsubscribe();
     clearInterval(poll);
+    document.removeEventListener('visibilitychange', syncWhenVisible);
   });
 }
 

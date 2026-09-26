@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUploadStorage } from '@/lib/uploadStorage';
-import { r2PublicUrl, r2PublicBaseUrl } from '@/lib/r2';
+import { getFileStorage } from '@/lib/uploadStorage';
+import { r2PublicUrl } from '@/lib/r2';
 import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -49,17 +49,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'archivo demasiado grande' }, { status: 413 });
   }
 
-  const storage = await getUploadStorage();
+  const storage = await getFileStorage();
   if (!storage) {
     return NextResponse.json({ ok: false, error: 'r2-no-disponible' }, { status: 503 });
-  }
-
-  // La URL pública es obligatoria: es la dirección que queda guardada en la base
-  // y por la que se va a pedir la imagen en cada visita. Si falta, se rechaza la
-  // subida antes de guardar una dirección que después no carga.
-  if (!r2PublicBaseUrl()) {
-    console.error('[upload] falta R2_PUBLIC_BASE_URL o R2_ACCOUNT_ID: no se puede armar la URL pública del archivo.');
-    return NextResponse.json({ ok: false, error: 'r2-url-no-configurada' }, { status: 503 });
   }
 
   const ext = EXT_BY_MIME[file.type] || (file.name.includes('.') ? (file.name.split('.').pop() || 'bin').toLowerCase() : 'bin');
@@ -76,13 +68,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'upload-fallido' }, { status: 500 });
   }
 
-  // Se guarda la URL pública del bucket y no una ruta del sitio: así la imagen
-  // se sirve desde el edge de Cloudflare sin gastar invocaciones del servidor,
-  // y funciona igual en el despliegue de Vercel que en el de Cloudflare.
-  return NextResponse.json({
-    ok: true,
-    url: r2PublicUrl(key),
-    key,
-    driver: storage.driver,
-  });
+  /* Se guarda la URL pública del bucket cuando se puede, para que la imagen se
+     sirva desde el edge de Cloudflare sin gastar invocaciones del servidor y
+     funcione igual en Vercel que en Cloudflare. Si el bucket es privado y no hay
+     URL pública, se guarda la ruta del sitio: /api/files la resuelve por el
+     binding o por la API S3, y al menos la imagen se ve. */
+  const url = r2PublicUrl(key) || `/api/files/${key}`;
+  return NextResponse.json({ ok: true, url, key, driver: storage.driver });
 }

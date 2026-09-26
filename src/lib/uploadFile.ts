@@ -1,32 +1,24 @@
 /**
  * Subida de archivos.
  *
- * Destino preferido: el almacenamiento de archivos de Cloudflare (R2), donde un
- * archivo no se copia dentro de la base de datos y se sirve desde el borde.
+ * Los archivos van siempre al bucket de Cloudflare R2, nunca a la base de datos.
  *
- * Si R2 no está disponible solo se permite el último recurso: guardar imágenes
- * MUY PEQUEÑAS dentro de la base de datos. Los archivos grandes (currículums,
- * PDF, planillas) guardados ahí se vuelven a descargar enteros en cada visita
- * y disparan la factura, así que se rechazan con un mensaje claro.
+ * Antes, si R2 no estaba disponible se guardaba la imagen embebida en base64
+ * dentro del JSON de pjl_store como último recurso. Eso fue un error caro: la
+ * tabla llegó a 4 MB y el 98% eran imágenes en base64. Cada visitante nuevo
+ * descargaba esos 4 MB por Supabase, las filas se leían enteras para cambiar un
+ * solo dato, y esas imágenes no se podían cachear en el CDN ni borrar del
+ * bucket. Si R2 no está disponible ahora se avisa con un mensaje claro y se
+ * rechaza la subida.
  */
-
-const DB_FALLBACK_MAX_BYTES = 150 * 1024;
-
-export type UploadResult =
-  | { ok: true; url: string; inDatabase: boolean }
-  | { ok: false; error: string };
-
-async function readAsDataUrl(file: File): Promise<string | null> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
-  });
-}
 
 import { adminFetch } from './adminAuth';
 
+export type UploadResult =
+  | { ok: true; url: string; inDatabase: false }
+  | { ok: false; error: string };
+
+/** Solo devuelve la URL cuando el archivo quedó en el bucket. */
 export async function uploadFileToR2(file: File): Promise<string | null> {
   try {
     const fd = new FormData();
@@ -41,31 +33,22 @@ export async function uploadFileToR2(file: File): Promise<string | null> {
   }
 }
 
+const SIN_ALMACENAMIENTO =
+  'No se pudo guardar el archivo porque el almacenamiento de Cloudflare no está ' +
+  'disponible en este despliegue.\n\n' +
+  'Las imágenes ya no se guardan dentro de la base de datos a propósito: llenaban ' +
+  'la base de 4 MB y hacía descargar ese peso a cada visitante.\n\n' +
+  'Revisá que el bucket R2 esté habilitado y que el despliegue tenga las credenciales ' +
+  '(R2_ACCOUNT_ID, R2_ACCESS_KEY_ID y R2_SECRET_ACCESS_KEY), y volvé a intentarlo.';
+
 /**
  * Sube un archivo y devuelve su dirección.
- * `inDatabase: true` avisa de que quedó guardado dentro de la base de datos
- * (último recurso, solo para imágenes pequeñas).
+ *
+ * El campo `inDatabase` ya no existe: todo va al bucket. Se mantiene en el tipo
+ * de retorno para no romper los llamadores que lo leen.
  */
 export async function uploadFile(file: File): Promise<UploadResult> {
   const url = await uploadFileToR2(file);
   if (url) return { ok: true, url, inDatabase: false };
-
-  if (file.size > DB_FALLBACK_MAX_BYTES) {
-    return {
-      ok: false,
-      error:
-        'El almacenamiento de archivos no está activo, y este archivo es demasiado pesado ' +
-        `(${(file.size / (1024 * 1024)).toFixed(1)} MB) para guardarlo en la base de datos.\n\n` +
-        'Activa el almacenamiento de archivos (R2) en el panel de Cloudflare y volvé a intentarlo.',
-    };
-  }
-
-  const dataUrl = await readAsDataUrl(file);
-  if (!dataUrl) return { ok: false, error: 'No se pudo leer el archivo seleccionado.' };
-
-  console.warn(
-    `[upload] "${file.name}" (${Math.round(file.size / 1024)} KB) quedó guardado dentro de la base de datos ` +
-    'porque el almacenamiento de archivos no está disponible.',
-  );
-  return { ok: true, url: dataUrl, inDatabase: true };
+  return { ok: false, error: SIN_ALMACENAMIENTO };
 }
