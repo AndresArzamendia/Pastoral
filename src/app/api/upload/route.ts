@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getUploadStorage } from '@/lib/uploadStorage';
+import { r2PublicUrl, r2PublicBaseUrl } from '@/lib/r2';
 import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -48,24 +49,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'archivo demasiado grande' }, { status: 413 });
   }
 
-  let bucket: any;
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    bucket = (env as any)?.UPLOADS_BUCKET;
-  } catch { /* fuera de Cloudflare (dev) */ }
-  if (!bucket || typeof bucket.put !== 'function') {
+  const storage = await getUploadStorage();
+  if (!storage) {
     return NextResponse.json({ ok: false, error: 'r2-no-disponible' }, { status: 503 });
+  }
+
+  // La URL pública es obligatoria: es la dirección que queda guardada en la base
+  // y por la que se va a pedir la imagen en cada visita. Si falta, se rechaza la
+  // subida antes de guardar una dirección que después no carga.
+  if (!r2PublicBaseUrl()) {
+    console.error('[upload] falta R2_PUBLIC_BASE_URL o R2_ACCOUNT_ID: no se puede armar la URL pública del archivo.');
+    return NextResponse.json({ ok: false, error: 'r2-url-no-configurada' }, { status: 503 });
   }
 
   const ext = EXT_BY_MIME[file.type] || (file.name.includes('.') ? (file.name.split('.').pop() || 'bin').toLowerCase() : 'bin');
   const key = `${Date.now()}-${randomToken()}.${ext}`;
+
+  // El archivo se manda como File, no leído a memoria: el runtime lo transmite
+  // por streaming tanto contra el binding como contra la API S3.
+  const body: BodyInit = file;
+
   try {
-    await bucket.put(key, file.stream(), {
-      httpMetadata: { contentType: file.type || 'application/octet-stream' },
-      customMetadata: { name: file.name, size: String(file.size) },
-    });
-    return NextResponse.json({ ok: true, url: `/api/files/${key}`, key });
-  } catch {
+    await storage.put(key, body, { contentType: file.type || 'application/octet-stream', name: file.name, size: file.size });
+  } catch (error) {
+    console.error(`[upload] falló la subida con ${storage.driver}:`, error);
     return NextResponse.json({ ok: false, error: 'upload-fallido' }, { status: 500 });
   }
+
+  // Se guarda la URL pública del bucket y no una ruta del sitio: así la imagen
+  // se sirve desde el edge de Cloudflare sin gastar invocaciones del servidor,
+  // y funciona igual en el despliegue de Vercel que en el de Cloudflare.
+  return NextResponse.json({
+    ok: true,
+    url: r2PublicUrl(key),
+    key,
+    driver: storage.driver,
+  });
 }

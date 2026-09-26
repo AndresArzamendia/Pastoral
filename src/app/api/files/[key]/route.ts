@@ -1,41 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { r2PublicUrl } from '@/lib/r2';
 
+/**
+ * Servicio de archivos del bucket.
+ *
+ * Antes esta ruta descargaba el objeto de R2 y lo reenviaba por el servidor. Eso
+ * costaba una invocación de función y el doble de transferencia por cada imagen
+ * que veía un visitante, además de sumar latencia.
+ *
+ * Ahora solo responde con un redirect a la URL pública de Cloudflare: el
+ * navegador baja la imagen directo desde el edge y por el servidor no pasa más
+ * que un 307 de unos bytes. El 307 se cachea de forma indefinida porque la
+ * relación clave -> URL no cambia nunca, así que en la práctica esta ruta se
+ * consulta una sola vez por imagen y por navegador.
+ *
+ * Sigue siendo la dirección que se usa en las filas de la base que se guardaron
+ * antes del cambio, por eso no hace falta migrar nada.
+ */
 export const dynamic = 'force-dynamic';
 
-async function serveFile(request: NextRequest, ctx: { params: Promise<{ key: string }> }): Promise<NextResponse> {
+const IMMUTABLE = 'public, max-age=31536000, immutable';
+
+export async function GET(request: NextRequest, ctx: { params: Promise<{ key: string }> }): Promise<NextResponse> {
   const { key } = await ctx.params;
   if (!key || key.length > 300) return new NextResponse(null, { status: 400 });
 
-  let bucket: any;
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    bucket = (env as any)?.UPLOADS_BUCKET;
-  } catch { /* fuera de Cloudflare */ }
-  if (!bucket || typeof bucket.get !== 'function') return new NextResponse(null, { status: 404 });
-
-  let obj: any;
-  try {
-    obj = await bucket.get(key);
-  } catch { /* bucket inaccesible */ }
-  if (!obj) return new NextResponse(null, { status: 404 });
-
-  const headers: Record<string, string> = {
-    'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
-    'Cache-Control': 'public, max-age=86400, immutable',
-    'X-Content-Type-Options': 'nosniff',
-  };
-  if (request.nextUrl.searchParams.get('dl') === '1' && obj.customMetadata?.name && typeof obj.customMetadata.name === 'string') {
-    headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(obj.customMetadata.name)}"`;
+  const target = r2PublicUrl(key);
+  if (!target) {
+    return new NextResponse(null, {
+      status: 503,
+      headers: { 'Cache-Control': 'public, max-age=300' },
+    });
   }
 
-  return new NextResponse(obj.body as ReadableStream<Uint8Array>, { headers });
+  return NextResponse.redirect(target, {
+    status: 307,
+    headers: { 'Cache-Control': IMMUTABLE, 'X-Content-Type-Options': 'nosniff' },
+  });
 }
 
-export async function GET(request: NextRequest, ctx: { params: Promise<{ key: string }> }) {
-  return serveFile(request, ctx);
-}
-
-export async function HEAD(request: NextRequest, ctx: { params: Promise<{ key: string }> }) {
-  return serveFile(request, ctx);
+export async function HEAD(request: NextRequest, ctx: { params: Promise<{ key: string }> }): Promise<NextResponse> {
+  return GET(request, ctx);
 }
