@@ -22,6 +22,19 @@ export const dynamic = 'force-dynamic';
 const STORE_TABLE = 'pjl_store';
 const ROTATION_KEY = 'curiosities_rotation';
 const MAX_DAILY = 6;
+const MAX_CACHE_SECONDS = 43200; /* 12 h: el lote y la liturgia no cambian en el día */
+
+/* Caché del runtime de Cloudflare Workers (caches.default). No existe en Node,
+   por eso se accede de forma tipada y con guarda. */
+type WorkerCache = {
+  match: (req: Request) => Promise<Response | undefined>;
+  put: (req: Request, res: Response) => Promise<void>;
+};
+
+function workerCache(): WorkerCache | null {
+  const c = (globalThis as { caches?: { default?: WorkerCache } }).caches;
+  return c?.default ?? null;
+}
 
 type RotationState = { ymd: string; servedIds: string[]; batchIds: string[] };
 
@@ -351,7 +364,21 @@ async function readToday(): Promise<TodayInfo> {
   return info;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  /* En workers.dev la respuesta del Worker no pasa por un CDN, así que sin esto
+     cada visita repetía los ~32 fetchs al Vaticano y la lectura a Supabase.
+     Se cachea en el propio Worker: mismo JSON, mismos headers, mismos 6 datos,
+     pero el cálculo se hace una vez cada MAX_CACHE_SECONDS en vez de una vez
+     por visitante. La clave incluye ?d= (día), que es lo que ya usa el widget. */
+  const cache = workerCache();
+  const cacheKey = cache ? new Request(request.url, { method: 'GET' }) : null;
+  if (cache && cacheKey) {
+    try {
+      const hit = await cache.match(cacheKey);
+      if (hit) return hit;
+    } catch { /* sin caché: se sigue el camino normal */ }
+  }
+
   const items: Curiosity[] = [...CURIOSITIES];
   const now = new Date();
   const todayYmd = ymdOf(now);
@@ -398,7 +425,14 @@ export async function GET() {
      repetir ninguno hasta agotar el catálogo. El santo del día entra siempre. */
   const rotated = await globalDeck(items, todayYmd);
 
-  return NextResponse.json({ ok: true, dateKey: todayYmd, items: rotated }, {
-    headers: { 'Cache-Control': 'public, s-maxage=43200, stale-while-revalidate=604800' },
+  const res = NextResponse.json({ ok: true, dateKey: todayYmd, items: rotated }, {
+    headers: { 'Cache-Control': `public, s-maxage=${MAX_CACHE_SECONDS}, stale-while-revalidate=604800` },
   });
+
+  if (cache && cacheKey) {
+    try {
+      await cache.put(cacheKey, res.clone());
+    } catch { /* si la caché rechaza la entrada, se devuelve igual */ }
+  }
+  return res;
 }

@@ -6,11 +6,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
+import { withEdgeCache } from '@/lib/edgeCache';
 
 const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
 
+/* Se cachea 5 min en el Worker: es la ruta que más egress de base gastaba
+   (35 KB por visita). El contenido devuelto es idéntico. */
 export async function GET(request: NextRequest) {
+  return withEdgeCache(request, () => buildResponse(request));
+}
+
+async function buildResponse(request: NextRequest) {
   try {
     if (!supabase) return missingSupabaseConfigResponse();
 

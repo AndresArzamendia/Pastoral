@@ -528,16 +528,58 @@ function save<T>(key: string, value: T): void {
   journalUpdate(key);
 }
 
+/* Claves pesadas que NO se bajan en el sondeo: 'hero' son imágenes en base64
+   (1,3 MB) y 'chapels' 1,6 MB. Llegaron siempre por la suscripción en tiempo
+   real (subscribeStoreChanges) y bajarlas aquí cada 45 s disparaba el egress de
+   la base y llenaba el almacenamiento local del navegador. */
+const POLL_SKIP_KEYS = new Set(['hero', 'chapels']);
+const POLL_KEYS = STORE_KEYS.filter((k) => !POLL_SKIP_KEYS.has(k));
+
+/* Margen de seguridad del localStorage (lo normal es 5 MB por origen): si al
+   aplicar un valor remoto se pasa, se omite en lugar de romper la sincronización. */
+const POLL_MAX_STORAGE_BYTES = 3 * 1024 * 1024;
+
+function pjlStorageBytes(): number {
+  let total = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('pjl_')) total += (localStorage.getItem(k) || '').length * 2;
+    }
+  } catch { /* ignore */ }
+  return total;
+}
+
 async function syncRemoteValues() {
   if (typeof window === 'undefined') return;
   try {
-    const rows = await fetchAllStoreRows(STORE_KEYS);
-    rows.forEach(({ key, value, updatedAt }) => {
-      if (value === null || value === undefined) return;
-      // Protege escrituras locales recientes: el valor remoto solo se aplica
-      // si fue actualizado DESPUÉS de nuestro último cambio local.
+    /* 1) PRIMERO solo el journal de "qué clave cambió y cuándo": pesa ~100 bytes.
+          Antes se bajaban TODAS las claves (~3,7 MB) en cada sondeo. */
+    const [metaRow] = await fetchAllStoreRows([META_KEY]);
+    const remoteJournal: Record<string, string> =
+      (metaRow && metaRow.value && typeof metaRow.value === 'object' ? metaRow.value : {}) as Record<string, string>;
+
+    /* 2) Solo las claves que este navegador necesita de verdad:
+          - con journal remoto: únicamente si es más nuevo que lo local
+            (así se protegen las escrituras locales recientes);
+          - sin journal remoto: solo la primera vez en cada dispositivo. */
+    const changed = POLL_KEYS.filter((key) => {
       const localTs = getLocalTs(key);
-      if (localTs && updatedAt && updatedAt < localTs) return;
+      const remoteTs = remoteJournal[key];
+      if (!remoteTs) return !localTs;
+      if (!localTs) return true;
+      return remoteTs > localTs;
+    });
+    if (changed.length === 0) return;
+
+    /* 3) Traer únicamente esas claves (no el resto). */
+    const rows = await fetchAllStoreRows(changed);
+    let used = pjlStorageBytes();
+    rows.forEach(({ key, value }) => {
+      if (value === null || value === undefined) return;
+      // Marca de "ya sincronizado en este dispositivo". Si la clave no tiene
+      // journal remoto, se sella con la hora actual: no se vuelve a bajar.
+      const stamp = remoteJournal[key] || new Date().toISOString();
       const current = localStorage.getItem('pjl_' + key);
       let nextValue = value;
       if (key === 'stats' && Array.isArray(value)) {
@@ -549,14 +591,19 @@ async function syncRemoteValues() {
         }
       }
       const payload = JSON.stringify(nextValue);
-      if (current !== payload) {
-        localStorage.setItem('pjl_' + key, payload);
-        if (updatedAt) setLocalTs(key, updatedAt);
-        window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
-      } else if (updatedAt) {
-        // Contenido idéntico: igualmente sembramos el timestamp conocido.
-        setLocalTs(key, updatedAt);
+      if (current === payload) {
+        setLocalTs(key, stamp);
+        return;
       }
+      const cost = payload.length * 2;
+      if (used - (current ? current.length * 2 : 0) + cost > POLL_MAX_STORAGE_BYTES) {
+        console.warn(`[pjlStore] Se omite "${key}" en el sondeo: no cabe en el almacenamiento local. Llega por la suscripción en tiempo real.`);
+        return;
+      }
+      localStorage.setItem('pjl_' + key, payload);
+      used += cost;
+      setLocalTs(key, stamp);
+      window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
     });
   } catch (error) {
     console.error('Error sincronizando datos desde Supabase:', error);

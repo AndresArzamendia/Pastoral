@@ -61,7 +61,7 @@ export async function fetchAllStoreRows(keys: string[]): Promise<Array<{ key: st
 
   const { data, error } = await supabase
     .from(STORE_TABLE)
-    .select('key, value, updated_at')
+    .select('key, value')
     .in('key', keys);
 
   if (error) {
@@ -69,10 +69,12 @@ export async function fetchAllStoreRows(keys: string[]): Promise<Array<{ key: st
     return [];
   }
 
+  // La tabla pjl_store solo tiene (key, value): no hay columna updated_at, así
+  // que pedirla hacía fallar la consulta entera y no se sincronizaba nada.
   return (data || []).map((row: any) => ({
     key: row.key,
     value: row.value,
-    updatedAt: row.updated_at ?? null,
+    updatedAt: null,
   }));
 }
 

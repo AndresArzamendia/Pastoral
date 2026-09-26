@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateSlug } from '@/lib/newsValidation';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
+import { withEdgeCache } from '@/lib/edgeCache';
 
 const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
@@ -54,6 +55,10 @@ function validateArticleInput(body: unknown) {
 
 // GET: Listar artículos con filtros
 export async function GET(request: NextRequest) {
+  return withEdgeCache(request, () => buildResponse(request));
+}
+
+async function buildResponse(request: NextRequest) {
   try {
     if (!supabase) return missingSupabaseConfigResponse();
 

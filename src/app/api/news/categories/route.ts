@@ -7,9 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateSlug } from '@/lib/newsValidation';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
+import { withEdgeCache } from '@/lib/edgeCache';
 
 // GET: Listar todas las categorías
 export async function GET(request: NextRequest) {
+  return withEdgeCache(request, () => buildResponse(request));
+}
+
+async function buildResponse(request: NextRequest) {
   try {
     const config = getSupabaseRouteConfig();
     if (!config) return missingSupabaseConfigResponse();

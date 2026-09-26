@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { withEdgeCache } from '@/lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,11 @@ const decodeEntities = (s: string): string => s
 
 const CONTENT_RE = { next: { revalidate: 1800 } };
 
-export async function GET() {
+export async function GET(request: Request) {
+  return withEdgeCache(request, () => buildResponse(), 1800);
+}
+
+async function buildResponse() {
   try {
     const res = await fetch(FEED_URL, CONTENT_RE);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
