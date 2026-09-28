@@ -13112,6 +13112,10 @@ html.show-splash .splash-content { visibility: visible; }
 @media (max-width: 1500px) and (min-width: 769px) {
   .nav-links { display: none !important; }
   .mobile-menu-toggle { display: flex !important; }
+  /* Tablet: la campana va pegada al logo y el botón de 3 líneas a la DERECHA
+     de ella (mismo orden que en el celular). */
+  .nav-content .notif-bell { order: 2; }
+  .nav-content .mobile-menu-toggle { order: 3; margin-left: 2px; }
 }
 
 /* ============================================================
