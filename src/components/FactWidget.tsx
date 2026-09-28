@@ -145,6 +145,34 @@ export default function FactWidget() {
   const posRef = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => { posRef.current = pos; }, [pos]);
 
+  /* Al girar la tablet (horizontal ⇄ vertical) o redimensionar, el widget
+     puede quedar arrastrado FUERA de la pantalla (posición guardada en el
+     otro formato). Se reclava la posición dentro del viewport visible para
+     que el "Dato del día" nunca desaparezca con el cambio de orientación. */
+  useEffect(() => {
+    const clampIntoView = () => {
+      const p = posRef.current;
+      const el = widgetRef.current;
+      if (!p || !el) return;
+      const w = el.offsetWidth || 140;
+      const h = el.offsetHeight || 44;
+      const maxX = Math.max(6, window.innerWidth - w - 6);
+      const maxY = Math.max(6, window.innerHeight - h - 6);
+      const nx = Math.min(Math.max(6, p.x), maxX);
+      const ny = Math.min(Math.max(6, p.y), maxY);
+      if (nx !== p.x || ny !== p.y) {
+        setPos({ x: nx, y: ny });
+        try { localStorage.setItem(LS_POS, JSON.stringify({ x: nx, y: ny })); } catch { /* sin almacenamiento */ }
+      }
+    };
+    window.addEventListener('resize', clampIntoView);
+    window.addEventListener('orientationchange', clampIntoView);
+    return () => {
+      window.removeEventListener('resize', clampIntoView);
+      window.removeEventListener('orientationchange', clampIntoView);
+    };
+  }, []);
+
   /* Precarga el pool (contenido automático del Vaticano + selección base). */
   useEffect(() => {
     let live = true;
