@@ -13112,10 +13112,12 @@ html.show-splash .splash-content { visibility: visible; }
 @media (max-width: 1500px) and (min-width: 769px) {
   .nav-links { display: none !important; }
   .mobile-menu-toggle { display: flex !important; }
-  /* Tablet: la campana va pegada al logo y el botón de 3 líneas a la DERECHA
-     de ella (mismo orden que en el celular). */
-  .nav-content .notif-bell { order: 2; }
-  .nav-content .mobile-menu-toggle { order: 3; margin-left: 2px; }
+  .nav-content { justify-content: flex-start; gap: 8px; }
+  /* Tablet: logo a la izquierda y, JUNTOS al borde derecho, el botón de 3
+     líneas a la IZQUIERDA con la campana a su derecha (margin-left:auto
+     empuja el grupo del menú hacia el borde). */
+  .nav-content .mobile-menu-toggle { order: 2; margin-left: auto; }
+  .nav-content .notif-bell { order: 3; }
 }
 
 /* ============================================================
