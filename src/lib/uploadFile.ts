@@ -46,9 +46,36 @@ const SIN_ALMACENAMIENTO =
  *
  * El campo `inDatabase` ya no existe: todo va al bucket. Se mantiene en el tipo
  * de retorno para no romper los llamadores que lo leen.
+ *
+ * Cuando el servidor rechaza la subida, se reenvía su mensaje tal cual: así un
+ * fallo de sesión o de permisos no se confunde con uno de almacenamiento.
  */
 export async function uploadFile(file: File): Promise<UploadResult> {
-  const url = await uploadFileToR2(file);
-  if (url) return { ok: true, url, inDatabase: false };
-  return { ok: false, error: SIN_ALMACENAMIENTO };
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    // adminFetch: la ruta de subida exige sesión del panel.
+    const res = await adminFetch('/api/upload', { method: 'POST', body: fd });
+    const json = (await res.json().catch(() => null)) as { ok?: boolean; url?: string; error?: string } | null;
+
+    if (res.ok && json?.ok && json.url) return { ok: true, url: json.url, inDatabase: false };
+
+    // Los errores que inventa el servidor (r2-no-disponible, upload-fallido) no
+    // dicen nada útil al cliente, se traducen al mensaje de toda la vida.
+    const serverError = json?.error ?? '';
+    if (serverError === 'r2-no-disponible' || serverError === 'upload-fallido') {
+      return { ok: false, error: SIN_ALMACENAMIENTO };
+    }
+    if (serverError) {
+      return { ok: false, error: `La subida fue rechazada: ${serverError}` };
+    }
+    const detalle = res.status === 401
+      ? 'Tu sesión venció: volvé a iniciar sesión en el panel.'
+      : res.status === 403
+        ? 'Tu cuenta no tiene permiso para subir archivos.'
+        : `HTTP ${res.status}.`;
+    return { ok: false, error: `La subida falló y no se pudo guardar el archivo. (${detalle})` };
+  } catch {
+    return { ok: false, error: SIN_ALMACENAMIENTO };
+  }
 }
