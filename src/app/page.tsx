@@ -3704,7 +3704,8 @@ const [newsSearch, setNewsSearch] = useState('');
               type="button"
               className="fb-copy"
               onClick={() => { window.location.href = '/admin'; }}
-              style={{ background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', fontSize: 'inherit', color: 'inherit', cursor: 'default', textAlign: 'inherit', lineHeight: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit' }}
+              style={{ background: 'none', border: 'none', padding: '4px 8px', margin: '-4px -8px', font: 'inherit', fontSize: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'inherit', lineHeight: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', position: 'relative', zIndex: 5 }}
+              title="Acceso al panel de administración"
             >© {new Date().getFullYear()} Pastoral Juvenil Luqueña · Hecho con fe ❤</button>
             <span className="fb-faith">† &ldquo;Caminamos juntos hacia el cielo&rdquo;</span>
           </div>
