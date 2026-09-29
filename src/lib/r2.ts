@@ -9,11 +9,15 @@
  *   - En Vercel no hay binding, así que se habla con la API S3 de R2 firmando la
  *     petición con SigV4.
  *
- * Para LEER no se usa ninguno de los dos: el bucket se entrega con su URL
- * pública y las imágenes se piden directo a Cloudflare. Es lo que hace que la
- * página no consuma invocaciones ni ancho de banda del servidor, y además la
- * escritura sigue siendo privada porque para subir siempre hacen falta las
- * credenciales.
+ * Para LEER: si se configura una URL pública del bucket (R2_PUBLIC_BASE_URL)
+ * los archivos se piden directo a Cloudflare, sin gastar invocaciones del
+ * servidor. Si no está configurada, se guarda `/api/files/<clave>` y cada sitio
+ * la resuelve con lo suyo (binding en Workers, API S3 en Vercel); la imagen
+ * igual se ve, solo que pasa por el servidor.
+ *
+ * La URL pública NUNCA se infiere del account id: la pública automática de R2
+ * responde 401 a menos que el acceso público del bucket esté realmente
+ * habilitado, y verificar eso en cada deploy no es fiable.
  */
 
 const DEFAULT_BUCKET = 'pastoral-uploads';
@@ -50,16 +54,13 @@ export function hasR2S3Credentials(): boolean {
 /**
  * Origen público del bucket, sin barra final.
  *
- * Se puede fijar con R2_PUBLIC_BASE_URL (por ejemplo un dominio propio como
- * media.eldominio.org). Si no está, se arma con el patrón de R2:
- * https://pub-<ACCOUNT_ID>.r2.dev/<bucket>
+ * Solo se usa si está configurado explícitamente con R2_PUBLIC_BASE_URL (por
+ * ejemplo un dominio propio como media.eldominio.org). Si no está seteado,
+ * devuelve '' y la subida guarda `/api/files/<clave>`, que cada deploy resuelve
+ * con su propio mecanismo (binding o API S3).
  */
 export function r2PublicBaseUrl(): string {
-  const explicit = readEnv('R2_PUBLIC_BASE_URL').replace(/\/+$/, '');
-  if (explicit) return explicit;
-  const accountId = r2AccountId();
-  if (!accountId) return '';
-  return `https://pub-${accountId}.r2.dev/${r2BucketName()}`;
+  return readEnv('R2_PUBLIC_BASE_URL').replace(/\/+$/, '');
 }
 
 /**
