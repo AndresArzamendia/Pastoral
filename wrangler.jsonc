@@ -11,6 +11,7 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "migrations_dir": "migrations",
   /*
    * PENDIENTE: almacenamiento de archivos (R2).
    *

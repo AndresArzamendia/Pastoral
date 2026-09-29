@@ -44,6 +44,9 @@ exception
   when duplicate_object then null;
 end $$;
 
+-- LECTURA pública: cualquiera (el sitio web, con la anon key) puede leer el
+-- contenido. Las escrituras NO son de anon: solo de cuentas autenticadas
+-- (el panel, que guarda con el token de sesión) o de service_role (scripts).
 drop policy if exists "Public read pjl_store" on public.pjl_store;
 create policy "Public read pjl_store"
 on public.pjl_store
@@ -52,22 +55,27 @@ to anon, authenticated
 using (true);
 
 drop policy if exists "Public write pjl_store" on public.pjl_store;
-create policy "Public write pjl_store"
+drop policy if exists "Authenticated insert pjl_store" on public.pjl_store;
+create policy "Authenticated insert pjl_store"
 on public.pjl_store
 for insert
-to anon, authenticated
+to authenticated
 with check (true);
 
 drop policy if exists "Public update pjl_store" on public.pjl_store;
-create policy "Public update pjl_store"
+drop policy if exists "Authenticated update pjl_store" on public.pjl_store;
+create policy "Authenticated update pjl_store"
 on public.pjl_store
 for update
-to anon, authenticated
+to authenticated
 using (true)
 with check (true);
 
 alter table public.user_profiles enable row level security;
 
+-- user_profiles: se leen y actualizan desde el panel con la sesión del usuario
+-- (requireAdmin usa el token del propio usuario). El registro inserta la fila
+-- con el token de la cuenta recién creada.
 drop policy if exists "Public read user_profiles" on public.user_profiles;
 create policy "Public read user_profiles"
 on public.user_profiles
@@ -75,17 +83,17 @@ for select
 to anon, authenticated
 using (true);
 
-drop policy if exists "Public insert user_profiles" on public.user_profiles;
-create policy "Public insert user_profiles"
+drop policy if exists "Authenticated insert user_profiles" on public.user_profiles;
+create policy "Authenticated insert user_profiles"
 on public.user_profiles
 for insert
-to anon, authenticated
+to authenticated
 with check (true);
 
-drop policy if exists "Public update user_profiles" on public.user_profiles;
-create policy "Public update user_profiles"
+drop policy if exists "Authenticated update user_profiles" on public.user_profiles;
+create policy "Authenticated update user_profiles"
 on public.user_profiles
 for update
-to anon, authenticated
+to authenticated
 using (true)
 with check (true);

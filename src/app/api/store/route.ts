@@ -26,6 +26,36 @@ const ALLOWED_KEYS = new Set([
 /* Los archivos grandes van a R2; en el contenido no debería haber nada enorme. */
 const MAX_VALUE_BYTES = 2 * 1024 * 1024;
 
+/**
+ * Quita imágenes en base64 (data:...;base64,...) del valor antes de guardarlo.
+ *
+ * Estas imágenes no deberían entrar nunca a la base: históricamente la llenaron
+ * a 4 MB y cada visitante descargaba ese peso. Los archivos se suben a R2 y acá
+ * solo queda la dirección. Si un valor trae una image data URL (por ejemplo
+ * porque el navegador del panel guardaba base64 en localStorage), se elimina
+ * con un aviso en vez de guardar el texto enorme.
+ */
+function stripDataUrls(value: unknown, count: { n: number }): unknown {
+  if (typeof value === 'string') {
+    if (value.startsWith('data:')) {
+      count.n++;
+      return '';
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => stripDataUrls(v, count));
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = stripDataUrls(v, count);
+    }
+    return out;
+  }
+  return value;
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdminWriter(request);
   if (!auth.ok) return auth.response;
@@ -45,9 +75,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Falta el valor a guardar.' }, { status: 400 });
   }
 
+  // Las imágenes embebidas en base64 no se guardan: se borran (los archivos
+  // de verdad viven en R2 y se guardan sus direcciones, no su contenido).
+  const removidas = { n: 0 };
+  const limpio = stripDataUrls(body.value, removidas);
+  if (removidas.n > 0) {
+    console.warn(`api/store: se quitaron ${removidas.n} imagen(es) en base64 de "${key}" (no se guardan en la base).`);
+  }
+
   let serialized: string;
   try {
-    serialized = JSON.stringify(body.value);
+    serialized = JSON.stringify(limpio);
   } catch {
     return NextResponse.json({ error: 'El valor no se puede guardar.' }, { status: 400 });
   }
@@ -76,7 +114,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         Prefer: 'resolution=merge-duplicates,return=minimal',
       },
-      body: JSON.stringify({ key, value: body.value }),
+      body: JSON.stringify({ key, value: limpio }),
     });
 
     if (!res.ok) {
@@ -85,7 +123,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se pudo guardar el cambio.' }, { status: 502 });
     }
 
-    return NextResponse.json({ ok: true, key, savedBy: auth.session.email });
+    return NextResponse.json({ ok: true, key, savedBy: auth.session.email, base64Removidas: removidas.n });
   } catch (e) {
     console.error('api/store:', (e as Error).message);
     return NextResponse.json({ error: 'No se pudo guardar el cambio.' }, { status: 502 });
