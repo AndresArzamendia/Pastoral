@@ -16,11 +16,15 @@ export const dynamic = 'force-dynamic';
  * puede aplicar la seguridad de Supabase (RLS) más adelante si se quiere.
  */
 
-/* Solo se admiten estas claves: nada de escribir filas nuevas a medida. */
+/* Solo se admiten estas claves: nada de escribir filas nuevas a medida.
+   'news' y 'gallery' estaban fuera de la lista: el panel sí los guardaba, pero
+   el servidor los rechazaba, así que esos cambios se quedaban solo en el
+   navegador que los hizo y los demás dispositivos veían la versión vieja. */
 const ALLOWED_KEYS = new Set([
   'branding', 'theme', 'users', 'hero', 'heroInterval', 'chapels', 'stats',
   'devices', 'logs', 'meta_updated', 'sections', 'content', 'docs', 'faq',
   'social', 'profiles', 'notifications', 'activities', 'newsletter',
+  'news', 'gallery',
 ]);
 
 /* Los archivos grandes van a R2; en el contenido no debería haber nada enorme. */

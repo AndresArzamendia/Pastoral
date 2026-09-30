@@ -62,7 +62,7 @@ export async function fetchAllStoreRows(keys: string[]): Promise<Array<{ key: st
 
   const { data, error } = await supabase
     .from(STORE_TABLE)
-    .select('key, value')
+    .select('key, value, updated_at')
     .in('key', keys);
 
   if (error) {
@@ -70,13 +70,46 @@ export async function fetchAllStoreRows(keys: string[]): Promise<Array<{ key: st
     return [];
   }
 
-  // La tabla pjl_store solo tiene (key, value): no hay columna updated_at, así
-  // que pedirla hacía fallar la consulta entera y no se sincronizaba nada.
+  /* updated_at lo pone un trigger de Postgres en cada guardado: es la marca
+     reliable de "esta fila cambió". Sin ella el navegador no puede saber si lo
+     que tiene guardado en local sigue igual que lo de la base. */
   return (data || []).map((row: any) => ({
     key: row.key,
     value: row.value,
-    updatedAt: null,
+    updatedAt: row.updated_at ?? null,
   }));
+}
+
+/**
+ * Mapa de "qué clave del store cambió y cuándo", sin traer los valores.
+ *
+ * Son unas decenas de filas de dos campos: pesa muy poco comparada con el
+ * contenido, así que sirve para decidir qué hay que bajar de verdad. La base
+ * pasa a ser la única fuente de verdad: el dispositivo compara estas marcas
+ * con lo que tiene guardado y solo baja lo que realmente difiere.
+ */
+export async function fetchStoreVersions(): Promise<Record<string, string>> {
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch (e) {
+    console.warn('fetchStoreVersions: Supabase not configured:', (e as Error).message);
+    return {};
+  }
+
+  const { data, error } = await supabase
+    .from(STORE_TABLE)
+    .select('key, updated_at');
+
+  if (error) {
+    console.error('Supabase fetchStoreVersions error:', error.message);
+    return {};
+  }
+
+  return (data || []).reduce((acc: Record<string, string>, row: any) => {
+    if (row?.key && row.updated_at) acc[row.key] = row.updated_at as string;
+    return acc;
+  }, {});
 }
 
 export async function upsertStoreValue(key: string, value: unknown): Promise<boolean> {

@@ -1,7 +1,7 @@
 // ─── SHARED PJL STORE ────────────────────────────────────────────────────────
 // Admin writes here → main page reads here.
 // All keys are stored in localStorage so changes persist across pages.
-import { fetchAllStoreRows, subscribeStoreChanges, upsertStoreValue } from './supabaseStore';
+import { fetchAllStoreRows, fetchStoreVersions, subscribeStoreChanges, upsertStoreValue } from './supabaseStore';
 
 export interface NewsItem     { id: number; title: string; body: string; date: string; published: boolean; calendarUrl?: string; calendarEventId?: string; calendarSyncStatus?: 'pending' | 'synced' | 'error'; }
 export interface Activity     { id: number; title: string; date: string; category: string; active: boolean; inscription: boolean; description?: string; calendarUrl?: string; calendarEventId?: string; calendarSyncStatus?: 'pending' | 'synced' | 'error'; icsUid?: string; }
@@ -503,26 +503,57 @@ const META_COALESCE_MS = 45_000;
 
 function journalUpdate(key: string) {
   try {
+    const nowIso = new Date().toISOString();
     const prevRaw = localStorage.getItem('pjl_' + META_KEY);
     const prev: Record<string, string> = prevRaw ? JSON.parse(prevRaw) : {};
     const last = prev[key];
     // Evita martillar Supabase: un cambio por clave cada 45 s, máximo.
     if (last && Date.now() - new Date(last).getTime() < META_COALESCE_MS) return;
-    prev[key] = new Date().toISOString();
-    localStorage.setItem('pjl_' + META_KEY, JSON.stringify(prev));
-    upsertStoreValue(META_KEY, prev).catch(() => {
-      // Si Supabase no está disponible, seguimos guardando localmente.
-    });
+
+    /* El journal es UN solo objeto compartido por todos los dispositivos. Antes
+       se guardaba el journal local tal cual: si este navegador no conocía
+       algunas claves, las borraba de la base y esos cambios ya no se avisaban
+       más (el dispositivo se quedaba con datos viejos para siempre). Ahora se
+       mergea con el remoto y cada clave conserva la marca más reciente. */
+    const write = (remote: Record<string, string>) => {
+      const merged: Record<string, string> = { ...remote };
+      for (const [k, v] of Object.entries(prev)) {
+        if (!merged[k] || v > merged[k]) merged[k] = v;
+      }
+      merged[key] = nowIso;
+      localStorage.setItem('pjl_' + META_KEY, JSON.stringify(merged));
+      return upsertStoreValue(META_KEY, merged);
+    };
+
+    fetchAllStoreRows([META_KEY])
+      .then(([row]) => {
+        const remote = (row && row.value && typeof row.value === 'object' ? row.value : {}) as Record<string, string>;
+        return write(remote);
+      })
+      .catch(() => write({}));
   } catch { /* ignore */ }
 }
 
-function getLocalTs(key: string): string | null {
-  if (typeof window === 'undefined') return null;
-  try { return localStorage.getItem('pjl_' + key + '_ts') ?? null; } catch { return null; }
+/* Toda comparación de fechas pasa por acá: la base devuelve marcas como
+   "2026-09-30T17:42:30.789179+00:00" y el navegador guarda "...Z". Compararlas
+   como texto da resultados equivocados, así que se comparan en milisegundos. */
+function toMs(ts: string | null | undefined): number {
+  if (!ts) return 0;
+  const n = Date.parse(ts);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function setLocalTs(key: string, ts: string) {
-  try { localStorage.setItem('pjl_' + key + '_ts', ts); } catch { /* ignore */ }
+function getLocalTs(key: string): number {
+  if (typeof window === 'undefined') return 0;
+  try { return toMs(localStorage.getItem('pjl_' + key + '_ts')); } catch { return 0; }
+}
+
+function setLocalTs(key: string, ts: string | number) {
+  try {
+    const ms = typeof ts === 'number' ? ts : toMs(ts);
+    // Se guarda siempre en UTC para que la marca siempre sea comparable.
+    localStorage.setItem('pjl_' + key + '_ts', new Date(ms || Date.now()).toISOString());
+  } catch { /* ignore */ }
 }
 
 function save<T>(key: string, value: T): void {
@@ -568,36 +599,43 @@ function pjlStorageBytes(): number {
   return total;
 }
 
+/* Cuánto puede un dispositivo pasar sin volver a confirmar una clave contra la
+   base. Es la red de seguridad del sistema: aunque el journal se pierda o una
+   marca de tiempo haya quedado mintiendo, el dispositivo se re-confirma igual y
+   no queda congelado con datos viejos para siempre. */
+const SYNC_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
 async function syncRemoteValues() {
   if (typeof window === 'undefined') return;
   try {
-    /* 1) PRIMERO solo el journal de "qué clave cambió y cuándo": pesa ~100 bytes.
-          Antes se bajaban TODAS las claves (~3,7 MB) en cada sondeo. */
-    const [metaRow] = await fetchAllStoreRows([META_KEY]);
-    const remoteJournal: Record<string, string> =
-      (metaRow && metaRow.value && typeof metaRow.value === 'object' ? metaRow.value : {}) as Record<string, string>;
+    /* 1) PRIMERO solo el mapa de "qué fila cambió y cuándo" (key + updated_at):
+          pesa unos cientos de bytes. La marca updated_at la pone un trigger de
+          Postgres en cada guardado, así que es la fuente de verdad: no depende
+          del journal ni de lo que sepa cada navegador. */
+    const versions = await fetchStoreVersions();
+    const versionKeys = Object.keys(versions);
+    if (versionKeys.length === 0) return;
 
-    /* 2) Solo las claves que este navegador necesita de verdad:
-          - con journal remoto: únicamente si es más nuevo que lo local
-            (así se protegen las escrituras locales recientes);
-          - sin journal remoto: solo la primera vez en cada dispositivo. */
+    const now = Date.now();
+
+    /* 2) Solo las claves que este dispositivo necesita traer de verdad:
+          - sin marca local: primera vez en este dispositivo;
+          - la base está más nueva que lo local: el panel cambió algo;
+          - la marca local es inválida o vieja: re-confirmación de seguridad. */
     const changed = POLL_KEYS.filter((key) => {
-      const localTs = getLocalTs(key);
-      const remoteTs = remoteJournal[key];
-      if (!remoteTs) return !localTs;
-      if (!localTs) return true;
-      return remoteTs > localTs;
+      const localMs = getLocalTs(key);
+      if (!localMs) return true;
+      const remoteMs = toMs(versions[key]);
+      if (remoteMs && remoteMs > localMs) return true;
+      return now - localMs > SYNC_MAX_AGE_MS;
     });
     if (changed.length === 0) return;
 
     /* 3) Traer únicamente esas claves (no el resto). */
     const rows = await fetchAllStoreRows(changed);
     let used = pjlStorageBytes();
-    rows.forEach(({ key, value }) => {
+    rows.forEach(({ key, value, updatedAt }) => {
       if (value === null || value === undefined) return;
-      // Marca de "ya sincronizado en este dispositivo". Si la clave no tiene
-      // journal remoto, se sella con la hora actual: no se vuelve a bajar.
-      const stamp = remoteJournal[key] || new Date().toISOString();
       const current = localStorage.getItem('pjl_' + key);
       let nextValue = value;
       if (key === 'stats' && Array.isArray(value)) {
@@ -610,7 +648,7 @@ async function syncRemoteValues() {
       }
       const payload = JSON.stringify(nextValue);
       if (current === payload) {
-        setLocalTs(key, stamp);
+        setLocalTs(key, updatedAt || versions[key] || now);
         return;
       }
       const cost = payload.length * 2;
@@ -620,7 +658,7 @@ async function syncRemoteValues() {
       }
       localStorage.setItem('pjl_' + key, payload);
       used += cost;
-      setLocalTs(key, stamp);
+      setLocalTs(key, updatedAt || versions[key] || now);
       window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
     });
   } catch (error) {
@@ -628,8 +666,26 @@ async function syncRemoteValues() {
   }
 }
 
+/* Versión del motor de sincronización. Al cambiarla, la primera visita borra
+   las marcas de tiempo locales: el dispositivo vuelve a traer TODO desde la
+   base una única vez y queda con el contenido real del sitio, en vez de arrastrar
+   datos viejos que el journal perdió el rastro. */
+const SYNC_ENGINE_VERSION = '2';
+
+function resetStaleSyncStamps() {
+  try {
+    if (localStorage.getItem('pjl_sync_engine') === SYNC_ENGINE_VERSION) return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('pjl_') && k.endsWith('_ts')) localStorage.removeItem(k);
+    }
+    localStorage.setItem('pjl_sync_engine', SYNC_ENGINE_VERSION);
+  } catch { /* ignore */ }
+}
+
 function initializeRemoteStoreSync() {
   if (typeof window === 'undefined') return;
+  resetStaleSyncStamps();
   setTimeout(syncRemoteValues, 200);
   /* Con la pestaña oculta no se sondea nada. Antes seguía cada 45 segundos
      aunque nadie estuviera mirando, y cada sondeo es una lectura a la base: las
@@ -645,8 +701,9 @@ function initializeRemoteStoreSync() {
   const unsubscribe = subscribeStoreChanges((key, value, updatedAt) => {
     if (!key) return;
     try {
-      const localTs = getLocalTs(key);
-      if (localTs && updatedAt && updatedAt < localTs) return;
+      const localMs = getLocalTs(key);
+      const remoteMs = toMs(updatedAt);
+      if (localMs && remoteMs && remoteMs < localMs) return;
       const current = localStorage.getItem('pjl_' + key);
       let nextValue = value;
       if (key === 'stats' && Array.isArray(value)) {
@@ -656,7 +713,7 @@ function initializeRemoteStoreSync() {
       const payload = JSON.stringify(nextValue);
       if (current !== payload) {
         localStorage.setItem('pjl_' + key, payload);
-        if (updatedAt) setLocalTs(key, updatedAt);
+        if (remoteMs) setLocalTs(key, remoteMs);
         window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
       }
     } catch {

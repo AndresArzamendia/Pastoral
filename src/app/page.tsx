@@ -1261,42 +1261,32 @@ const [newsSearch, setNewsSearch] = useState('');
   return (
     <div className={isHighContrast ? 'high-contrast' : ''} style={{ '--font-size-base': `${fontSize}px` } as React.CSSProperties}>
       
-      {/* FLOATING PERSISTENT LOGO */}
+      {/* LOGO FLOTANTE / VOLVER ARRIBA — circular, esquina inferior derecha.
+          Por debajo en móvil para no tapar el banner de instalación PWA. */}
       {branding.mainLogo && (
-        <div style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          width: '66px',
-          height: '66px',
-          zIndex: 9999,
-          borderRadius: '50%',
-          background: 'var(--white)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.14)',
-          padding: '4px',
-          border: '1px solid var(--gold-pale)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-        }} 
-        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)')}
-        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1) rotate(0deg)')}
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        title="Volver al inicio"
+        <button
+          type="button"
+          className="fab-top"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Volver al inicio"
+          title="Volver al inicio"
         >
           <img
             src={branding.mainLogo}
             className="logo-img-circular"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            alt="Logo flotante"
+            alt=""
+            aria-hidden="true"
           />
-        </div>
+        </button>
       )}
 
-      {/* DATO DEL DÍA — curiosidades católicas de fuentes oficiales (vatican.va) */}
-      <FactWidget />
+      {/* DATO DEL DÍA — curiosidades católicas de fuentes oficiales (vatican.va).
+          Va en el flujo (banner bajo el navbar), no flotando: antes tapaba las
+          tarjetas y los enlaces del pie. */}
+      <div className="fact-bar-wrap">
+        <FactWidget />
+      </div>
 
       {/* 1. NAVBAR REFINADA */}
       <nav className={`top-nav ${navScrolled ? 'nav-scrolled' : ''} ${navEntered ? 'nav-entered' : ''}`}>
@@ -2274,7 +2264,7 @@ const [newsSearch, setNewsSearch] = useState('');
                 <div className="nosotros-hero-badge"><span>✦</span> QUIÉNES SOMOS</div>
                 <h2 className="serif nosotros-hero-title">{siteContent.instiTitulo || 'Nuestra Identidad'}</h2>
                 <div className="nosotros-hero-divider"><span className="dot">†</span></div>
-                <p className="nosotros-hero-intro">{siteContent.nosotrosIntro || 'Somos la Pastoral Juvenil Luqueña, una comunidad eclesial viva...'}</p>
+                <p className="nosotros-hero-intro nosotros-intro-card">{siteContent.nosotrosIntro || 'Somos la Pastoral Juvenil Luqueña, una comunidad eclesial viva...'}</p>
               </div>
 
               {/* CIFRAS / LOGROS */}
@@ -2305,7 +2295,19 @@ const [newsSearch, setNewsSearch] = useState('');
                 <div className={`mvv-card nosotros-ident-card reveal ${siteContent.valores ? 'has' : ''}`} style={{ '--ad': '0.25s' } as CSSProperties}>
                   <div className="equipos-icon">💎</div>
                   <h4>Valores</h4>
-                  <p>{siteContent.valores || 'Fe, Comunidad, Servicio...'}</p>
+                  <div className="valores-pills">
+                    {(siteContent.valores || 'Fe, Comunidad, Servicio, Formación, Alegría').split(',').map((v, i) => {
+                      const val = v.trim();
+                      if (!val) return null;
+                      const icons = ['✝️','🤝','❤️','📚','😊'];
+                      return (
+                        <span key={`${val}-${i}`} className="val-pill">
+                          <span className="val-pill-ico">{icons[i % icons.length]}</span>
+                          {val}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -2322,7 +2324,7 @@ const [newsSearch, setNewsSearch] = useState('');
                 <div className="nh-text reveal" style={{ '--ad': '0.15s' } as CSSProperties}>
                   <span className="premium-label nh-eyebrow">NUESTRO CAMINO</span>
                   <h3 className="serif nh-title">Una historia de <i style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>fe y servicio</i></h3>
-                  <p>{siteContent.nosotrosHistoria || siteContent.instiDesc || 'Somos una pastoral que camina...'}</p>
+                  <p style={{ marginBottom: '28px' }}>{siteContent.nosotrosHistoria || siteContent.instiDesc || 'Somos una pastoral que camina...'}</p>
                   {siteContent.decanato && <p><strong>Decanato:</strong> {siteContent.decanato}</p>}
                   {siteContent.parroquia && <p><strong>Parroquia:</strong> {siteContent.parroquia}</p>}
                 </div>
@@ -2350,7 +2352,8 @@ const [newsSearch, setNewsSearch] = useState('');
               {/* CONTACTO + HORARIOS */}
               <div className="nosotros-contacto">
                 <div className="nc-block reveal">
-                  <h4>📍 Dónde encontrarnos</h4>
+                  <span className="nc-ico-bubble">📍</span>
+                  <h4>Dónde encontrarnos</h4>
                   <ul>
                     {siteContent.contactoSede && <li><span className="nc-k">Sede:</span> {siteContent.contactoSede}</li>}
                     {siteContent.contactoDireccion && <li><span className="nc-k">Dirección:</span> {siteContent.contactoDireccion}</li>}
@@ -2360,7 +2363,8 @@ const [newsSearch, setNewsSearch] = useState('');
                   </ul>
                 </div>
                 <div className="nc-block reveal" style={{ '--ad': '0.12s' } as CSSProperties}>
-                  <h4>🕐 Horarios de encuentro</h4>
+                  <span className="nc-ico-bubble">🕐</span>
+                  <h4>Horarios de encuentro</h4>
                   <ul>
                     {siteContent.horariosEncuentro && <li><span className="nc-k">Encuentros:</span> {siteContent.horariosEncuentro}</li>}
                     {siteContent.horariosFormacion && <li><span className="nc-k">Formación:</span> {siteContent.horariosFormacion}</li>}
@@ -2371,7 +2375,7 @@ const [newsSearch, setNewsSearch] = useState('');
                   )}
                 </div>
                 <div className="nc-block nc-cta reveal" style={{ '--ad': '0.24s' } as CSSProperties}>
-                  <span className="nc-cta-ico">🙌</span>
+                  <span className="nc-ico-bubble">🙌</span>
                   <h4>¿Querés sumarte?</h4>
                   <p>Acercate a tu capilla zonal o escribinos por nuestras redes. ¡Todos los jóvenes son bienvenidos!</p>
                   <button type="button" className="btn-premium btn-premium-gold" onClick={() => navigate('contacto')}>HABLEMOS</button>
@@ -3870,8 +3874,8 @@ const [newsSearch, setNewsSearch] = useState('');
         .footer-topline i { color: var(--gold); font-style: normal; animation: footCross 3s ease-in-out infinite; display: inline-block; }
         @keyframes footCross { 0%,100%{ transform: rotate(0) scale(1); } 50%{ transform: rotate(180deg) scale(1.25); } }
 
-        .footer-grid { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1.9fr; gap: 40px; margin-bottom: 70px; }
-        .footer-col { padding-top: 4px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; margin-bottom: 70px; }
+        .footer-col { padding-top: 4px; min-width: 0; }
 
         .footer-title { color: var(--gold); margin: 0 0 22px; letter-spacing: 2px; font-size: 13px; text-transform: uppercase; position: relative; display: inline-flex; align-items: center; gap: 8px; }
         .footer-title::after { content: ''; position: absolute; left: 0; bottom: -9px; width: 34px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--gold), transparent); animation: footLine 3s ease-in-out infinite; }
@@ -3885,8 +3889,9 @@ const [newsSearch, setNewsSearch] = useState('');
 
         .footer-social-title { display: block; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: 12px; }
         .footer-social { display: flex; gap: 12px; }
-        .fs-badge { position: relative; width: 44px; height: 44px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 19px; color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); transition: transform .35s cubic-bezier(.34,1.56,.64,1), background .3s, box-shadow .3s, border-color .3s; }
-        .fs-badge:hover { transform: translateY(-5px) rotate(-6deg) scale(1.08); background: var(--gold); border-color: var(--gold); box-shadow: 0 10px 22px rgba(200,151,58,.45); }
+        .fs-badge { position: relative; width: 44px; height: 44px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 19px; color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); transition: transform .35s cubic-bezier(.34,1.56,.64,1), background .3s, box-shadow .3s, border-color .3s, color .3s; }
+        .fs-badge:hover,
+        .fs-badge:focus-visible { transform: translateY(-5px) rotate(-6deg) scale(1.08); background: linear-gradient(145deg, var(--gold) 0%, #f0d089 100%); border-color: var(--gold); color: var(--navy); box-shadow: 0 12px 26px rgba(200,151,58,.5), 0 0 0 3px rgba(200,151,58,.22); outline: none; }
         .fs-badge::after { content: attr(data-label); position: absolute; bottom: -32px; left: 50%; transform: translateX(-50%) translateY(4px); background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .5px; padding: 4px 9px; border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none; transition: .25s; border: 1px solid rgba(200,151,58,.35); }
         .fs-badge:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -3912,9 +3917,9 @@ const [newsSearch, setNewsSearch] = useState('');
         .fb-copy { color: rgba(255,255,255,.5); font-size: 13px; }
         .fb-faith { color: rgba(200,151,58,.9); font-size: 13px; font-style: italic; font-family: var(--font-display); letter-spacing: .5px; }
 
-        @media (max-width: 1100px) { .footer-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 768px) { .footer-grid { grid-template-columns: repeat(2, 1fr); gap: 34px; } .footer-bottom { flex-direction: column; text-align: center; } }
-        @media (max-width: 520px) { .footer-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1100px) { .footer-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 34px; } }
+        @media (max-width: 768px) { .footer-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 28px; } .footer-bottom { flex-direction: column; text-align: center; } }
+        @media (max-width: 520px) { .footer-grid { grid-template-columns: 1fr; gap: 26px; } }
 
         /* El copyright no debe desbordar la pantalla en móvil/tablet
            (los botones llevan white-space: nowrap global en ≤1024px) */

@@ -19,6 +19,167 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+================================================================================
+
+[8] 2026-09-30 17:38 - REDISEÑO VISUAL DE LA PÁGINA INSTITUCIONAL: IDENTIDAD, VALORES, "NUESTRO CAMINO", CONTACTO, WIDGETS Y FOOTER
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia
+Solicitado por: Andres Arzamendia
+
+Motivo: pedido de pulir la página Institucional (identidad con Misión/Visión/
+Valores, feature card de "Nuestro Camino", tarjetas de contacto, widgets que
+tapaban contenido y pie de página), cuidando la responsividad en todos los
+tamaños de pantalla.
+
+Qué se hizo, archivo por archivo:
+
+src/app/page.tsx
+- Identidad: el párrafo de presentación (siteContent.nosotrosIntro) pasó de
+  estilos en línea a la clase `.nosotros-intro-card` (fondo claro, borde
+  dorado, radio, sombra y centrado) para que se pueda ajustar por media query.
+- Valores: cada valor de siteContent.valores se muestra como etiqueta
+  `.val-pill` con micro-icono (✝️ 🤝 ❤️ 📚 😊), en lugar de un párrafo corrido
+  que dejaba hueco dentro de la tarjeta.
+- "Nuestro Camino": párrafo con más aire inferior (28px) y tarjeta integrada.
+- Contacto: la tarjeta "¿Querés sumarte?" usa la burbuja circular
+  `.nc-ico-bubble` (igual que Ubicación y Horarios) en lugar del emoji suelto.
+- Widgets: el botón circular de "volver arriba" pasó de `<div>` con estilos
+  en línea a `<button className="fab-top">` con `aria-label="Volver al inicio"`,
+  hover/focus-visible y tamaño reducido en móvil.
+- Dato del día: se movió el render a `<div className="fact-bar-wrap">` debajo
+  del navbar, dentro del flujo (ya no flotaba sobre las tarjetas).
+- Footer: `.footer-grid` pasó a 4 columnas parejas
+  `repeat(4, minmax(0,1fr))` con gap de 32px (antes 1.8fr/1fr/1fr/1.9fr con
+  gap 40px), `.footer-col` con `min-width: 0`, y hover de redes sociales
+  dorado brillante (degradado + halo) también en `focus-visible`.
+- Media queries del footer: 1100px y 768px a 2 columnas, 520px a 1 columna.
+
+src/app/globals.css
+- `.nosotros-intro-card`: tarjeta de presentación con padding fluido y, en
+  ≤600px, tipografía y radio reducidos.
+- `.nosotros-historia`: feature card editorial 50/50 (imagen y texto como una
+  sola pieza, sin gap, con borde dorado, radio 28px y sombra); `.nh-media` a
+  sangre del borde, `.nh-text` con padding 52px/46px y centrado vertical; en
+  ≤980px pasa a una columna con padding 36px/30px.
+- Contacto: `.nosotros-contacto` en flex con stretch y tarjetas `flex: 1` en
+  columna; 980px → 2 por fila con `flex-wrap`; 600px → columna; burbuja de
+  icono de 40px y padding de tarjeta 22px/20px en móvil.
+- Widgets: `.fact-widget` deja de ser `position: fixed` (abajo a la izquierda)
+  y pasa al flujo; nuevos `.fact-bar-wrap`, `.fact-bar`, `.fact-bar-ico`,
+  `.fact-bar-label`, `.fact-bar-title`, `.fact-bar-ctrl` y `.fact-bar-toggle`;
+  `.fact-panel` se expande debajo de la barra (ancho completo) en vez de
+  flotar; `.fact-scroll` con alto máximo para que el texto no desborde.
+  Eliminadas las reglas del chip flotante (`.fact-chip*`, `.is-dragging`,
+  `factChipIn`, `factHaloBreath`). Media queries nuevas en 700px/540px/400px.
+- Botón "volver arriba": `.fab-top` fijo abajo a la derecha, 62px en
+  escritorio y 50px/46px en móvil, subido a `bottom: 104px/96px` para no
+  tapar el banner de instalación de la app (que ocupa todo el ancho).
+- Estatuto: el relleno inferior de la página pasó de 96–160px (necesario
+  cuando el "Dato del día" flotaba) a 28–56px.
+
+src/components/FactWidget.tsx
+- Dejó de ser una burbuja arrastrable: se quitó todo el código de arrastre
+  (posición con `left/top`, `pjl_fact_pos` en localStorage, refs de puntero,
+  handlers `startDrag`/`onDrag`/`endDrag`, `clampIntoView` en resize y
+  orientationchange).
+- Render nuevo: barra horizontal con icono del dato, categoría, título y
+  controles (anterior / otra / siguiente) más el botón "Ver más / Ocultar".
+- El detalle se abre debajo de la barra (mismo `fact-panel`), se eliminaron los
+  controles duplicados del encabezado del panel y se conserva la preferencia
+  de apertura guardada.
+
+Verificación:
+- `npx tsc --noEmit`: sin errores.
+- `npx eslint src/app/page.tsx src/components/FactWidget.tsx`: sin errores
+  (los errores del lint global son preexistentes en bundles de terceros).
+- `npm run build`: compilación correcta.
+- Producción: `/?page=institucional` responde HTTP 200; `/api/store` en GET
+  responde 405 (solo admite POST), sin regressions.
+
+Despliegue: Worker 553ca1a4-0a59-47d6-98fd-1326af4eba77
+
+[7] 2026-09-30 18:40 - SINCRONIZACIÓN REAL: LA BASE PASA A SER LA ÚNICA FUENTE DE VERDAD PARA TODOS LOS DISPOSITIVOS
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia
+Solicitado por: Andres Arzamendia
+
+Motivo: el pedido fue que el teléfono mostrara contenido viejo (agenda/visitas y
+demás) mientras la computadora sí veía lo nuevo, y que todo se sirviera desde un
+mismo lugar para que se vea igual en todos los dispositivos.
+
+Diagnóstico (por qué los dispositivos se congelaban con datos viejos):
+1. La sincronización dependía del journal `meta_updated`, un único objeto
+   compartido. Cada navegador lo guardaba tal cual, sobrescribiendo el remoto:
+   si un dispositivo no conocía todas las claves, BORRABA de la base las
+   marcas de las demás. En la base quedaron solo 9 claves con marca
+   (branding, content, hero, heroInterval, logs, profiles, stats, theme,
+   users); faltaban activities, news, chapels, docs, faq, sections, social, etc.
+2. Cuando una clave no tenía marca en el journal, el código decía «descargala
+   solo la primera vez en cada dispositivo». En la práctica: los teléfonos que
+   ya habían descargado esa clave NUNCA más la volvían a bajar. Por eso seguían
+   viendo la agenda, las noticias y las comunidades de hace días.
+3. `fetchAllStoreRows` pedía solo `key, value` y devolvía `updatedAt: null`
+   siempre, con un comentario que decía que la tabla no tenía esa columna.
+   Falso: `pjl_store.updated_at` existe y un trigger de Postgres la actualiza en
+   cada guardado. Se estaba descartando justamente la marca de verdad.
+4. Las marcas de tiempo locales se sellaban con la hora del navegador, no con la
+   de la base, y se comparaban como texto con formatos distintos
+   ("...+00:00" contra "...Z"), lo que hacía la comparación poco fiable.
+5. `/api/store` no aceptaba las claves `news` ni `gallery`: lo que el panel
+   guardaba de esas secciones se rechazaba y se quedaba solo en el navegador
+   del panel. Los demás dispositivos nunca lo veían.
+
+Qué se hizo, archivo por archivo:
+
+1) src/lib/supabaseStore.ts
+   - `fetchAllStoreRows` ahora pide `key, value, updated_at` y devuelve
+     `updatedAt` real.
+   - Nueva función `fetchStoreVersions()`: trae solo `key, updated_at` de todas
+     las filas (unas centenas de bytes) para saber qué cambió sin bajar el
+     contenido.
+
+2) src/lib/pjlStore.ts
+   - `syncRemoteValues` ahora decide con el `updated_at` de la base (la fuente
+     de verdad) en lugar del journal: baja solo las claves cuya fila es más
+     nueva que lo que tiene el dispositivo.
+   - Red de seguridad `SYNC_MAX_AGE_MS` (6 h): si una clave no cambia, el
+     dispositivo la vuelve a confirmar cada 6 horas. Así ningún dispositivo
+     puede quedar congelado con datos viejos aunque una marca se pierda.
+   - `toMs()` para comparar fechas en milisegundos y `setLocalTs()` guarda
+     siempre en UTC: se elimina la comparación de textos con formatos distintos.
+   - Al bajar un valor se sella con la marca real de la base, no con la hora del
+     navegador.
+   - `journalUpdate` ahora mergea con el journal remoto y conserva la marca más
+     reciente de cada clave, así ningún dispositivo vuelve a borrar las marcas
+     de los demás. El journal sigue usándose para el aviso del panel, pero ya
+     no decide la sincronización.
+   - `resetStaleSyncStamps()` + `SYNC_ENGINE_VERSION`: en la primera visita con
+     esta versión se borran las marcas de tiempo viejas del dispositivo y se
+     trae TODO desde la base una vez. Eso es lo que arregla de inmediato los
+     teléfonos que quedaron con datos congelados.
+   - La suscripción en tiempo real ahora también sella la marca con el
+     `updated_at` real.
+
+3) src/app/api/store/route.ts
+   - `ALLOWED_KEYS` ahora incluye `news` y `gallery`. Siguen exigiendo sesión
+     de administrador para escribir (sin sesión responde 401, verificado).
+
+Qué NO se tocó: el diseño, el contenido, el Centro de Avisos, el Web Push, las
+noticias de la base de datos ni ninguna sección del sitio.
+
+Verificación:
+- `npx tsc --noEmit`: sin errores.
+- ESLint sobre los tres archivos: sin advertencias ni errores.
+- `npm run build`: compilación correcta.
+- Comprobado en la base que `pjl_store` tiene `updated_at` con trigger y que
+  el token público puede leer `key, updated_at`.
+- Producción: responden 200 inicio, estatuto, institucional, agenda, noticias y
+  zonas; /api/notifications responde 200; /api/store sin sesión responde 401.
+- Los dispositivos se re-sincronizan solos: en la primera visita borran sus
+  marcas viejas y bajan todo de la base, y después cada 45 s.
+
+Despliegue: 99417b6f-a5de-4cca-809c-13d4690191ed
+
 [6] 2026-09-30 17:56 - SE RESTAURA EL MENÚ Y SE QUITA EL BLOQUE «MISIÓN, VISIÓN Y VALORES» DE LA PORTADA
 --------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia
