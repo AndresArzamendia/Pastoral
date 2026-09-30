@@ -1,5 +1,5 @@
-/* 
-   PASTORAL JUVENIL LUQUEÑA - THE NEW AESTHETIC
+﻿/* 
+   PASTORAL JUVENIL LUQUEÃ‘A - THE NEW AESTHETIC
    Institutional, Professional, and Highly Functional.
 */
 
@@ -137,7 +137,7 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 
 /* Tras la primera carga, las navegaciones entre secciones (SPA) deben
    mostrar el contenido al instante: las clases de entrada .reveal ya no
-   deben animar de nuevo cada vez que entra a una sección. */
+   deben animar de nuevo cada vez que entra a una secciÃ³n. */
 html.pjl-nav-entered .reveal {
   opacity: 1;
   transform: none;
@@ -176,7 +176,7 @@ html.pjl-nav-entered .reveal {
 .a11y-btn:hover { color: var(--gold); }
 
 /* ============================================================
-   NAVBAR PREMIUM PJL — barra, marca y botones con animación única
+   NAVBAR PREMIUM PJL â€” barra, marca y botones con animaciÃ³n Ãºnica
    ============================================================ */
 .top-nav {
   position: sticky;
@@ -192,7 +192,7 @@ html.pjl-nav-entered .reveal {
   box-shadow: 0 8px 26px rgba(26, 39, 68, 0.08);
   transition: height 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, background 0.4s ease, border-color 0.4s ease;
 }
-/* Línea de energía dorada que recorre el canto superior del navbar */
+/* LÃ­nea de energÃ­a dorada que recorre el canto superior del navbar */
 .top-nav::before {
   content: '';
   position: absolute;
@@ -213,7 +213,7 @@ html.pjl-nav-entered .reveal {
   100% { background-position: -220% 0; }
 }
 
-/* Resplandor suave que respira detrás de todo el navbar */
+/* Resplandor suave que respira detrÃ¡s de todo el navbar */
 .top-nav::after {
   content: '';
   position: absolute;
@@ -269,7 +269,7 @@ html.pjl-nav-entered .reveal {
   place-items: center;
   flex-shrink: 0;
 }
-/* Halo dorado que respira detrás del escudo */
+/* Halo dorado que respira detrÃ¡s del escudo */
 .brand-logo-halo {
   position: absolute;
   inset: -12px;
@@ -361,7 +361,7 @@ html.pjl-nav-entered .reveal {
 
 /* ---------- ENLACES ---------- */
 .nav-links {
-  /* El menú absorbe todo el espacio libre entre la marca y el borde
+  /* El menÃº absorbe todo el espacio libre entre la marca y el borde
      derecho, y sus botones quedan centrados dentro de ese espacio */
   flex: 1 1 auto;
   display: flex;
@@ -378,7 +378,7 @@ html.pjl-nav-entered .reveal {
   color: var(--navy) !important;
 }
 .nav-item-featured { z-index: 2; }
-/* Indicador inferior: línea dorada con punto central */
+/* Indicador inferior: lÃ­nea dorada con punto central */
 .nav-item::after {
   content: '';
   position: absolute;
@@ -398,7 +398,7 @@ html.pjl-nav-entered .reveal {
   opacity: 1;
   transform: scaleX(1);
 }
-/* Punto dorado bajo la sección activa */
+/* Punto dorado bajo la secciÃ³n activa */
 .nav-item-active::before {
   content: '';
   position: absolute;
@@ -413,7 +413,7 @@ html.pjl-nav-entered .reveal {
   pointer-events: none;
 }
 
-/* ---------- BOTÓN BASE (píldora fantasma, escala fluida) ---------- */
+/* ---------- BOTÃ“N BASE (pÃ­ldora fantasma, escala fluida) ---------- */
 .nav-btn {
   position: relative;
   isolation: isolate;
@@ -434,7 +434,7 @@ html.pjl-nav-entered .reveal {
   cursor: pointer;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.28s ease, background 0.28s ease, border-color 0.28s ease, box-shadow 0.3s ease;
 }
-/* Capas de efectos únicas por botón (::before relleno, ::after brillo/anillo) */
+/* Capas de efectos Ãºnicas por botÃ³n (::before relleno, ::after brillo/anillo) */
 .nav-btn::before,
 .nav-btn::after {
   content: '';
@@ -479,7 +479,7 @@ html.pjl-nav-entered .reveal {
   opacity: 1;
 }
 
-/* Sección activa: píldora navy con texto dorado */
+/* SecciÃ³n activa: pÃ­ldora navy con texto dorado */
 .nav-btn.is-active {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
   color: #f3d48a;
@@ -491,11 +491,11 @@ html.pjl-nav-entered .reveal {
 }
 
 /* ============================================================
-   ANIMACIÓN ÚNICA POR BOTÓN
-   Cada sección tiene su propio efecto de fondo y su ícono animado
+   ANIMACIÃ“N ÃšNICA POR BOTÃ“N
+   Cada secciÃ³n tiene su propio efecto de fondo y su Ã­cono animado
    ============================================================ */
 
-/* ✦ INICIO — resplandor cálido que nace del suelo + ícono que rebota */
+/* âœ¦ INICIO â€” resplandor cÃ¡lido que nace del suelo + Ã­cono que rebota */
 [data-nav="home"]::before {
   background: radial-gradient(130% 145% at 50% 118%, rgba(228, 183, 102, 0.95) 0%, rgba(228, 183, 102, 0) 62%);
   opacity: 0;
@@ -519,7 +519,7 @@ html.pjl-nav-entered .reveal {
   animation: icoBounceHome 0.75s cubic-bezier(0.28, 0.84, 0.42, 1);
 }
 
-/* x NOSOTROS — cortina dorada que barre desde la izquierda + libro que gira sobre sí mismo */
+/* x NOSOTROS â€” cortina dorada que barre desde la izquierda + libro que gira sobre sÃ­ mismo */
 [data-nav="institucional"]::before {
   background: linear-gradient(135deg, var(--gold) 0%, #e2b45f 55%, #caa14e 100%);
   transform: scaleX(0);
@@ -541,7 +541,7 @@ html.pjl-nav-entered .reveal {
   animation: icoFlipBook 0.7s cubic-bezier(0.45, 0.05, 0.35, 1);
 }
 
-/* x CONSEJO — tinta navy que brota desde la esquina inferior + equipo con rebote de resorte */
+/* x CONSEJO â€” tinta navy que brota desde la esquina inferior + equipo con rebote de resorte */
 [data-nav="consejo"]::before {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
   clip-path: circle(0% at 0% 100%);
@@ -567,7 +567,7 @@ html.pjl-nav-entered .reveal {
   animation: icoPopSpring 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* x️ ZONAS — tinta navy desde la esquina superior opuesta + radar expansivo + mapa que se sacude */
+/* xï¸ ZONAS â€” tinta navy desde la esquina superior opuesta + radar expansivo + mapa que se sacude */
 [data-nav="zonas"]::before {
   background: linear-gradient(225deg, var(--navy) 0%, var(--navy-mid) 100%);
   clip-path: circle(0% at 100% 0%);
@@ -604,7 +604,7 @@ html.pjl-nav-entered .reveal {
   animation: icoWiggleMap 0.8s ease-in-out;
 }
 
-/* x& AGENDA — destello de luz que cruza el botón + calendario que pasa la hoja */
+/* x& AGENDA â€” destello de luz que cruza el botÃ³n + calendario que pasa la hoja */
 [data-nav="agenda"]::before {
   background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.85) 44%, rgba(228, 183, 102, 0.5) 56%, transparent 80%);
   transform: translateX(-135%) skewX(-18deg);
@@ -634,7 +634,7 @@ html.pjl-nav-entered .reveal {
   animation: icoCalendarFlip 0.7s cubic-bezier(0.45, 0.05, 0.35, 1);
 }
 
-/* x NOTICIAS — sello de tinta que se estampa desde el centro + periódico que tiembla */
+/* x NOTICIAS â€” sello de tinta que se estampa desde el centro + periÃ³dico que tiembla */
 [data-nav="noticias"]::before {
   background: radial-gradient(circle at 50% 50%, #22335c 0%, var(--navy-mid) 70%);
   clip-path: circle(0% at 50% 50%);
@@ -660,7 +660,7 @@ html.pjl-nav-entered .reveal {
   animation: icoShakePress 0.65s ease-in-out;
 }
 
-/* x DOCUMENTOS — bandeja dorada que se despliega desde abajo + carpeta que se abre */
+/* x DOCUMENTOS â€” bandeja dorada que se despliega desde abajo + carpeta que se abre */
 [data-nav="documentos"]::before {
   background: linear-gradient(180deg, var(--gold) 0%, #b98a2f 100%);
   transform: translateY(101%);
@@ -681,7 +681,7 @@ html.pjl-nav-entered .reveal {
   animation: icoFolderOpen 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* S0️ CONTACTO — aura cálida + anillo que emana como carta enviada + sobre que se balancea */
+/* S0ï¸ CONTACTO â€” aura cÃ¡lida + anillo que emana como carta enviada + sobre que se balancea */
 [data-nav="contacto"]::before {
   background: radial-gradient(circle at 50% 55%, rgba(200, 151, 58, 0.18) 0%, transparent 70%);
   opacity: 0;
@@ -716,7 +716,7 @@ html.pjl-nav-entered .reveal {
   animation: icoSwingMail 0.8s ease-in-out;
 }
 
-/* ✦ VATICANO — luz celestial que asciende + bandera que flota continuamente */
+/* âœ¦ VATICANO â€” luz celestial que asciende + bandera que flota continuamente */
 [data-nav="vaticano"]::before {
   background: radial-gradient(120% 130% at 50% 120%, rgba(247, 230, 189, 0.9) 0%, rgba(247, 230, 189, 0) 65%);
   opacity: 0;
@@ -806,7 +806,7 @@ html.pjl-nav-entered .reveal {
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .dropdown-link::before {
-  content: '†';
+  content: 'â€ ';
   position: absolute;
   left: 15px;
   width: 20px;
@@ -888,11 +888,11 @@ html.pjl-nav-entered .reveal {
   }
 }
 
-/* NAVBAR — el lema "Pastoral Juvenil Luqueña" siempre debe estar visible bajo
-   «PJL» (desktop y móvil) y no pisar jamás el botón «Inicio»: el texto del lema
-   es flexible (envuelve a dos líneas cuando falta ancho, sin cortes). En la
-   banda de escritorio que compite por el espacio también compactamos un poco
-   los botones del menú para que quepa todo. */
+/* NAVBAR â€” el lema "Pastoral Juvenil LuqueÃ±a" siempre debe estar visible bajo
+   Â«PJLÂ» (desktop y mÃ³vil) y no pisar jamÃ¡s el botÃ³n Â«InicioÂ»: el texto del lema
+   es flexible (envuelve a dos lÃ­neas cuando falta ancho, sin cortes). En la
+   banda de escritorio que compite por el espacio tambiÃ©n compactamos un poco
+   los botones del menÃº para que quepa todo. */
 @media (max-width: 1560px) and (min-width: 1481px) {
   .nav-links {
     gap: 2px !important;
@@ -1157,20 +1157,6 @@ html.pjl-nav-entered .reveal {
   margin-bottom: 25px;
   flex: 1;
 }
-.btn-cv-pjl {
-  background: var(--navy);
-  color: #fff;
-  padding: 14px 25px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  transition: 0.3s;
-}
-.btn-cv-pjl:hover { background: var(--gold); color: var(--navy); }
 
 /* AGENDA & TIMELINE */
 .agenda-split {
@@ -1832,7 +1818,7 @@ button, a, [role="button"], label[for],
 .zone-card, .profile-card, .mvv-card,
 .stat-box, .timeline-item, .nav-item > a,
 .dropdown-link, .logo-area, .a11y-btn,
-.btn-pjl, .btn-premium, .btn-cv-pjl,
+.btn-pjl, .btn-premium,
 .pjl-link, .social-circle, .admin-nav-item,
 .tab-btn, .news-card, select, .zone-card-header {
   cursor: pointer;
@@ -1844,7 +1830,6 @@ input, textarea { cursor: text; }
    ============================================================ */
 .btn-pjl,
 .btn-premium,
-.btn-cv-pjl,
 .btn-premium-gold,
 .btn-premium-outline,
 .a11y-btn {
@@ -1854,15 +1839,13 @@ input, textarea { cursor: text; }
 }
 /* Subtle lift on hover */
 .btn-pjl:hover,
-.btn-premium:hover,
-.btn-cv-pjl:hover {
+.btn-premium:hover {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 8px 30px rgba(200, 151, 58, 0.35);
 }
 /* Ripple pseudo-element */
 .btn-pjl::after,
-.btn-premium::after,
-.btn-cv-pjl::after {
+.btn-premium::after {
   content: '';
   position: absolute;
   top: 50%; left: 50%;
@@ -1875,15 +1858,13 @@ input, textarea { cursor: text; }
   pointer-events: none;
 }
 .btn-pjl:hover::after,
-.btn-premium:hover::after,
-.btn-cv-pjl:hover::after {
+.btn-premium:hover::after {
   width: 350px;
   height: 350px;
   opacity: 1;
 }
 .btn-pjl:active,
-.btn-premium:active,
-.btn-cv-pjl:active {
+.btn-premium:active {
   transform: translateY(0) scale(0.98);
 }
 
@@ -1899,7 +1880,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   PROFILE QUOTE Ó PERSONAL MESSAGE BOX
+   PROFILE QUOTE Ã“ PERSONAL MESSAGE BOX
    ============================================================ */
 .profile-quote {
   background: linear-gradient(135deg, var(--gold-pale) 0%, #fff8ee 100%);
@@ -1924,7 +1905,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   ZONE CARDS Ó MORE VIVEZA & VIBRANCY
+   ZONE CARDS Ã“ MORE VIVEZA & VIBRANCY
    ============================================================ */
 .zone-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -1950,7 +1931,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   MVV CARDS Ó MORE VIVEZA
+   MVV CARDS Ã“ MORE VIVEZA
    ============================================================ */
 .mvv-card {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -1961,7 +1942,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   PROFILE CARDS Ó MORE VIVEZA
+   PROFILE CARDS Ã“ MORE VIVEZA
    ============================================================ */
 .profile-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -1975,7 +1956,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   SECTION HEADS Ó EXTRA ACCENT BAR
+   SECTION HEADS Ã“ EXTRA ACCENT BAR
    ============================================================ */
 .section-head {
   margin-bottom: 80px;
@@ -2020,7 +2001,7 @@ input, textarea { cursor: text; }
   position: relative;
 }
 .section-head .line::after {
-  content: '⬠';
+  content: 'â¬ ';
   position: absolute;
   top: 50%;
   left: 50%;
@@ -2157,7 +2138,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   SOCIAL CIRCLES Ó HOVER PULSE
+   SOCIAL CIRCLES Ã“ HOVER PULSE
    ============================================================ */
 .social-circle {
   transition: transform 0.2s ease, background 0.2s, box-shadow 0.2s;
@@ -2170,7 +2151,7 @@ input, textarea { cursor: text; }
 }
 
 /* ============================================================
-   ADMIN — RESPONSIVE MOBILE
+   ADMIN â€” RESPONSIVE MOBILE
    ============================================================ */
 @media (max-width: 900px) {
   .admin-stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2787,8 +2768,8 @@ input, textarea { cursor: text; }
     max-width: 52vw;
   }
 
-  /* En móvil el lema "Pastoral Juvenil Luqueña" debe mostrarse COMPLETO:
-     envuelve a dos líneas en vez de cortarse (sin ellipsis ni ancho limitado). */
+  /* En mÃ³vil el lema "Pastoral Juvenil LuqueÃ±a" debe mostrarse COMPLETO:
+     envuelve a dos lÃ­neas en vez de cortarse (sin ellipsis ni ancho limitado). */
   .logo-area p {
     font-size: 8.5px !important;
     margin: 0 !important;
@@ -2802,7 +2783,7 @@ input, textarea { cursor: text; }
     overflow-wrap: anywhere;
   }
 
-  /* En móvil el halo respira más sutil para no competir con el contenido */
+  /* En mÃ³vil el halo respira mÃ¡s sutil para no competir con el contenido */
   .brand-logo-halo { animation-duration: 5.5s; opacity: 0.4; }
 
   .nav-links {
@@ -3253,7 +3234,7 @@ input:checked + .pjl-slider:before {
   width: 100%;
 }
 
-/* --- EVANGELIO DE HOY · secciones (modal) --- */
+/* --- EVANGELIO DE HOY Â· secciones (modal) --- */
 .evh-secs {
   padding: 4px 16px 14px;
   max-height: min(52vh, 330px);
@@ -3325,7 +3306,7 @@ input:checked + .pjl-slider:before {
 }
 .evh-sec--lectura .evh-sec-head h5::before,
 .evh-sec--segunda .evh-sec-head h5::before {
-  content: '✠ ';
+  content: 'âœ  ';
   color: var(--gold, #C8973A);
 }
 .evh-foot {
@@ -3678,7 +3659,7 @@ input:checked + .pjl-slider:before {
 }
 
 /* ==========================================================================
-  CORRECCIÓN DEL MENÚ LATERAL (EVITA EL TEMBLOR Y PARPADEO)
+  CORRECCIÃ“N DEL MENÃš LATERAL (EVITA EL TEMBLOR Y PARPADEO)
    ========================================================================== */
 
 .drawer-btn {
@@ -3701,11 +3682,11 @@ input:checked + .pjl-slider:before {
   cursor: pointer;
   box-sizing: border-box; /* Clave: Mantiene las dimensiones fijas pase lo que pase */
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-  transform: translateZ(0); /* Aceleración por hardware para suavizar fuentes */
+  transform: translateZ(0); /* AceleraciÃ³n por hardware para suavizar fuentes */
   backface-visibility: hidden;
 }
 
-/* Ícono del drawer con vida propia al interactuar */
+/* Ãcono del drawer con vida propia al interactuar */
 .drawer-ico {
   display: inline-grid;
   place-items: center;
@@ -3753,8 +3734,8 @@ input:checked + .pjl-slider:before {
 .drawer-btn:hover, .drawer-btn:focus {
   background: rgba(200, 151, 58, 0.15);
   color: var(--gold);
-  border-color: rgba(200, 151, 58, 0.3); /* Cambia el color del borde, no el tamaño */
-  transform: translateX(4px); /* Desplaza suavemente todo el bloque sin empujar el resto de la página */
+  border-color: rgba(200, 151, 58, 0.3); /* Cambia el color del borde, no el tamaÃ±o */
+  transform: translateX(4px); /* Desplaza suavemente todo el bloque sin empujar el resto de la pÃ¡gina */
 }
 
 .drawer-btn.dropdown-toggle span {
@@ -3806,14 +3787,14 @@ input:checked + .pjl-slider:before {
 }
 
 /* ==========================================================================
-  PARCHE DE EMERGENCIA: ELIMINA EL TEMBLOR DEL MENÚ LATERAL
+  PARCHE DE EMERGENCIA: ELIMINA EL TEMBLOR DEL MENÃš LATERAL
    ========================================================================== */
 .drawer-btn {
-  padding: 14px 18px !important; /* Fuerza el tamaño fijo y elimina el salto a 22px */
+  padding: 14px 18px !important; /* Fuerza el tamaÃ±o fijo y elimina el salto a 22px */
   border: 1px solid transparent !important; /* Reserva el espacio del borde */
   box-sizing: border-box !important; /* Evita expansiones internas */
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
-  transform: translateZ(0) !important; /* Fija las fuentes con la tarjeta gráfica */
+  transform: translateZ(0) !important; /* Fija las fuentes con la tarjeta grÃ¡fica */
   backface-visibility: hidden !important;
 }
 
@@ -3898,7 +3879,7 @@ input:checked + .pjl-slider:before {
   height: 100dvh;
   background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%);
   /* Debe quedar POR ENCIMA de .top-nav (99999): en tablet la navbar es sticky
-     y con un valor menor la barra blanca tapaba el menú abierto */
+     y con un valor menor la barra blanca tapaba el menÃº abierto */
   z-index: 100001;
   display: flex;
   flex-direction: column;
@@ -4315,7 +4296,7 @@ input:checked + .pjl-slider:before {
 /* ============================================================
    UI POLISH LAYER (2026)
    Botones refinados, estados de foco, panel admin y
-   ajustes finos de responsividad. Cargado al final a propósito
+   ajustes finos de responsividad. Cargado al final a propÃ³sito
    para ganar la cascada sin tocar las reglas originales.
    ============================================================ */
 
@@ -4420,7 +4401,7 @@ textarea:focus-visible,
   }
 }
 
-/* ---------- GRIDS PÚBLICOS EN TABLET/MÓVIL ---------- */
+/* ---------- GRIDS PÃšBLICOS EN TABLET/MÃ“VIL ---------- */
 @media (max-width: 1024px) {
   .footer-grid,
   .footer-pjl [style*="grid-template-columns"] {
@@ -4595,14 +4576,14 @@ textarea:focus-visible,
 }
 
 /* ============================================================
-   SISTEMA DE ESTADOS VACÍOS Y ENCABEZADOS (2026 v2)
+   SISTEMA DE ESTADOS VACÃOS Y ENCABEZADOS (2026 v2)
    ============================================================ */
 
-/* ---------- DRAWER MÓVIL: POSICIONAMIENTO DETERMINÍSTICO ----------
+/* ---------- DRAWER MÃ“VIL: POSICIONAMIENTO DETERMINÃSTICO ----------
    El archivo base define el drawer dos veces (una con 'right', otra con
    'left'). Al aplicar juntas quedan sobredeterminadas y algunos navegadores
    resuelven distinto. Unificamos: oculto = right:-100%, abierto = right:0
-   (se desliza desde la derecha, donde está el botón de menú), y anulamos
+   (se desliza desde la derecha, donde estÃ¡ el botÃ³n de menÃº), y anulamos
    cualquier 'left' residual. */
 .mobile-nav-drawer {
   left: auto;
@@ -4712,7 +4693,7 @@ textarea:focus-visible,
   .carousel-pos-grid { grid-template-columns: 1fr !important; }
 }
 
-/* ---------- CURRÍCULOS / PERFILES ---------- */
+/* ---------- CURRÃCULOS / PERFILES ---------- */
 .profile-teams-bar {
   display: flex;
   gap: 9px;
@@ -4882,60 +4863,6 @@ textarea:focus-visible,
   box-shadow: 0 0 0 3px rgba(200, 151, 58, 0.15);
   outline: none;
 }
-
-.profile-cv-box {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-top: 13px;
-  padding: 11px 13px;
-  border-radius: 14px;
-  border: 1.5px dashed var(--gold-pale);
-  background: var(--cream);
-  transition: border-color 0.25s ease, background 0.25s ease;
-}
-.profile-cv-box:hover { border-color: var(--gold); }
-.profile-cv-box.loaded {
-  border-style: solid;
-  border-color: rgba(34, 197, 94, 0.5);
-  background: rgba(34, 197, 94, 0.07);
-}
-.profile-cv-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid var(--gold-pale);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-.profile-cv-box.loaded .profile-cv-icon { border-color: rgba(34, 197, 94, 0.5); }
-.profile-cv-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.profile-cv-info strong { font-size: 12px; color: var(--navy); }
-.profile-cv-info small { font-size: 10.5px; color: var(--text-muted); }
-.profile-cv-btn {
-  padding: 7px 14px !important;
-  font-size: 10px !important;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.profile-cv-remove {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-.profile-cv-remove:hover { background: #fee2e2; transform: scale(1.12); }
 
 .profile-delete-btn {
   background: transparent;
@@ -5324,7 +5251,7 @@ textarea:focus-visible,
   .identity-logo-row > div:last-child { display: flex; flex-direction: column; align-items: center; }
 }
 
-/* ---------- IDENTIDAD DE MARCA · v2 ---------- */
+/* ---------- IDENTIDAD DE MARCA Â· v2 ---------- */
 .id-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
 .id-header-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .id-header-icon {
@@ -5447,7 +5374,7 @@ textarea:focus-visible,
 }
 .id-tip summary::-webkit-details-marker { display: none; }
 .id-tip summary:hover { background: rgba(200, 151, 58, 0.06); }
-.id-tip summary::before { content: '💡'; font-size: 13px; }
+.id-tip summary::before { content: 'ðŸ’¡'; font-size: 13px; }
 .id-tip p { margin: 0; padding: 0 16px 14px; font-size: 11.5px; line-height: 1.7; color: var(--text-muted); }
 
 .id-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -5708,7 +5635,7 @@ textarea:focus-visible,
   transform: scale(1.08);
 }
 
-/* ---------- FONDOS ÚNICOS POR SECCIÓN ---------- */
+/* ---------- FONDOS ÃšNICOS POR SECCIÃ“N ---------- */
 .admin-content-area {
   transition: background 0.7s ease;
 }
@@ -5806,7 +5733,7 @@ textarea:focus-visible,
   background: linear-gradient(165deg, #f9f7ef 0%, #f3f0e3 60%, #ede9d8 100%);
 }
 
-/* ---------- PÚBLICO: FONDOS COLORIDOS POR SECCIÓN ---------- */
+/* ---------- PÃšBLICO: FONDOS COLORIDOS POR SECCIÃ“N ---------- */
 .section-pjl { position: relative; }
 .section-tint { overflow: hidden; }
 .section-tint::before,
@@ -5847,7 +5774,7 @@ textarea:focus-visible,
 .tint-rose   { --tint-a: rgba(244, 114, 182, 0.12); --tint-b: rgba(249, 115, 22, 0.07); background: linear-gradient(170deg, #fdf4f8 0%, #faebf1 55%, #f6e2ea 100%); }
 .tint-violet { --tint-a: rgba(139, 109, 255, 0.13); --tint-b: rgba(236, 72, 153, 0.07); background: linear-gradient(170deg, #f7f5fc 0%, #f0ecfa 55%, #e9e3f6 100%); }
 
-/* ---------- PÚBLICO: TARJETAS CLICKEABLES ---------- */
+/* ---------- PÃšBLICO: TARJETAS CLICKEABLES ---------- */
 .click-card {
   cursor: pointer;
   min-width: 0;
@@ -6071,7 +5998,7 @@ textarea:focus-visible,
   animation: barGrow 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Accesos rápidos */
+/* Accesos rÃ¡pidos */
 .quick-action-btn { transition: all 0.25s ease; position: relative; overflow: hidden; }
 .quick-action-btn:hover {
   background: var(--navy);
@@ -6199,15 +6126,15 @@ textarea:focus-visible,
   .sidebar-header .logo-img-circular { animation: none !important; }
 }
 
-/* ---------- NAVBAR PÚBLICO — ENTRADA ESCALONADA CON DIFUMINADO ---------- */
-/* Estado inicial permanente: oculto. Únicamente la animación (fill-mode both)
-   revela cada elemento, sin ventanas donde el menú se vea estático. */
+/* ---------- NAVBAR PÃšBLICO â€” ENTRADA ESCALONADA CON DIFUMINADO ---------- */
+/* Estado inicial permanente: oculto. Ãšnicamente la animaciÃ³n (fill-mode both)
+   revela cada elemento, sin ventanas donde el menÃº se vea estÃ¡tico. */
 .top-nav .brand-logo-wrap,
 .top-nav .brand-text,
 .top-nav .nav-links .nav-item {
   opacity: 0;
 }
-/* Aparición con velo que se disipa y aterrizaje progresivo:
+/* ApariciÃ³n con velo que se disipa y aterrizaje progresivo:
    rampa lenta al inicio, el desenfoque se disuelve en etapas
    y el elemento se posa suavemente, sin golpe seco */
 @keyframes navFadeDown {
@@ -6227,7 +6154,7 @@ textarea:focus-visible,
 .top-nav.nav-entered .nav-links .nav-item:nth-child(9) { animation-delay: 0.27s; }
 
 /* Entrada de la marca: el escudo emerge lentamente del desenfoque,
-   rebota y se asienta de forma gradual; el texto se desliza aclarándose */
+   rebota y se asienta de forma gradual; el texto se desliza aclarÃ¡ndose */
 @keyframes brandLogoDrop {
   0% { opacity: 0; transform: translateY(-12px) scale(0.92); filter: blur(4px); }
   50% { opacity: 0.9; transform: translateY(2px) scale(1.02); filter: blur(0.8px); }
@@ -6425,7 +6352,7 @@ textarea:focus-visible,
 }
 .ap-card:hover { box-shadow: 0 14px 32px rgba(26, 39, 68, 0.09); }
 
-/* Presets litúrgicos */
+/* Presets litÃºrgicos */
 .ap-preset-btn {
   position: relative;
   overflow: hidden;
@@ -6623,7 +6550,7 @@ textarea:focus-visible,
 }
 .ap-icon-card:hover .ap-icon-preview { transform: scale(1.2) rotate(-10deg); }
 
-/* ── Nuevos componentes de Apariencia v2 ─────────────────────────────── */
+/* â”€â”€ Nuevos componentes de Apariencia v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 /* Selector de dispositivo en la vista previa */
 .ap-dev-btn {
   width: 34px;
@@ -6712,7 +6639,7 @@ textarea:focus-visible,
 }
 
 /* ---------- SIDEBAR NAV v2: BOTONES, LOGO Y LETRAS ---------- */
-/* Logo: anillo cónico giratorio + flotación */
+/* Logo: anillo cÃ³nico giratorio + flotaciÃ³n */
 .side-logo-wrap {
   position: relative;
   display: inline-flex;
@@ -6752,7 +6679,7 @@ textarea:focus-visible,
 @keyframes textShine { to { background-position: -220% center; } }
 .side-logo-title:hover { transform: translateX(2px); }
 
-/* Subtítulo con filetes dorados */
+/* SubtÃ­tulo con filetes dorados */
 .side-logo-sub { display: inline-flex; align-items: center; gap: 8px; }
 .side-logo-sub::before,
 .side-logo-sub::after {
@@ -6764,7 +6691,7 @@ textarea:focus-visible,
 .side-logo-sub::before { background: linear-gradient(90deg, transparent, rgba(200, 151, 58, 0.7)); }
 .side-logo-sub::after { background: linear-gradient(90deg, rgba(200, 151, 58, 0.7), transparent); }
 
-/* Icono como chip premium (solo desktop; en móvil el bottom-bar manda) */
+/* Icono como chip premium (solo desktop; en mÃ³vil el bottom-bar manda) */
 @media (min-width: 1024px) {
   .sidebar-nav .nav-icon {
     width: 38px;
@@ -6824,7 +6751,7 @@ textarea:focus-visible,
 }
 .admin-nav-item:active { transform: translateX(4px) scale(0.98); }
 
-/* Punto indicador del módulo activo */
+/* Punto indicador del mÃ³dulo activo */
 .nav-active-dot {
   margin-left: auto;
   width: 8px;
@@ -6846,8 +6773,8 @@ textarea:focus-visible,
 
 /* ---------- FIX NAVBAR: anti-solape del lema en pantallas grandes ----------
    El bloque base da ancho completo al contenedor del navbar entre 1481-1880px,
-   pero a partir de 1881px volvía a limitarse a 1300px mientras el lema
-   "Fe · Comunidad · Misión" ya es visible (≤1680px) → se pisaba con los botones. */
+   pero a partir de 1881px volvÃ­a a limitarse a 1300px mientras el lema
+   "Fe Â· Comunidad Â· MisiÃ³n" ya es visible (â‰¤1680px) â†’ se pisaba con los botones. */
 @media (min-width: 1881px) {
   .top-nav .container {
     max-width: none;
@@ -6861,7 +6788,7 @@ textarea:focus-visible,
 }
 
 /* ---------- SPLASH SCREEN DE CARGA ----------
-   Secuencia: logo (pop elástico + anillo dorado giratorio)  
+   Secuencia: logo (pop elÃ¡stico + anillo dorado giratorio)  
    nombre (letras en cascada)   lema (enfoque suave con llama)  
    barra de progreso + "Cargando..."   salida con fundido. */
 .splash-screen {
@@ -6878,9 +6805,9 @@ textarea:focus-visible,
     linear-gradient(160deg, var(--navy-dark) 0%, var(--navy-mid) 45%, var(--navy-dark) 100%);
   overflow: hidden;
   animation: splashIn 0.5s ease both;
-  /* Visible POR DEFECTO (sin necesitar clase ni JS): así el splash cubre el
+  /* Visible POR DEFECTO (sin necesitar clase ni JS): asÃ­ el splash cubre el
      primer pintado SIEMPRE y nada del contenido (campana, navbar) puede verse
-     antes. El script inline del layout añade 'no-splash' en las rutas sin
+     antes. El script inline del layout aÃ±ade 'no-splash' en las rutas sin
      intro (admin, instalar...) para sacarlo de escena de inmediato. */
   visibility: visible;
 }
@@ -6888,7 +6815,7 @@ html.show-splash .splash-screen { visibility: visible; }
 html.no-splash .splash-screen { display: none !important; }
 /* Las animaciones del contenido viven PAUSADAS hasta que el JS agrega
    'splash-ready' en el useLayoutEffect de page.tsx. Sin esto, la intro
-   arrancaba en el primer pintado del HTML estático y luego se reiniciaba
+   arrancaba en el primer pintado del HTML estÃ¡tico y luego se reiniciaba
    al hidratar (doble refresco). Con el pause solo corren una vez y de
    forma sincronizada con los temporizadores. */
 html:not(.splash-ready) .splash-letter,
@@ -6902,13 +6829,13 @@ html:not(.splash-ready) .sx-scene,
 html:not(.splash-ready) .sx-scene * {
   animation-play-state: paused !important;
 }
-/* Salida cinematográfica en DOS fases (ver efecto del splash en page.tsx):
-   Fase 1 — keyframes REALES (no transiciones: las transiciones sobre una
-   propiedad retenida por otra animación y sobre visibility se cortan a mitad
-   y producían el cierre "de golpe"): fundido + desenfoque + zoom durante
-   ~0.95s mientras el velo mantiene oculta la página.
+/* Salida cinematogrÃ¡fica en DOS fases (ver efecto del splash en page.tsx):
+   Fase 1 â€” keyframes REALES (no transiciones: las transiciones sobre una
+   propiedad retenida por otra animaciÃ³n y sobre visibility se cortan a mitad
+   y producÃ­an el cierre "de golpe"): fundido + desenfoque + zoom durante
+   ~0.95s mientras el velo mantiene oculta la pÃ¡gina.
    El shorthand sustituye a splashIn (misma propiedad, mayor especificidad)
-   y 'forwards' retiene el último fotograma hasta retirar el nodo. */
+   y 'forwards' retiene el Ãºltimo fotograma hasta retirar el nodo. */
 .splash-screen.is-leaving {
   pointer-events: none;
   animation: splashOut 0.95s cubic-bezier(0.45, 0, 0.2, 1) forwards;
@@ -6919,8 +6846,8 @@ html:not(.splash-ready) .sx-scene * {
   100% { opacity: 0; filter: blur(18px); transform: scale(1.08); }
 }
 @keyframes splashIn {
-  /* Parte totalmente opaco: así el primer pintado ya está 100% cubierto por
-     la pantalla de carga y NADA (campana, navbar) puede asomarse detrás
+  /* Parte totalmente opaco: asÃ­ el primer pintado ya estÃ¡ 100% cubierto por
+     la pantalla de carga y NADA (campana, navbar) puede asomarse detrÃ¡s
      mientras el splash hace su fundido de entrada. */
   from { opacity: 1; }
   to { opacity: 1; }
@@ -6934,7 +6861,7 @@ html:not(.splash-ready) .sx-scene * {
   text-align: center;
   padding: 24px;
   max-width: min(92vw, 780px);
-  /* Visible por defecto: el contenido de la intro (logo, título, barra)
+  /* Visible por defecto: el contenido de la intro (logo, tÃ­tulo, barra)
      nace mostrado junto con el fondo, sin esperar clases ni JS. */
   visibility: visible;
   transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.55s ease;
@@ -6947,7 +6874,7 @@ html.show-splash .splash-content { visibility: visible; }
   visibility: hidden;
 }
 
-/* 1) LOGO: pop elástico + anillo cónico giratorio + halo pulsante */
+/* 1) LOGO: pop elÃ¡stico + anillo cÃ³nico giratorio + halo pulsante */
 .splash-logo-wrap {
   position: relative;
   width: clamp(96px, 20vw, 168px);
@@ -7009,8 +6936,8 @@ html.show-splash .splash-content { visibility: visible; }
   line-height: 1.12;
   text-shadow: 0 3px 16px rgba(16, 26, 46, 0.9);
 }
-/* Cada palabra es indivisible: el título solo puede saltar de línea
-   entre palabras, nunca dentro de "LUQUEÑA". */
+/* Cada palabra es indivisible: el tÃ­tulo solo puede saltar de lÃ­nea
+   entre palabras, nunca dentro de "LUQUEÃ‘A". */
 .splash-word {
   display: inline-block;
   white-space: nowrap;
@@ -7051,7 +6978,7 @@ html.show-splash .splash-content { visibility: visible; }
   100% { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 /* La intro muestra SOLO: fondo animado + logo + nombre + frase + barra.
-   La barra y el fondo comparten la misma duración (5.5s): el escenario
+   La barra y el fondo comparten la misma duraciÃ³n (5.5s): el escenario
    (amanecer/llama) se carga y se enciende conforme avanza la barra. */
 .splash-tagline.sv-t { display: none; }
 /* Frase principal (lema): siempre presente en la intro */
@@ -7124,8 +7051,8 @@ html.show-splash .splash-content { visibility: visible; }
   background: linear-gradient(90deg, #a97b22, #e9c87c 55%, #fff3d6);
   transform-origin: left;
   /* Llenado continuo a lo largo de TODA la intro (~5.5s) para que la barra
-     nunca quede estática al 100% antes de tiempo (eso se percibia como que
-     la animación "se cortaba" y luego saltaba de golpe). Completa justo
+     nunca quede estÃ¡tica al 100% antes de tiempo (eso se percibia como que
+     la animaciÃ³n "se cortaba" y luego saltaba de golpe). Completa justo
      cuando se revela la pagina -> transicion natural y sin cortes. */
   animation: barFill 5.5s linear 0.4s both;
 }
@@ -7173,7 +7100,7 @@ html.show-splash .splash-content { visibility: visible; }
   .splash-letter, .splash-logo-wrap, .splash-tagline, .splash-bar, .splash-bar-fill, .splash-loading-text { animation-duration: 0.01s !important; animation-delay: 0s !important; }
 }
 
-/* ---------- ESTADO VACÍO REUTILIZABLE ---------- */
+/* ---------- ESTADO VACÃO REUTILIZABLE ---------- */
 .pjl-empty-state {
   display: flex;
   flex-direction: column;
@@ -7245,7 +7172,7 @@ html.show-splash .splash-content { visibility: visible; }
   box-shadow: 0 14px 30px rgba(200, 151, 58, 0.22);
 }
 
-/* ---------- ENCABEZADOS DE MÓDULO ADMIN ---------- */
+/* ---------- ENCABEZADOS DE MÃ“DULO ADMIN ---------- */
 .admin-section-desc {
   margin: 6px 0 0;
   color: var(--text-muted);
@@ -7277,12 +7204,12 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ============================================================
-   ADMIN PANEL — CONTENT UX OVERHAUL
-   Entradas escalonadas, topbar temática por módulo,
+   ADMIN PANEL â€” CONTENT UX OVERHAUL
+   Entradas escalonadas, topbar temÃ¡tica por mÃ³dulo,
    controles pulidos, fondos vivos y responsivo completo
    ============================================================ */
 
-/* --- 1) Entrada de módulo más rica (reemplaza el reveal simple) --- */
+/* --- 1) Entrada de mÃ³dulo mÃ¡s rica (reemplaza el reveal simple) --- */
 @keyframes moduleViewIn {
   0%   { opacity: 0; transform: translateY(26px) scale(0.985); filter: blur(7px); }
   55%  { opacity: 0.85; filter: blur(2px); }
@@ -7291,14 +7218,14 @@ html.show-splash .splash-content { visibility: visible; }
 .animate-reveal {
   animation: moduleViewIn 0.65s cubic-bezier(0.22, 0.9, 0.32, 1) both;
 }
-/* Bloques anidados: entran después para efecto cascada */
+/* Bloques anidados: entran despuÃ©s para efecto cascada */
 .animate-reveal .animate-reveal { animation-delay: 0.14s; }
 
 @keyframes childRiseIn {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-/* Cascada entre los bloques internos de cada tarjeta de módulo */
+/* Cascada entre los bloques internos de cada tarjeta de mÃ³dulo */
 .pjl-card.animate-reveal > * { animation: childRiseIn 0.55s cubic-bezier(0.22, 0.9, 0.32, 1) both; }
 .pjl-card.animate-reveal > *:nth-child(1) { animation-delay: 0.08s; }
 .pjl-card.animate-reveal > *:nth-child(2) { animation-delay: 0.14s; }
@@ -7309,7 +7236,7 @@ html.show-splash .splash-content { visibility: visible; }
 .pjl-card.animate-reveal > *:nth-child(7) { animation-delay: 0.44s; }
 .pjl-card.animate-reveal > *:nth-child(n+8) { animation-delay: 0.5s; }
 
-/* --- 2) Encabezado de sección: subrayado dorado que se dibuja --- */
+/* --- 2) Encabezado de secciÃ³n: subrayado dorado que se dibuja --- */
 .admin-section-title {
   position: relative;
   padding-bottom: 10px;
@@ -7334,7 +7261,7 @@ html.show-splash .splash-content { visibility: visible; }
   animation: childRiseIn 0.6s cubic-bezier(0.22, 0.9, 0.32, 1) 0.18s both;
 }
 
-/* --- 3) Topbar viva: acento cromático por módulo + título animado --- */
+/* --- 3) Topbar viva: acento cromÃ¡tico por mÃ³dulo + tÃ­tulo animado --- */
 .admin-topbar {
   background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
   border-bottom: 1px solid rgba(200, 151, 58, 0.22);
@@ -7393,7 +7320,7 @@ html.show-splash .splash-content { visibility: visible; }
   50%      { box-shadow: 0 0 0 7px rgba(200, 151, 58, 0.05); }
 }
 
-/* --- 4) Menú de usuario con aparición suave --- */
+/* --- 4) MenÃº de usuario con apariciÃ³n suave --- */
 .user-menu-pop {
   transform-origin: top right;
   animation: userMenuPop 0.28s cubic-bezier(0.22, 1.2, 0.36, 1) both;
@@ -7412,7 +7339,7 @@ html.show-splash .splash-content { visibility: visible; }
   to   { transform: translate3d(-24px, 18px, 0) scale(1.06); }
 }
 
-/* --- 6) Tarjetas: elevación y sombra al pasar el cursor --- */
+/* --- 6) Tarjetas: elevaciÃ³n y sombra al pasar el cursor --- */
 .admin-analytics-card,
 .dash-welcome,
 .identity-stat-box,
@@ -7453,7 +7380,7 @@ html.show-splash .splash-content { visibility: visible; }
   background-color: rgba(200, 151, 58, 0.05);
 }
 
-/* Scrollbar del área de contenido en tono dorado */
+/* Scrollbar del Ã¡rea de contenido en tono dorado */
 .admin-content-area {
   scrollbar-width: thin;
   scrollbar-color: rgba(200, 151, 58, 0.35) transparent;
@@ -7504,8 +7431,8 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ============================================================
-   EQUIPOS Y CONSEJO · ZONAS · MODAL DE PERFIL — UI PREMIUM
-   Mejoras de UI/UX: destellos, órbitas, cascadas y botones con
+   EQUIPOS Y CONSEJO Â· ZONAS Â· MODAL DE PERFIL â€” UI PREMIUM
+   Mejoras de UI/UX: destellos, Ã³rbitas, cascadas y botones con
    brillo. Todo con transform/opacity para mantener fluidez.
    ============================================================ */
 
@@ -7548,7 +7475,7 @@ html.show-splash .splash-content { visibility: visible; }
   box-shadow: 0 26px 60px rgba(200, 151, 58, 0.2), 0 10px 30px rgba(26, 39, 68, 0.1);
 }
 
-/* Número de agua decorativo */
+/* NÃºmero de agua decorativo */
 .mvv-watermark {
   position: absolute;
   top: 14px; right: 20px;
@@ -7593,7 +7520,7 @@ html.show-splash .splash-content { visibility: visible; }
   100% { transform: scale(1.06) rotate(-4deg); }
 }
 
-/* Título con subrayado dorado que se despliega */
+/* TÃ­tulo con subrayado dorado que se despliega */
 .equipos-card h4 {
   position: relative;
   display: inline-block;
@@ -7612,7 +7539,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 .equipos-card:hover h4::after { transform: translateX(-50%) scaleX(1); opacity: 1; }
 
-/* Flecha convertida en píldora premium */
+/* Flecha convertida en pÃ­ldora premium */
 .equipos-card .card-arrow {
   display: inline-flex;
   align-items: center;
@@ -7667,12 +7594,12 @@ html.show-splash .splash-content { visibility: visible; }
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 }
-/* Elevación más generosa con resplandor dorado */
+/* ElevaciÃ³n mÃ¡s generosa con resplandor dorado */
 .zone-card:hover {
   transform: translateY(-12px);
   box-shadow: 0 30px 70px rgba(200, 151, 58, 0.25), 0 12px 34px rgba(18, 42, 83, 0.15);
 }
-/* Chips de estadísticas reactivos */
+/* Chips de estadÃ­sticas reactivos */
 .zone-meta span {
   transition: transform 0.3s ease, background 0.3s ease;
 }
@@ -7690,7 +7617,7 @@ html.show-splash .splash-content { visibility: visible; }
   box-shadow: inset 3px 0 0 var(--gold);
 }
 
-/* Estadísticas en cuadrícula (vista general de zonas) */
+/* EstadÃ­sticas en cuadrÃ­cula (vista general de zonas) */
 .zone-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -7728,13 +7655,11 @@ html.show-splash .splash-content { visibility: visible; }
 
 /* ---------- 3) BOTONES CON DESTELLO ---------- */
 .zone-card .btn-premium,
-.equipos-card .btn-premium,
-.pm-cv {
+.equipos-card .btn-premium {
   overflow: hidden;
 }
 .zone-card .btn-premium::before,
-.equipos-card .btn-premium::before,
-.pm-cv::before {
+.equipos-card .btn-premium::before {
   content: '';
   position: absolute;
   top: -30%; bottom: -30%;
@@ -7747,14 +7672,13 @@ html.show-splash .splash-content { visibility: visible; }
   z-index: 1;
 }
 .zone-card .btn-premium:hover::before,
-.equipos-card .btn-premium:hover::before,
-.pm-cv:hover::before { left: 135%; }
+.equipos-card .btn-premium:hover::before { left: 135%; }
 .zone-card .btn-premium-gold:hover,
 .equipos-card .btn-premium-gold:hover {
   box-shadow: 0 12px 30px rgba(200, 151, 58, 0.5);
 }
 
-/* ---------- 4) MODAL DE PERFIL · V2 PREMIUM ---------- */
+/* ---------- 4) MODAL DE PERFIL Â· V2 PREMIUM ---------- */
 .pm-overlay {
   position: fixed;
   inset: 0;
@@ -7885,7 +7809,7 @@ html.show-splash .splash-content { visibility: visible; }
   padding: 30px clamp(22px, 6vw, 40px) 34px;
   animation: pmFadeUp 0.55s ease 0.42s both;
 }
-/* Descripción como panel elegante con borde dorado */
+/* DescripciÃ³n como panel elegante con borde dorado */
 .pm-bio {
   max-height: 250px;
   overflow-y: auto;
@@ -7922,15 +7846,6 @@ html.show-splash .splash-content { visibility: visible; }
   font-style: italic;
   line-height: 1.6;
 }
-.pm-cv {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 24px;
-  animation: pmFadeUp 0.5s ease 0.5s both;
-}
 
 /* ---------- Responsivo de las mejoras ---------- */
 @media (max-width: 640px) {
@@ -7952,15 +7867,14 @@ html.show-splash .splash-content { visibility: visible; }
   .pm-name,
   .pm-role,
   .pm-divider,
-  .pm-body,
-  .pm-cv { animation-duration: 0.01s !important; animation-delay: 0s !important; }
+  .pm-body { animation-duration: 0.01s !important; animation-delay: 0s !important; }
 }
 
 /* ============================================================
-   CONSEJO PASTORAL — PESTAÑAS DE EQUIPO + TARJETAS DE PERSONAS
+   CONSEJO PASTORAL â€” PESTAÃ‘AS DE EQUIPO + TARJETAS DE PERSONAS
    ============================================================ */
 
-/* ---------- Contenedor segmentado de pestañas ---------- */
+/* ---------- Contenedor segmentado de pestaÃ±as ---------- */
 .council-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -8044,7 +7958,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 .ct-txt { white-space: nowrap; }
 
-/* Pestaña activa */
+/* PestaÃ±a activa */
 .council-tab.is-active {
   background: linear-gradient(135deg, var(--gold), #e2b45a);
   color: var(--navy);
@@ -8063,7 +7977,7 @@ html.show-splash .splash-content { visibility: visible; }
   100% { transform: scale(1) rotate(0deg); }
 }
 
-/* Descripción dinámica del equipo activo */
+/* DescripciÃ³n dinÃ¡mica del equipo activo */
 .council-tab-desc {
   display: flex;
   align-items: center;
@@ -8206,7 +8120,7 @@ html.show-splash .splash-content { visibility: visible; }
   box-shadow: 0 8px 20px rgba(200, 151, 58, 0.28);
 }
 
-/* Enlace "Leer más" animado */
+/* Enlace "Leer mÃ¡s" animado */
 .pc-more {
   display: inline-flex;
   align-items: center;
@@ -8222,7 +8136,7 @@ html.show-splash .splash-content { visibility: visible; }
   transition: gap 0.28s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease;
 }
 .pc-more::after {
-  content: '→';
+  content: 'â†’';
   font-weight: 700;
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -8231,29 +8145,6 @@ html.show-splash .splash-content { visibility: visible; }
   color: #a97b22;
 }
 .pc-more:hover::after { transform: translateX(4px); }
-
-/* Botón CV con destello */
-.profile-card .btn-cv-pjl,
-.pm-cv {
-  position: relative;
-  overflow: hidden;
-}
-.profile-card .btn-cv-pjl::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -70%;
-  width: 45%;
-  transform: skewX(-22deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-}
-.profile-card .btn-cv-pjl:hover::before { left: 135%; }
-.profile-card .btn-cv-pjl:hover {
-  box-shadow: 0 12px 26px rgba(200, 151, 58, 0.4);
-}
 
 /* Cita dentro de la tarjeta */
 .profile-quote {
@@ -8269,7 +8160,7 @@ html.show-splash .splash-content { visibility: visible; }
   z-index: 2;
 }
 
-/* Móvil y movimiento reducido */
+/* MÃ³vil y movimiento reducido */
 @media (max-width: 768px) {
   .council-tabs {
     padding: 7px;
@@ -8285,15 +8176,14 @@ html.show-splash .splash-content { visibility: visible; }
   .ct-ico { animation: none !important; }
   .council-tab-desc { animation-duration: 0.01s !important; animation-delay: 0s !important; }
   .profile-card::after,
-  .council-tab::after,
-  .profile-card .btn-cv-pjl::before { display: none; }
+  .council-tab::after { display: none; }
 }
 
 /* ============================================================
-   ZONAS — HERO HERÁLDICO + PESTAÑAS CINTA + TARJETAS DE ZONA
+   ZONAS â€” HERO HERÃLDICO + PESTAÃ‘AS CINTA + TARJETAS DE ZONA
    ============================================================ */
 
-/* ---------- Franja de estadísticas de la zona (hero) ---------- */
+/* ---------- Franja de estadÃ­sticas de la zona (hero) ---------- */
 .zone-hero-stats {
   display: flex;
   justify-content: center;
@@ -8354,7 +8244,7 @@ html.show-splash .splash-content { visibility: visible; }
   .zh-stat span { font-size: 9px; letter-spacing: 0.08em; }
 }
 
-/* ---------- Botón volver ---------- */
+/* ---------- BotÃ³n volver ---------- */
 .zh-back {
   display: inline-flex;
   align-items: center;
@@ -8435,7 +8325,7 @@ html.show-splash .splash-content { visibility: visible; }
 @keyframes zhDriftA { to { transform: translate(95px, 65px) scale(1.15); } }
 @keyframes zhDriftB { to { transform: translate(-85px, -55px) scale(1.12); } }
 
-/* ---------- Escudo / crestón del logo ---------- */
+/* ---------- Escudo / crestÃ³n del logo ---------- */
 .zone-crest {
   position: relative;
   width: min(250px, 62vw);
@@ -8496,7 +8386,7 @@ html.show-splash .splash-content { visibility: visible; }
   clip-path: polygon(50% 0%, 96% 25%, 96% 75%, 50% 100%, 4% 75%, 4% 25%);
 }
 
-/* Título con numeral dorado en gradiente */
+/* TÃ­tulo con numeral dorado en gradiente */
 .zone-hero h2 .zh-gold {
   font-style: normal;
   background: linear-gradient(120deg, #f0d9a6 0%, var(--gold) 45%, #fff3d6 70%, var(--gold) 100%);
@@ -8507,7 +8397,7 @@ html.show-splash .splash-content { visibility: visible; }
   text-shadow: none;
 }
 
-/* ---------- Pestañas cinta de la zona ---------- */
+/* ---------- PestaÃ±as cinta de la zona ---------- */
 .zone-tabs {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
@@ -8689,7 +8579,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ============================================================
-   DIRECTORIO GENERAL DE COMUNIDADES — ACORDEÓN DESPLEGABLE
+   DIRECTORIO GENERAL DE COMUNIDADES â€” ACORDEÃ“N DESPLEGABLE
    ============================================================ */
 
 /* ---------- Filtros por zona ---------- */
@@ -8743,7 +8633,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 .dir-filter.is-active .df-dot { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25); }
 
-/* ---------- Lista acordeón ---------- */
+/* ---------- Lista acordeÃ³n ---------- */
 .dir-list {
   display: flex;
   flex-direction: column;
@@ -9069,10 +8959,10 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ============================================================
-   INTRO — Fondo vivo "Noche de luz"
+   INTRO â€” Fondo vivo "Noche de luz"
    Aurora suave + destellos dorados ascendentes + haces de luz.
    El escenario se carga y se enciende al MISMO ritmo que la
-   barra (barFill = 5.5s · delay 0.4s): fondo y barra quedan
+   barra (barFill = 5.5s Â· delay 0.4s): fondo y barra quedan
    sincronizados. Logo, frase y barra van por encima.
    ============================================================ */
 .sx-scene {
@@ -9155,7 +9045,7 @@ html.show-splash .splash-content { visibility: visible; }
   to   { opacity: 0.95; transform: translateX(-50%) translateY(-2%) scaleY(1.04); }
 }
 
-/* Destellos dorados ascendentes (tamaño y brillo vía CSS vars --s / --fl) */
+/* Destellos dorados ascendentes (tamaÃ±o y brillo vÃ­a CSS vars --s / --fl) */
 .sx-star {
   position: absolute;
   width: calc(2px * var(--s, 1));
@@ -9173,7 +9063,7 @@ html.show-splash .splash-content { visibility: visible; }
   85%      { transform: translateY(-11vh) scale(1.25); opacity: calc(var(--fl, 0.8) * 0.3); }
 }
 
-/* Pantallas chicas: auroras más suaves y un poco menos de destellos */
+/* Pantallas chicas: auroras mÃ¡s suaves y un poco menos de destellos */
 @media (max-width: 640px) {
   .sx-aura-1 { width: 150vw; height: 150vw; left: -34vw; top: -36vw; filter: blur(44px); opacity: 0.42; }
   .sx-aura-2 { width: 140vw; height: 140vw; right: -30vw; bottom: -32vw; filter: blur(44px); opacity: 0.38; }
@@ -10692,7 +10582,7 @@ html.show-splash .splash-content { visibility: visible; }
   from { opacity: 0; transform: translateY(26px) scale(0.97); }
 }
 
-/* --- Cabecera y pestañas --- */
+/* --- Cabecera y pestaÃ±as --- */
 .cf-livechip {
   padding: 7px 14px; border-radius: 999px;
   background: rgba(16, 185, 129, 0.1); color: #059669;
@@ -10746,7 +10636,7 @@ html.show-splash .splash-content { visibility: visible; }
 .cf-save { margin-top: 20px; width: 100%; padding: 13px !important; letter-spacing: 0.6px; transition: transform 0.2s ease, box-shadow 0.25s ease; }
 .cf-save:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -10px rgba(200, 151, 58, 0.55); }
 
-/* --- Preview pestaña navegador --- */
+/* --- Preview pestaÃ±a navegador --- */
 .cf-tabprev {
   display: flex; align-items: center; gap: 6px;
   margin-top: 12px; padding: 9px 13px;
@@ -11141,7 +11031,7 @@ html.show-splash .splash-content { visibility: visible; }
   .timeline-card { padding: 26px; }
 }
 
-/* Muy chicos (<=360px): grilla de días más compacta */
+/* Muy chicos (<=360px): grilla de dÃ­as mÃ¡s compacta */
 @media (max-width: 360px) {
   .ag-grid { gap: 3px; }
   .ag-hcell { letter-spacing: 0.5px; }
@@ -11345,7 +11235,7 @@ html.show-splash .splash-content { visibility: visible; }
 .ab-del { flex: 0 0 36px; justify-content: center; color: #EF4444; border-color: rgba(239, 68, 68, 0.3); background: transparent; }
 .ab-del:hover { background: rgba(239, 68, 68, 0.1); animation: actShake 0.4s ease; }
 
-/* --- Tap en táctil: las mismas micro-animaciones que el hover en PC --- */
+/* --- Tap en tÃ¡ctil: las mismas micro-animaciones que el hover en PC --- */
 .acal-nav:active { background: var(--navy, #1A2744); color: #fff; transform: scale(0.94); }
 .acal-day:not(.empty):active { background: var(--cream, #FAF6EE); border-color: rgba(200, 151, 58, 0.4); transform: scale(1.06); }
 .act-clearsel:active { background: rgba(200, 151, 58, 0.15); transform: translateY(-1px); }
@@ -11388,7 +11278,7 @@ html.show-splash .splash-content { visibility: visible; }
 
 
 /* ============================================================
-   NOSOTROS (INSTITUCIONAL / HISTORIA / ESTATUTO) — PREMIUM
+   NOSOTROS (INSTITUCIONAL / HISTORIA / ESTATUTO) â€” PREMIUM
    ============================================================ */
 .nosotros-page { background: linear-gradient(180deg, #FDFAF5 0%, #FBF6EA 100%); }
 
@@ -11433,7 +11323,7 @@ html.show-splash .splash-content { visibility: visible; }
 .nosotros-logro strong { display: block; font-family: 'Playfair Display', Georgia, serif; font-size: 1.9rem; color: var(--gold); line-height: 1; margin-bottom: 5px; }
 .nosotros-logro small { font-size: 0.72rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #8A8477; }
 
-/* Identidad (misión/visión/valores) */
+/* Identidad (misiÃ³n/visiÃ³n/valores) */
 .nosotros-identidad { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; margin-bottom: 56px; }
 .nosotros-ident-card { border-radius: 18px !important; animation: nosUp 0.55s cubic-bezier(0.22,0.9,0.3,1.1) backwards; animation-delay: var(--ad, 0s); transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
 .nosotros-ident-card:hover { transform: translateY(-6px); box-shadow: 0 18px 34px -12px rgba(26,39,68,0.28); border-color: var(--gold) !important; }
@@ -11452,7 +11342,7 @@ html.show-splash .splash-content { visibility: visible; }
 .nh-title { font-size: clamp(1.7rem, 3.6vw, 2.3rem); color: var(--navy); margin: 0 0 20px; }
 .nh-text p { color: var(--text-muted); line-height: 1.85; margin-bottom: 14px; }
 
-/* Servicios / áreas */
+/* Servicios / Ã¡reas */
 .nosotros-servicios { margin-bottom: 60px; }
 .ns-head { text-align: center; margin-bottom: 30px; }
 .ns-head h3 { font-size: clamp(1.7rem, 3.4vw, 2.2rem); color: var(--navy); margin-top: 8px; }
@@ -11607,7 +11497,7 @@ html.show-splash .splash-content { visibility: visible; }
   100% { transform: scale(1.06) rotate(0deg); }
 }
 
-/* Consejo: �cono con gradiente */
+/* Consejo: ï¿½cono con gradiente */
 .dd-team-ico {
   flex: 0 0 46px;
   width: 46px;
@@ -11670,7 +11560,7 @@ html.show-splash .splash-content { visibility: visible; }
 .dd-zone:hover::before, .dd-team:hover::before { left: 120%; }
 
 /* ==========================================================
-  DRAWER M�VIL: subenlaces enriquecidos
+  DRAWER Mï¿½VIL: subenlaces enriquecidos
    ========================================================== */
 .drawer-sublinks-rich { padding-left: 0 !important; margin-left: 0 !important; border-left: none !important; gap: 8px; }
 .drawer-sublink-rich {
@@ -11703,7 +11593,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ==========================================================================
-  DASHBOARD � VISITAS POR SECCI�N (UI/UX mejorado)
+  DASHBOARD ï¿½ VISITAS POR SECCIï¿½N (UI/UX mejorado)
    ========================================================================== */
 .anal-row {
   background: linear-gradient(120deg, #fdfbf7, #fff);
@@ -11838,7 +11728,7 @@ html.show-splash .splash-content { visibility: visible; }
   .anal-row { opacity: 1; }
 }
 
-/* ---------- AVISO DE NUEVA ACTUALIZACI�N (PWA) ---------- */
+/* ---------- AVISO DE NUEVA ACTUALIZACIï¿½N (PWA) ---------- */
 .pjl-update-banner {
   position: fixed;
   z-index: 2147483000;
@@ -11894,7 +11784,7 @@ html.show-splash .splash-content { visibility: visible; }
   .pjl-update-banner { animation: none; }
 }
 
-/* ---------- BOT�N "DESCARGAR APP" (navbar + drawer) ---------- */
+/* ---------- BOTï¿½N "DESCARGAR APP" (navbar + drawer) ---------- */
 .nav-download-item { margin-left: 6px; }
 .nav-download-btn {
   background: linear-gradient(135deg, #e0b866 0%, #c8973a 55%, #b07d26 100%) !important;
@@ -11919,7 +11809,7 @@ html.show-splash .splash-content { visibility: visible; }
   .nav-download-btn { animation: none; }
 }
 
-/* Variante del drawer m�vil */
+/* Variante del drawer mï¿½vil */
 .drawer-btn-download {
   margin: 6px 12px 10px;
   width: auto !important;
@@ -11940,7 +11830,7 @@ html.show-splash .splash-content { visibility: visible; }
 
 
 /* ============================================================
-   NOTIFICACIONES PUSH � campana + modal
+   NOTIFICACIONES PUSH ï¿½ campana + modal
    ============================================================ */
 .nav-bell {
   position: relative;
@@ -12084,7 +11974,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 
-/* Panel push (configuraci�n) */
+/* Panel push (configuraciï¿½n) */
 .cf-keybox {
   display: grid;
   gap: 6px;
@@ -12128,7 +12018,7 @@ html.show-splash .splash-content { visibility: visible; }
   gap: 8px;
 }
 
-/* ─── Agenda: exportar a Google Calendar (.ics) ─────────────────────────────── */
+/* â”€â”€â”€ Agenda: exportar a Google Calendar (.ics) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ag-export {
   display: flex;
   flex-direction: column;
@@ -12163,7 +12053,7 @@ html.show-splash .splash-content { visibility: visible; }
   line-height: 1.5;
 }
 
-/* ─── Admin: importación de agenda (.ics) ───────────────────────────────────── */
+/* â”€â”€â”€ Admin: importaciÃ³n de agenda (.ics) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ics-import-row {
   display: flex;
   align-items: center;
@@ -12175,22 +12065,20 @@ html.show-splash .splash-content { visibility: visible; }
   min-width: 0;
 }
 
-/* ─── Táctil/celular: mismas animaciones de botón que en PC ────────────────────
-   El hover solo existe en dispositivos con ratón. En táctil se replican con
-   :active para que los botones del panel de administración tengan el mismo
+/* â”€â”€â”€ TÃ¡ctil/celular: mismas animaciones de botÃ³n que en PC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   El hover solo existe en dispositivos con ratÃ³n. En tÃ¡ctil se replican con
+   :active para que los botones del panel de administraciÃ³n tengan el mismo
    feedback visual al tocarlos. */
 @media (hover: none), (pointer: coarse) {
   .btn-premium:active,
   .btn-premium-gold:active,
   .btn-premium-outline:active,
-  .btn-pjl:active,
-  .btn-cv-pjl:active {
+  .btn-pjl:active {
     transform: translateY(-1px) scale(0.98);
     box-shadow: 0 8px 30px rgba(200, 151, 58, 0.35);
   }
   .btn-premium:active::after,
-  .btn-pjl:active::after,
-  .btn-cv-pjl:active::after {
+  .btn-pjl:active::after {
     width: 350px;
     height: 350px;
     opacity: 1;
@@ -12219,7 +12107,7 @@ html.show-splash .splash-content { visibility: visible; }
 
 
 /* ============================================================
-   ADMIN · CONTENIDO — REDISEÑO UI/UX
+   ADMIN Â· CONTENIDO â€” REDISEÃ‘O UI/UX
    ============================================================ */
 .ctx-shell {
   border-radius: 30px;
@@ -12283,7 +12171,7 @@ html.show-splash .splash-content { visibility: visible; }
 .ctx-body > [data-ctx] { animation: ctxRise .45s cubic-bezier(.22,.9,.32,1); }
 @keyframes ctxRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-/* Intro de cada pestaña */
+/* Intro de cada pestaÃ±a */
 .ctx-intro { display: flex; align-items: center; gap: 14px; padding: 2px 6px; }
 .ctx-intro .big {
   width: 46px; height: 46px; border-radius: 15px; flex-shrink: 0;
@@ -12293,7 +12181,7 @@ html.show-splash .splash-content { visibility: visible; }
 .ctx-intro h4 { margin: 0; font-size: 1.25rem; color: var(--navy); }
 .ctx-intro p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-muted); }
 
-/* Cards de sección */
+/* Cards de secciÃ³n */
 .ctx-card {
   background: #fff;
   border: 1px solid rgba(200,151,58,.20);
@@ -12364,7 +12252,7 @@ html.show-splash .splash-content { visibility: visible; }
 .pv-mini p { margin: 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
 .pv-mini .ico { font-size: 17px; }
 
-/* Filas editables (áreas / cifras) */
+/* Filas editables (Ã¡reas / cifras) */
 .ctx-list { display: grid; gap: 12px; }
 .row-card {
   display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center;
@@ -12516,7 +12404,7 @@ html.show-splash .splash-content { visibility: visible; }
 @media (prefers-reduced-motion: reduce) {
   .ctx-shell, .ctx-body > [data-ctx], .ctx-savebar .ctx-submit::after, .sb-note .pulse { animation: none !important; }
 }
-/* ---- EVANGELIO · chips & info ---- */
+/* ---- EVANGELIO Â· chips & info ---- */
 .ctx-chip { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(120deg, #f0d9a6, var(--gold, #C8973A)); font-size: 14px; box-shadow: 0 4px 10px rgba(200,151,58,.35); }
 .ctx-info { border: 1px dashed rgba(200,151,58,.45); border-radius: 12px; padding: 12px 14px; background: linear-gradient(160deg, rgba(200,151,58,.07), rgba(200,151,58,.02)); color: var(--text-muted); font-size: 13.5px; line-height: 1.55; }
 .ctx-info p { margin: 0 0 8px; }
@@ -12526,7 +12414,7 @@ html.show-splash .splash-content { visibility: visible; }
 .ctx-info-note { margin: 0; font-size: 12.5px; color: var(--gold); font-weight: 700; }
 
 /* =============================================================
-   CENTRO DE AVISOS · CAMPANA DE NOTIFICACIONES
+   CENTRO DE AVISOS Â· CAMPANA DE NOTIFICACIONES
    Campana siempre visible en la top bar + panel desplegable.
    ============================================================= */
 .notif-bell {
@@ -12608,7 +12496,7 @@ html.show-splash .splash-content { visibility: visible; }
   60% { transform: scale(1.25) rotate(6deg); opacity: 1; }
   100% { transform: scale(1) rotate(0); }
 }
-/* Punto pulso (móvil / cuando el badge no entra) */
+/* Punto pulso (mÃ³vil / cuando el badge no entra) */
 .notif-dot {
   position: absolute;
   top: 6px;
@@ -12963,14 +12851,14 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ============================================================
-   NAVBAR PJL — PULIDO VISUAL DE UI/UX
-   Solo estética estática (colores, sombras, radios, espaciado, jerarquía).
+   NAVBAR PJL â€” PULIDO VISUAL DE UI/UX
+   Solo estÃ©tica estÃ¡tica (colores, sombras, radios, espaciado, jerarquÃ­a).
    NO toca animaciones, @keyframes ni transiciones existentes:
-   - Las animaciones únicas por sección ([data-nav], píldoras) quedan intactas.
+   - Las animaciones Ãºnicas por secciÃ³n ([data-nav], pÃ­ldoras) quedan intactas.
    - Hover/active de .nav-btn, dropdown y hamburguesa conservan sus efectos.
    ============================================================ */
 
-/* ---------- Marca: más aire y lema más presente ---------- */
+/* ---------- Marca: mÃ¡s aire y lema mÃ¡s presente ---------- */
 .logo-area {
   padding: 4px 10px 4px 8px;
 }
@@ -12978,7 +12866,7 @@ html.show-splash .splash-content { visibility: visible; }
   letter-spacing: 2.1px;
 }
 
-/* ---------- Enlaces: rail sutil que agrupa las píldoras ---------- */
+/* ---------- Enlaces: rail sutil que agrupa las pÃ­ldoras ---------- */
 .nav-links {
   gap: clamp(4px, 0.5vw, 8px);
   padding: 4px 6px;
@@ -12987,7 +12875,7 @@ html.show-splash .splash-content { visibility: visible; }
   box-shadow: inset 0 1px 2px rgba(26, 39, 68, 0.05);
 }
 
-/* ---------- Botón base: píldora blanca con luz interior ---------- */
+/* ---------- BotÃ³n base: pÃ­ldora blanca con luz interior ---------- */
 .nav-btn {
   min-height: 46px;
   padding: 10px clamp(9px, 0.75vw, 15px);
@@ -13002,7 +12890,7 @@ html.show-splash .splash-content { visibility: visible; }
   letter-spacing: 0.02em;
 }
 
-/* Ícono dentro de una pequeña placa dorada (igual lenguaje que dropdown/drawer) */
+/* Ãcono dentro de una pequeÃ±a placa dorada (igual lenguaje que dropdown/drawer) */
 .nav-ico {
   width: 26px;
   height: 26px;
@@ -13019,7 +12907,7 @@ html.show-splash .splash-content { visibility: visible; }
   opacity: 0.7;
 }
 
-/* Estado activo: píldora navy con anillo dorado definido */
+/* Estado activo: pÃ­ldora navy con anillo dorado definido */
 .nav-btn.is-active {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
   border-color: rgba(200, 151, 58, 0.6);
@@ -13035,7 +12923,7 @@ html.show-splash .splash-content { visibility: visible; }
   box-shadow: none;
 }
 
-/* ---------- Dropdown: panel más nítido ---------- */
+/* ---------- Dropdown: panel mÃ¡s nÃ­tido ---------- */
 .dropdown-pjl {
   padding: 14px;
   border-radius: 20px;
@@ -13071,7 +12959,7 @@ html.show-splash .splash-content { visibility: visible; }
   border-color: rgba(200, 151, 58, 0.85);
 }
 
-/* ---------- Barra móvil: blanco pulido con filo dorado fino ---------- */
+/* ---------- Barra mÃ³vil: blanco pulido con filo dorado fino ---------- */
 @media (max-width: 768px) {
   .top-nav {
     background: linear-gradient(180deg, #fff 0%, #fdfbf6 100%);
@@ -13081,9 +12969,9 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ============================================================
-   NAVBAR PJL — COMPACTACIÓN ANTI-SOLAPAMIENTO
-   Ajusta tamaños para que las píldoras encajen sin pisarse en
-   escritorio estrecho. Solo medidas estáticas (sin animaciones).
+   NAVBAR PJL â€” COMPACTACIÃ“N ANTI-SOLAPAMIENTO
+   Ajusta tamaÃ±os para que las pÃ­ldoras encajen sin pisarse en
+   escritorio estrecho. Solo medidas estÃ¡ticas (sin animaciones).
    ============================================================ */
 .nav-content { gap: clamp(8px, 1vw, 16px); }
 .nav-links {
@@ -13101,27 +12989,27 @@ html.show-splash .splash-content { visibility: visible; }
   border-radius: 7px;
 }
 
-/* Banda de ancho ajustado (1501-1710): compacta marca e íconos para que todo quepa */
+/* Banda de ancho ajustado (1501-1710): compacta marca e Ã­conos para que todo quepa */
 @media (min-width: 1501px) and (max-width: 1710px) {
   .logo-area { gap: 10px; padding-left: 6px; }
   .nav-btn { padding: 9px 8px; }
   .nav-ico { width: 21px; height: 21px; font-size: 12.5px; }
 }
 
-/* Debajo de 1500px las píldoras ya no caben: pasa a hamburguesa (era 1480px) */
+/* Debajo de 1500px las pÃ­ldoras ya no caben: pasa a hamburguesa (era 1480px) */
 @media (max-width: 1500px) and (min-width: 769px) {
   .nav-links { display: none !important; }
   .mobile-menu-toggle { display: flex !important; }
   .nav-content { justify-content: flex-start; gap: 8px; }
-  /* Tablet: logo a la izquierda y, JUNTOS al borde derecho, el botón de 3
-     líneas a la IZQUIERDA con la campana a su derecha (margin-left:auto
-     empuja el grupo del menú hacia el borde). */
+  /* Tablet: logo a la izquierda y, JUNTOS al borde derecho, el botÃ³n de 3
+     lÃ­neas a la IZQUIERDA con la campana a su derecha (margin-left:auto
+     empuja el grupo del menÃº hacia el borde). */
   .nav-content .mobile-menu-toggle { order: 2; margin-left: auto; }
   .nav-content .notif-bell { order: 3; }
 }
 
 /* ============================================================
-   DATO DEL DÍA — widget de curiosidades católicas de fuentes
+   DATO DEL DÃA â€” widget de curiosidades catÃ³licas de fuentes
    oficiales (vatican.va). Fijo abajo a la izquierda: no estorba,
    se oculta y se vuelve a abrir con un clic. Responsive.
    ============================================================ */
@@ -13141,7 +13029,7 @@ html.show-splash .splash-content { visibility: visible; }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ----- Botón (chip) permanentemente visible ----- */
+/* ----- BotÃ³n (chip) permanentemente visible ----- */
 .fact-chip {
   position: relative;
   isolation: isolate;

@@ -2553,9 +2553,6 @@ const [newsSearch, setNewsSearch] = useState('');
                               <p style={{ fontStyle: 'italic', fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Responsable de la animación y comunión en esta zona.</p>
                             )}
                           </div>
-                          <button onClick={() => p.cvUrl && handleDownload(p.cvUrl, `CV_${p.name}.pdf`)} className="btn-cv-pjl">
-                            <span>📄</span> Currículum Pastoral
-                          </button>
                         </div>
                       </div>
                     ))}
@@ -2732,11 +2729,6 @@ const [newsSearch, setNewsSearch] = useState('');
                               {truncateBio(coord.bio)}{' '}
                               <button type="button" onClick={() => setSelectedProfile(coord)} className="pc-more">Leer más</button>
                             </p>
-                            {coord.cvUrl && (
-                              <button onClick={() => handleDownload(coord.cvUrl!, `CV_${coord.name}.pdf`)} className="btn-cv-pjl">
-                                <span>📄</span> Currículum Pastoral
-                              </button>
-                            )}
                           </div>
                         </div>
                       );
@@ -2757,11 +2749,6 @@ const [newsSearch, setNewsSearch] = useState('');
                               {truncateBio(coord.bio)}{' '}
                               <button type="button" onClick={() => setSelectedProfile(coord)} className="pc-more">Leer más</button>
                             </p>
-                            {coord.cvUrl && (
-                              <button onClick={() => handleDownload(coord.cvUrl!, `CV_${coord.name}.pdf`)} className="btn-cv-pjl">
-                                <span>📄</span> Currículum Pastoral
-                              </button>
-                            )}
                           </div>
                         </div>
                       );
@@ -2800,11 +2787,6 @@ const [newsSearch, setNewsSearch] = useState('');
                             <span className="quote-mark">&#8220;</span>
                             {p.quote.replace(/"/g, '')}
                           </div>
-                        )}
-                        {p.cvUrl && (
-                          <button onClick={() => handleDownload(p.cvUrl!, `CV_${p.name}.pdf`)} className="btn-cv-pjl">
-                            <span>📄</span> Currículum Pastoral
-                          </button>
                         )}
                       </div>
                     </div>
@@ -3415,16 +3397,6 @@ const [newsSearch, setNewsSearch] = useState('');
                   <span className="pm-quote-mark" aria-hidden="true">“</span>
                   <p>{selectedProfile.quote.replace(/"/g, '')}</p>
                 </div>
-              )}
-
-              {selectedProfile.cvUrl && (
-                <button
-                  type="button"
-                  onClick={() => handleDownload(selectedProfile.cvUrl!, `CV_${selectedProfile.name}.pdf`)}
-                  className="btn-cv-pjl pm-cv"
-                >
-                  <span>📄</span> Descargar Currículum Pastoral
-                </button>
               )}
             </div>
           </div>

@@ -16,7 +16,6 @@ import { adminFetch } from './adminAuth';
 export type StoredFileRef = {
   url?: string | null;
   photo?: string | null;
-  cvUrl?: string | null;
   logoUrl?: string | null;
   previewImage?: string | null;
   imageUrl?: string | null;
@@ -35,7 +34,6 @@ export async function deleteStoredFiles(item: StoredFileRef | null | undefined):
   const candidatos = [
     item.url,
     item.photo,
-    item.cvUrl,
     item.logoUrl,
     item.previewImage,
     item.imageUrl,

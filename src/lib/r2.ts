@@ -1,5 +1,5 @@
 /**
- * Almacenamiento de archivossubidos (logos, fotos, currículums, PDF).
+ * Almacenamiento de archivos subidos (logos, fotos, PDF).
  *
  * El proyecto se despliega en DOS sitios y cada uno tiene una forma distinta de
  * llegar al mismo bucket de Cloudflare R2:
@@ -254,7 +254,7 @@ export async function r2S3PutObject(
 /**
  * Borra un objeto del bucket.
  *
- * Sirve para que cuando se elimina un documento o un currículum del panel no
+ * Sirve para que cuando se elimina un documento o una foto del panel no
  * quede el archivo huérfano en R2 cobrando almacenamiento para siempre.
  *
  * El borrado es idempotente: R2 responde 204 tanto si el objeto estaba como si

@@ -220,9 +220,6 @@ th {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
-  .admin-content-area .profile-member-card .profile-cv-box {
-    flex-wrap: wrap !important;
-  }
 
   .container,
   .section-head,
@@ -1093,7 +1090,6 @@ th {
   .profile-card-role,
   .profile-card-bio,
   .profile-quote,
-  .profile-card .btn-cv-pjl,
   .profile-card .pc-more {
     overflow-wrap: break-word;
     word-break: normal;
@@ -1112,13 +1108,6 @@ th {
     max-width: 100%;
     padding: 7px 14px;
     text-align: center;
-  }
-
-  .profile-card .btn-cv-pjl {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 14px;
-    font-size: 13px;
   }
 }
 
@@ -1195,24 +1184,6 @@ th {
   .admin-content-area .profile-member-card .profile-role-input {
     min-width: 0;
     width: 100%;
-  }
-
-  /* Caja de CV: se apila en columna sobre pantallas angostas */
-  .admin-content-area .profile-member-card .profile-cv-box {
-    flex-wrap: wrap;
-  }
-  .admin-content-area .profile-member-card .profile-cv-info {
-    min-width: 0;
-    flex: 1 1 140px;
-  }
-  .admin-content-area .profile-member-card .profile-cv-info strong,
-  .admin-content-area .profile-member-card .profile-cv-info small {
-    overflow-wrap: break-word;
-    word-break: normal;
-    white-space: normal;
-  }
-  .admin-content-area .profile-member-card .profile-cv-btn {
-    white-space: nowrap;
   }
 
   .admin-content-area .profile-member-card label,

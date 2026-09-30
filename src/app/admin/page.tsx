@@ -5910,8 +5910,8 @@ function AdminContent() {
                       className="profile-delete-btn"
                       onClick={() => {
                         if (confirm(`¿Seguro que deseas eliminar a ${p.name}?`)) {
-                          // La foto y el currículum viven en el bucket: se borran
-                          // junto con la fila, o quedan huérfanos ahí para siempre.
+                          // La foto vive en el bucket: se borra junto con la
+                          // fila, o queda huérfana ahí para siempre.
                           void deleteStoredFiles(p);
                           setProfiles(profiles.filter(x => x.id !== p.id));
                           showToast('Miembro eliminado ✖');
@@ -5965,20 +5965,6 @@ function AdminContent() {
                         onChange={e => setProfiles(profiles.map(x => x.id === p.id ? { ...x, bio: e.target.value } : x))}
                         placeholder="Contá el recorrido pastoral del miembro..."
                       />
-                      <div className={`profile-cv-box ${p.cvUrl ? 'loaded' : ''}`}>
-                        <span className="profile-cv-icon">{p.cvUrl ? '✅' : '📄'}</span>
-                        <span className="profile-cv-info">
-                          <strong>Currículum Pastoral</strong>
-                          <small>{p.cvUrl ? 'Archivo cargado y visible en el sitio' : 'PDF o Word · opcional'}</small>
-                        </span>
-                        <label className="btn-premium btn-premium-outline profile-cv-btn">
-                          {p.cvUrl ? 'CAMBIAR' : 'SUBIR'}
-                          <input type="file" style={{ display: 'none' }} accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => handleFileUpload(e, (url) => { setProfiles(profiles.map(x => x.id === p.id ? {...x, cvUrl: url} : x)); showToast('CV guardado ✔'); })} />
-                        </label>
-                        {p.cvUrl && (
-                          <button className="profile-cv-remove" title="Quitar CV" onClick={() => setProfiles(profiles.map(x => x.id === p.id ? {...x, cvUrl: ''} : x))}>×</button>
-                        )}
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -5986,7 +5972,7 @@ function AdminContent() {
                   <div className="pjl-empty-state" style={{ gridColumn: '1 / -1' }}>
                     <div className="empty-icon">👤</div>
                     <h4 className="empty-title">Sin miembros en este equipo</h4>
-                    <p className="empty-desc">Cargá al primer integrante con su foto, cargo y currículum. Aparecerá automáticamente en la sección Consejo del sitio.</p>
+                    <p className="empty-desc">Cargá al primer integrante con su foto y cargo. Aparecerá automáticamente en la sección Consejo del sitio.</p>
                     <button className="btn-premium btn-premium-gold" onClick={() => {
                       const newProfile: MemberProfile = {
                         id: Date.now(),

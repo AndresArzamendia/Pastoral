@@ -202,7 +202,7 @@ export interface PageStat {
   mobileVisits?: number;
 }
 
-// ── Curriculum Profiles ────────────────────────────────────────────────────────
+// ── Miembros de equipos y coordinaciones ───────────────────────────────────────
 export interface MemberProfile {
   id: number;
   teamKey: string;
@@ -211,7 +211,6 @@ export interface MemberProfile {
   bio: string;
   quote: string;   // personal message shown on card
   photo?: string;
-  cvUrl?: string;
   birthday?: string; // YYYY-MM-DD (opcional) → notificación de cumpleaños
 }
 
@@ -231,7 +230,6 @@ export const DEFAULT_PROFILES: MemberProfile[] = TEAM_KEYS.flatMap((key, ti) => 
     bio: 'Historia pastoral pendiente de completar.',
     quote: '"Mi camino de fe comienza aquí, con cada joven."',
     photo: '',
-    cvUrl: '',
   }));
 });
 
