@@ -1351,7 +1351,6 @@ const [newsSearch, setNewsSearch] = useState('');
                 {[
                   { id: 'estatuto',      icon: '📜', tag: '#C8973A', t: 'Estatuto',        d: 'El marco y los principios que nos guían' },
                   { id: 'historia',      icon: '🏛️', tag: '#2563EB', t: 'Nuestra Historia', d: 'El camino de fe que nos trajo hasta hoy' },
-                  { id: 'institucional', icon: '🕊️', tag: '#059669', t: 'Institucional',   d: 'Misión, visión y nuestra estructura' },
                 ].map((it, i) => (
                   <button type="button" key={it.id} style={{ '--ad': `${i * 0.05}s`, '--tg': it.tag } as CSSProperties}
                     onClick={() => navigate(it.id)} className="dd-team dd-about">
@@ -1506,7 +1505,6 @@ const [newsSearch, setNewsSearch] = useState('');
                   {[
                     { id: 'estatuto',      icon: '📜', tag: '#C8973A', t: 'Estatuto',          d: 'El marco y los principios que nos guían' },
                     { id: 'historia',      icon: '🏛️', tag: '#2563EB', t: 'Nuestra Historia',   d: 'El camino de fe que nos trajo hasta hoy' },
-                    { id: 'institucional', icon: '🕊️', tag: '#059669', t: 'Institucional',     d: 'Misión, visión y nuestra estructura' },
                   ].map((it) => (
                     <li key={it.id}>
                       <Link href={`/?page=${it.id}`} onClick={(e) => { navigate(it.id, e); setIsMobileMenuOpen(false); }} className="drawer-sublink drawer-sublink-rich">

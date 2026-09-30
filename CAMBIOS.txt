@@ -15,6 +15,36 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+================================================================================
+
+[5] 2026-09-30 17:48 - QUITAR «MISIÓN, VISIÓN Y VALORES» DEL MENÚ PRINCIPAL
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia
+Solicitado por: Andres Arzamendia
+
+Motivo: el pedido fue sacar Misión/Visión/Valores del menú principal, sin tocar
+el resto de la página.
+
+Qué se hizo, archivo por archivo:
+
+1) src/app/page.tsx
+   - Menú de escritorio (desplegable «Nosotros»): se quitó el ítem
+     «Institucional — Misión, visión y nuestra estructura». Ahora el desplegable
+     solo tiene «Estatuto» y «Nuestra Historia».
+   - Menú móvil (cajón «Nosotros»): se quitó el mismo ítem, con el mismo
+     criterio.
+   - No se tocó nada más: la página /?page=institucional sigue existiendo con
+     Misión, Visión y Valores; tampoco se modificaron el resto del menú, el
+     pie de página, los equipos, las zonas ni ninguna otra sección.
+
+Verificación:
+- `npx tsc --noEmit`: sin errores.
+- `npm run build`: compilación correcta.
+- Producción: /?page=inicio, /?page=estatuto, /?page=historia y /?page=consejo
+  responden 200, y /api/notifications sigue respondiendo 200.
+
+Despliegue: 1987e728-3379-45e6-a590-f5d527416a75
+
 [4] 2026-09-30 17:22 - ESTATUTO Y OBJETIVOS: TARJETA PRINCIPAL DEL PDF, VISOR ONLINE Y RESUMEN EN CUATRO TARJETAS
 --------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia
