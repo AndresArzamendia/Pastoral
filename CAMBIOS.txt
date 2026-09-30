@@ -15,6 +15,83 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[4] 2026-09-30 17:22 - ESTATUTO Y OBJETIVOS: TARJETA PRINCIPAL DEL PDF, VISOR ONLINE Y RESUMEN EN CUATRO TARJETAS
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia
+Solicitado por: Andres Arzamendia
+
+Motivo: el pedido fue reorganizar la sección «Estatuto y Objetivos» poniendo el
+Estatuto oficial en el lugar principal (que se pueda leer online y descargar con
+un clic), acompañarlo de un resumen claro en cuatro tarjetas, que no quedaran
+tapadas las tarjetas por los botones flotantes, que se viera bien en celular y
+que todo el contenido —incluido el PDF— se pueda seguir editando desde el panel.
+
+Qué se hizo, archivo por archivo:
+
+1) src/lib/pjlStore.ts
+   - Nuevo campo opcional `estatutoPdf` en el tipo SiteContent con: url,
+     fileName, title, description, size, pages y updatedLabel.
+   - Es opcional a propósito: los contenidos ya guardados en Supabase siguen
+     funcionando sin migración ni cambios en los datos.
+
+2) src/components/PdfViewerModal.tsx (nuevo)
+   - Modal con el PDF dentro de un iframe nativo (sin dependencias nuevas).
+   - Botones: Ver PDF completo en pestaña nueva, Descargar y cerrar.
+   - Spinner mientras carga, cierre con Escape y con clic en el fondo.
+   - Bloquea el scroll del fondo mientras está abierto.
+
+3) src/app/page.tsx
+   - Import del visor y de los datos derivados del PDF.
+   - Estados `estatutoReady` (esqueleto de carga), `estatutoPdfOpen` (modal) y
+     `estatutoTextoLargo` (ver más / ver menos).
+   - Helper `splitLineasAccion()` + `LINEAS_ACCION_ICONOS` para convertir el
+     texto de líneas de acción en etiquetas con ícono.
+   - Sección `currentPage === 'estatuto'` reorganizada:
+     A) Tarjeta principal «Documento oficial» con título, descripción, metadatos
+        (PDF · páginas · peso · actualizado) y botones «Ver online» y
+        «Descargar PDF».
+     B) Cuatro tarjetas: Objetivo General, Líneas de Acción (etiquetas con
+        ícono), Misión y Visión (con ver más) y Nuestra Estructura.
+   - Si todavía no hay PDF cargado, la tarjeta principal avisa que falta y las
+     tarjetas muestran el resumen de texto de siempre.
+   - La descarga usa `/api/files/<clave>?dl=1`, que ya responde con
+     Content-Disposition: attachment.
+
+4) src/app/globals.css
+   - Estilos nuevos: `.est-hero`, `.est-hero-ico`, `.est-hero-meta`,
+     `.est-btn`, `.est-grid`, `.est-card`, `.est-pill`, `.est-sub`,
+     `.est-clamp`, `.est-more`, `.est-lines`, `.est-skel` y el modal
+     (`.est-modal*`), más los cortes responsive para 980 px y 760 px.
+   - `.estatuto-page .container` con padding inferior ampliado para que los
+     botones flotantes (dato del día e instalar la app) no tapen la última
+     tarjeta. El modal va por encima de todo con z-index 2147483002.
+   - Se respeta `prefers-reduced-motion` para las animaciones.
+
+5) src/app/admin/page.tsx
+   - Pestaña «Objetivos» reorganizada en tarjetas.
+   - Nuevo bloque «Estatuto oficial (PDF)»: botón para subir o reemplazar el PDF,
+     botón para quitarlo, enlace para ver el archivo, y campos editables de
+     título, descripción corta, páginas, peso y año de actualización.
+   - `estatutoPdfBase` conserva lo ya cargado para que escribir en un campo no
+     borre el archivo subido.
+   - Se añadió la ayuda de que las líneas de acción se separan con comas.
+   - Se mantiene el campo de texto «Resumen del estatuto» como contenido de
+     respaldo cuando todavía no hay PDF.
+
+Qué NO se tocó: el Centro de Avisos, el Web Push, noticias, agenda, roles,
+eliminación del currículum ni ninguna otra sección del sitio.
+
+Verificación:
+- `npx tsc --noEmit`: sin errores.
+- `npx next lint`: sin errores (solo advertencias preexistentes del proyecto).
+- `npm run build`: compilación correcta.
+- Producción: https://pastoral.arzamendiaandres-6d2.workers.dev responde 200 y
+  /api/notifications sigue respondiendo 200.
+- Pendiente de hacer desde el panel: subir el PDF del Estatuto para que
+  aparezcan los botones «Ver online» y «Descargar PDF».
+
+Despliegue: 6396e4fc-363a-48ae-ab89-234e99064457
+
 [3] 2026-09-30 13:54 - CENTRO DE AVISOS: SOLO NOTICIAS Y EVENTOS, CON LECTURA GUARDADA POR PERSONA
 --------------------------------------------------------------------------------
 Realizado por: Lucas Nuñez

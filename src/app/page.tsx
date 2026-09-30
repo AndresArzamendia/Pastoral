@@ -16,6 +16,7 @@ import NavDownloadButton from '@/components/NavDownloadButton';
 import NotificationBell from '@/components/NotificationBell';
 import PushPromptBanner from '@/components/PushPromptBanner';
 import FactWidget from '@/components/FactWidget';
+import PdfViewerModal from '@/components/PdfViewerModal';
 import ShareButton from '@/components/ShareButton';
 import { buildIcs, IcsItem } from '@/lib/ics';
 import { evgHoyClassify, evgHoyDateLabel, EVH_BASE_URL, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
@@ -261,6 +262,20 @@ type AgEvent = {
 };
 
 function pad2(n: number) { return String(n).padStart(2, '0'); }
+
+/* ── ESTATUTO: ayuda para presentar las líneas de acción como etiquetas ──
+   El panel las guarda como un texto suelto ("Formación Integral, Misión
+   Permanente, …"). Se separa por comas, punto y coma o saltos de línea para
+   mostrar cada una como una píldora con su ícono. */
+const LINEAS_ACCION_ICONOS = ['📖', '✝️', '🙏', '🤝', '🎓', '🕊️', '🌱', '💪', '🎶', '🧭', '🕯️', '⭐'];
+
+function splitLineasAccion(texto: string): string[] {
+  return String(texto || '')
+    .split(/[\n;,·•|]+/)
+    .map((p) => p.replace(/^[\s\-–—*•]+/, '').trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
 const AG_MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 function gcalTemplateUrl(ev: AgEvent): string {
@@ -433,6 +448,22 @@ function HomeContent() {
   const [activeZoneTab, setActiveZoneTab] = useState<'capillas' | 'coordination' | 'mapa'>('capillas');
   const [selectedProfile, setSelectedProfile] = useState<MemberProfile | null>(null);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<TimelineEvent | null>(null);
+  /* Sección Estatuto: esqueleto de carga, PDF abierto y texto de misión/visión extendido. */
+  const [estatutoReady, setEstatutoReady] = useState(false);
+  const [estatutoPdfOpen, setEstatutoPdfOpen] = useState(false);
+  const [estatutoTextoLargo, setEstatutoTextoLargo] = useState(false);
+  /* Esqueleto de carga de la sección Estatuto: se oculta apenas el contenido
+     real llega del panel (o, en su defecto, a los ~260 ms). */
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEstatutoReady(true), 260);
+    const onStore = () => setEstatutoReady(true);
+    window.addEventListener('pjl_store_update', onStore);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pjl_store_update', onStore);
+    };
+  }, []);
+
   const [activeConsejoTab, setActiveConsejoTab] = useState('coordinacion');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [globalCommFilter, setGlobalCommFilter] = useState<number | 'all'>('all');
@@ -882,6 +913,28 @@ const [newsSearch, setNewsSearch] = useState('');
       window.removeEventListener('pjl_store_update', onCustomUpdate);
     };
   }, []);
+
+  /* Datos del PDF oficial del Estatuto. Todo sale del panel; si todavía no hay
+     PDF cargado, la tarjeta muestra el resumen de texto de siempre. */
+  const estatutoPdf = siteContent.estatutoPdf;
+  const estatutoPdfUrl = (estatutoPdf?.url || '').trim();
+  const estatutoPdfTitle = (estatutoPdf?.title || '').trim() || 'Estatuto Oficial de la Pastoral Juvenil';
+  const estatutoPdfFile = (estatutoPdf?.fileName || '').trim() || 'Estatuto-Oficial-PJL.pdf';
+  const estatutoPdfDesc =
+    (estatutoPdf?.description || '').trim() || siteContent.estatuto || DEFAULT_CONTENT.estatuto;
+  const estatutoPdfDownload = estatutoPdfUrl.startsWith('/api/files/')
+    ? `${estatutoPdfUrl}${estatutoPdfUrl.includes('?') ? '&' : '?'}dl=1`
+    : estatutoPdfUrl;
+  const estatutoPdfPages = (estatutoPdf?.pages || '').trim();
+  const estatutoPdfSize = (estatutoPdf?.size || '').trim();
+  const estatutoPdfYear = (estatutoPdf?.updatedLabel || '').trim();
+  const estatutoPdfMeta = [
+    'PDF',
+    estatutoPdfPages,
+    estatutoPdfSize,
+    estatutoPdfYear ? `Actualizado ${estatutoPdfYear}` : '',
+  ].filter(Boolean);
+  const estatutoLineas = splitLineasAccion(siteContent.lineasAccion || DEFAULT_CONTENT.lineasAccion);
 
   // --- FETCH REAL NEWS FROM DATABASE ---
   useEffect(() => {
@@ -2030,7 +2083,7 @@ const [newsSearch, setNewsSearch] = useState('');
 
         {/* ESTATUTO / OBJETIVO */}
         {currentPage === 'estatuto' && (
-          <section className="section-pjl nosotros-page">
+          <section className="section-pjl nosotros-page estatuto-page">
             <div className="container">
               <div className="nosotros-hero reveal" style={{ paddingBottom: '20px' }}>
                 <div className="nosotros-hero-badge"><span>✦</span> NORMATIVA</div>
@@ -2038,30 +2091,133 @@ const [newsSearch, setNewsSearch] = useState('');
                 <div className="nosotros-hero-divider"><span className="dot">†</span></div>
               </div>
 
-              <div className="estatuto-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-                <div className="mvv-card nosotros-ident-card reveal" style={{ '--ad': '0.05s' } as CSSProperties}>
-                  <div className="equipos-icon">🎯</div>
-                  <h4>Objetivo General</h4>
-                  <p>{siteContent.objetivoGeneral || DEFAULT_CONTENT.objetivoGeneral}</p>
+              {/* Esqueleto mientras llegan los textos y el PDF del panel. */}
+              {!estatutoReady && (
+                <div className="est-grid" aria-hidden="true">
+                  <div className="est-skel est-skel-hero" />
+                  <div className="est-skel" />
+                  <div className="est-skel" />
+                  <div className="est-skel" />
+                  <div className="est-skel" />
                 </div>
-                <div className="mvv-card nosotros-ident-card reveal" style={{ '--ad': '0.15s' } as CSSProperties}>
-                  <div className="equipos-icon">🧭</div>
-                  <h4>Líneas de Acción</h4>
-                  <p>{siteContent.lineasAccion || DEFAULT_CONTENT.lineasAccion}</p>
-                </div>
-              </div>
+              )}
 
-              <div className="mvv-card reveal" style={{ '--ad': '0.2s', borderLeft: 'none', borderRight: '4px solid var(--gold)', borderRadius: '18px' } as CSSProperties}>
-                <h4>📜 Cuerpo del Estatuto</h4>
-                <p style={{ whiteSpace: 'pre-line' }}>{siteContent.estatuto || DEFAULT_CONTENT.estatuto}</p>
-              </div>
+              {estatutoReady && (
+                <>
+                  {/* A) TARJETA PRINCIPAL DEL DOCUMENTO OFICIAL (PDF) */}
+                  <div className="est-hero reveal">
+                    <div className="est-hero-main">
+                      <span className="est-hero-ico" aria-hidden="true">📄</span>
+                      <div className="est-hero-text">
+                        <span className="est-hero-tag">DOCUMENTO OFICIAL</span>
+                        <h3>{estatutoPdfTitle}</h3>
+                        <p>{estatutoPdfDesc}</p>
+                        {estatutoPdfMeta.length > 0 && (
+                          <div className="est-hero-meta">
+                            {estatutoPdfMeta.map((m) => <span key={m}>{m}</span>)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="est-hero-actions">
+                      {estatutoPdfUrl ? (
+                        <>
+                          <button type="button" className="est-btn est-btn-ghost" onClick={() => setEstatutoPdfOpen(true)}>
+                            👁️ Ver online
+                          </button>
+                          <a className="est-btn est-btn-primary" href={estatutoPdfDownload} download={estatutoPdfFile} target="_blank" rel="noopener noreferrer">
+                            📥 Descargar PDF
+                          </a>
+                        </>
+                      ) : (
+                        <span className="est-hero-note">
+                          El PDF oficial todavía no está cargado. Mientras tanto, el resumen completo está en las tarjetas de abajo.
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-              {(siteContent.organigrama || siteContent.decanato || siteContent.parroquia) && (
-                <div className="estatuto-meta" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '32px' }}>
-                  {siteContent.decanato && <div className="estatuto-mini reveal"><span>🏛️</span><strong>Decanato</strong><p>{siteContent.decanato}</p></div>}
-                  {siteContent.parroquia && <div className="estatuto-mini reveal"><span>⛪</span><strong>Parroquia</strong><p>{siteContent.parroquia}</p></div>}
-                  {siteContent.organigrama && <div className="estatuto-mini reveal"><span>🗂️</span><strong>Estructura</strong><p>{siteContent.organigrama}</p></div>}
-                </div>
+                  {/* B) TARJETAS DE RESUMEN */}
+                  <div className="est-grid">
+                    <div className="est-card reveal">
+                      <div className="est-card-head">
+                        <span className="est-card-ico" aria-hidden="true">🎯</span>
+                        <h4>Objetivo General</h4>
+                      </div>
+                      <p>{siteContent.objetivoGeneral || DEFAULT_CONTENT.objetivoGeneral}</p>
+                    </div>
+
+                    <div className="est-card reveal">
+                      <div className="est-card-head">
+                        <span className="est-card-ico" aria-hidden="true">🧭</span>
+                        <h4>Líneas de Acción</h4>
+                      </div>
+                      {estatutoLineas.length > 0 ? (
+                        <div className="est-pills">
+                          {estatutoLineas.map((linea, i) => (
+                            <span className="est-pill" key={`${linea}-${i}`}>
+                              <span aria-hidden="true">{LINEAS_ACCION_ICONOS[i % LINEAS_ACCION_ICONOS.length]}</span>
+                              {linea}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p>{siteContent.lineasAccion || DEFAULT_CONTENT.lineasAccion}</p>
+                      )}
+                    </div>
+
+                    <div className="est-card reveal">
+                      <div className="est-card-head">
+                        <span className="est-card-ico" aria-hidden="true">✝️</span>
+                        <h4>Misión y Visión</h4>
+                      </div>
+                      <div className={estatutoTextoLargo ? '' : 'est-clamp'}>
+                        <div className="est-sub">
+                          <span className="est-sub-ico" aria-hidden="true">🎯</span>
+                          <div>
+                            <strong>Misión</strong>
+                            <p>{siteContent.mision || DEFAULT_CONTENT.mision}</p>
+                          </div>
+                        </div>
+                        <div className="est-sub">
+                          <span className="est-sub-ico" aria-hidden="true">🔭</span>
+                          <div>
+                            <strong>Visión</strong>
+                            <p>{siteContent.vision || DEFAULT_CONTENT.vision}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button" className="est-more" onClick={() => setEstatutoTextoLargo((v) => !v)}>
+                        {estatutoTextoLargo ? 'Ver menos ↑' : 'Ver más ↓'}
+                      </button>
+                    </div>
+
+                    <div className="est-card reveal">
+                      <div className="est-card-head">
+                        <span className="est-card-ico" aria-hidden="true">🗂️</span>
+                        <h4>Nuestra Estructura</h4>
+                      </div>
+                      <ul className="est-lines">
+                        {siteContent.organigrama && <li><span aria-hidden="true">🗂️</span><span><b>Estructura:</b> {siteContent.organigrama}</span></li>}
+                        {siteContent.decanato && <li><span aria-hidden="true">🏛️</span><span><b>Decanato:</b> {siteContent.decanato}</span></li>}
+                        {siteContent.parroquia && <li><span aria-hidden="true">⛪</span><span><b>Parroquia:</b> {siteContent.parroquia}</span></li>}
+                        <li><span aria-hidden="true">⛪</span><span><b>Comunidades:</b> {liveChapels.length > 0 ? `${liveChapels.length} en ejercicio` : 'organizadas por zonas'}</span></li>
+                      </ul>
+                      <button type="button" className="est-btn est-btn-ghost est-btn-sm" onClick={() => navigate('zonas')}>
+                        🗺️ Ver comunidades
+                      </button>
+                    </div>
+                  </div>
+
+                  {estatutoPdfOpen && (
+                    <PdfViewerModal
+                      url={estatutoPdfUrl}
+                      title={estatutoPdfTitle}
+                      fileName={estatutoPdfFile}
+                      onClose={() => setEstatutoPdfOpen(false)}
+                    />
+                  )}
+                </>
               )}
             </div>
           </section>

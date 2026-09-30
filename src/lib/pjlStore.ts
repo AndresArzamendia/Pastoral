@@ -141,6 +141,16 @@ export interface SiteContent  {
   evangelioRef: string;
   evangelioTexto: string;
   evangelioFoto: string;
+  /* ── ESTATUTO: PDF oficial (se ve online y se descarga) ── */
+  estatutoPdf?: {
+    url: string;
+    fileName: string;
+    title: string;
+    description: string;
+    size: string;
+    pages: string;
+    updatedLabel: string;
+  };
 }
 export interface ActiveSections { zonas: boolean; consejo: boolean; agenda: boolean; institucional: boolean; faq: boolean; contacto: boolean; }
 export interface Branding { 

@@ -2003,6 +2003,36 @@ function AdminContent() {
     });
   };
 
+  /* Estatuto oficial (PDF): conserva lo ya cargado y completa lo que falte,
+     para que escribir en un campo no borre el archivo subido. */
+  const estatutoPdfBase = {
+    url: content.estatutoPdf?.url || '',
+    fileName: content.estatutoPdf?.fileName || 'Estatuto-Oficial-PJL.pdf',
+    title: content.estatutoPdf?.title || 'Estatuto Oficial de la Pastoral Juvenil',
+    description: content.estatutoPdf?.description || content.estatuto || '',
+    size: content.estatutoPdf?.size || '',
+    pages: content.estatutoPdf?.pages || '',
+    updatedLabel: content.estatutoPdf?.updatedLabel || String(new Date().getFullYear()),
+  };
+
+  const handleEstatutoPdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const sizeMb = file.size / (1024 * 1024);
+
+    handleFileUpload(e, (url) => {
+      setContent({
+        ...content,
+        estatutoPdf: {
+          ...estatutoPdfBase,
+          url,
+          fileName: file.name || 'Estatuto-Oficial-PJL.pdf',
+          size: `${sizeMb >= 1 ? sizeMb.toFixed(1) : Math.max(sizeMb, 0.1).toFixed(1)} MB`,
+        },
+      });
+    });
+  };
+
   const applyThemeColor = (navy: string, gold: string, extra?: { bg?: string; card?: string }) => {
     setTheme({ navy, gold, mode: theme.mode, litPreview: theme.litPreview ?? null });
     window.dispatchEvent(new Event('pjl_theme_update'));
@@ -4220,26 +4250,101 @@ function AdminContent() {
 
                     {/* TAB: OBJETIVOS */}
                     {activeContentTab === 'objetivos' && (
-                      <div className="ctx-two">
-                        <div className="ctx-card">
-                          <div className="sec-head">
-                            <span className="sec-ic">🎯</span>
-                            <div>
-                              <h4 className="serif">Objetivo general</h4>
-                              <p>La meta que engloba el trabajo pastoral.</p>
+                      <div style={{ display: 'grid', gap: '22px' }}>
+                        <div className="ctx-two">
+                          <div className="ctx-card">
+                            <div className="sec-head">
+                              <span className="sec-ic">🎯</span>
+                              <div>
+                                <h4 className="serif">Objetivo general</h4>
+                                <p>La meta que engloba el trabajo pastoral.</p>
+                              </div>
                             </div>
+                            <textarea className="pjl-input" rows={8} value={content.objetivoGeneral || ''} onChange={e => setContent({ ...content, objetivoGeneral: e.target.value })} />
                           </div>
-                          <textarea className="pjl-input" rows={8} value={content.objetivoGeneral || ''} onChange={e => setContent({ ...content, objetivoGeneral: e.target.value })} />
+                          <div className="ctx-card">
+                            <div className="sec-head">
+                              <span className="sec-ic">📋</span>
+                              <div>
+                                <h4 className="serif">Líneas de acción / Estatutos</h4>
+                                <p>Los caminos concretos para cumplir la misión.</p>
+                              </div>
+                            </div>
+                            <textarea className="pjl-input" rows={8} value={content.lineasAccion || ''} onChange={e => setContent({ ...content, lineasAccion: e.target.value })} />
+                            <small style={{ color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.6 }}>
+                              Separá cada línea con una coma: el sitio las muestra como etiquetas con ícono
+                              (por ejemplo: <em>Formación Integral, Misión Permanente, Compromiso Social</em>).
+                            </small>
+                          </div>
                         </div>
+
+                        {/* PDF OFICIAL DEL ESTATUTO */}
                         <div className="ctx-card">
                           <div className="sec-head">
-                            <span className="sec-ic">📋</span>
-                            <div>
-                              <h4 className="serif">Líneas de acción / Estatutos</h4>
-                              <p>Los caminos concretos para cumplir la misión.</p>
+                            <span className="sec-ic">📄</span>
+                            <div style={{ flex: 1 }}>
+                              <h4 className="serif">Estatuto oficial (PDF)</h4>
+                              <p>Es el documento que aparece en la tarjeta principal: se puede ver online y descargar con un clic.</p>
+                            </div>
+                            {content.estatutoPdf?.url && <span className="ctx-count">PDF cargado</span>}
+                          </div>
+
+                          <div className="ctx-field" style={{ marginBottom: 18 }}>
+                            <label className="ctx-label"><span className="chip">📎</span> ARCHIVO PDF</label>
+                            <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <label className="btn-ghost" style={{ cursor: 'pointer', padding: '10px 16px' }}>
+                                {content.estatutoPdf?.url ? 'REEMPLAZAR PDF' : 'SUBIR PDF'}
+                                <input type="file" style={{ display: 'none' }} accept="application/pdf,.pdf" onChange={handleEstatutoPdfUpload} />
+                              </label>
+                              {content.estatutoPdf?.url && (
+                                <button className="mini-btn danger" title="Quitar el PDF del sitio" onClick={() => setContent({ ...content, estatutoPdf: { ...estatutoPdfBase, url: '' } })}>🗑️ Quitar PDF</button>
+                              )}
+                              {content.estatutoPdf?.url && (
+                                <a className="btn-ghost" style={{ textDecoration: 'none' }} href={content.estatutoPdf.url} target="_blank" rel="noopener noreferrer">👁️ Ver archivo</a>
+                              )}
+                            </div>
+                            {content.estatutoPdf?.url && (
+                              <small style={{ display: 'block', marginTop: 10, color: 'var(--text-muted)', fontSize: 12 }}>
+                                Ya está en el sitio. Reemplazalo subiendo la nueva versión del PDF.
+                              </small>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'grid', gap: '14px' }}>
+                            <div className="ctx-field" style={{ marginBottom: 0 }}>
+                              <label className="ctx-label">TÍTULO DE LA TARJETA</label>
+                              <input className="pjl-input" placeholder="Estatuto Oficial de la Pastoral Juvenil" value={content.estatutoPdf?.title || ''} onChange={e => setContent({ ...content, estatutoPdf: { ...estatutoPdfBase, title: e.target.value } })} />
+                            </div>
+                            <div className="ctx-field" style={{ marginBottom: 0 }}>
+                              <label className="ctx-label">DESCRIPCIÓN CORTA</label>
+                              <textarea className="pjl-input" rows={3} placeholder="Documento completo con las normas, derechos, obligaciones y estructura organizativa." value={content.estatutoPdf?.description || ''} onChange={e => setContent({ ...content, estatutoPdf: { ...estatutoPdfBase, description: e.target.value } })} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px' }}>
+                              <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                <label className="ctx-label">PÁGINAS</label>
+                                <input className="pjl-input" placeholder="12 páginas" value={content.estatutoPdf?.pages || ''} onChange={e => setContent({ ...content, estatutoPdf: { ...estatutoPdfBase, pages: e.target.value } })} />
+                              </div>
+                              <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                <label className="ctx-label">PESO</label>
+                                <input className="pjl-input" placeholder="2.4 MB" value={content.estatutoPdf?.size || ''} onChange={e => setContent({ ...content, estatutoPdf: { ...estatutoPdfBase, size: e.target.value } })} />
+                              </div>
+                              <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                <label className="ctx-label">ACTUALIZADO</label>
+                                <input className="pjl-input" placeholder="2026" value={content.estatutoPdf?.updatedLabel || ''} onChange={e => setContent({ ...content, estatutoPdf: { ...estatutoPdfBase, updatedLabel: e.target.value } })} />
+                              </div>
                             </div>
                           </div>
-                          <textarea className="pjl-input" rows={8} value={content.lineasAccion || ''} onChange={e => setContent({ ...content, lineasAccion: e.target.value })} />
+                        </div>
+
+                        <div className="ctx-card">
+                          <div className="sec-head">
+                            <span className="sec-ic">📜</span>
+                            <div>
+                              <h4 className="serif">Resumen del estatuto (texto)</h4>
+                              <p>Es lo que se muestra en la tarjeta cuando todavía no subiste el PDF.</p>
+                            </div>
+                          </div>
+                          <textarea className="pjl-input" rows={6} value={content.estatuto || ''} onChange={e => setContent({ ...content, estatuto: e.target.value })} />
                         </div>
                       </div>
                     )}
