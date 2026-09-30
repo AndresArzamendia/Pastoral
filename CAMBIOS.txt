@@ -1,0 +1,113 @@
+================================================================================
+REGISTRO DE CAMBIOS - Pastoral Juvenil Luqueña (PJL)
+================================================================================
+Responsable de los cambios: Andres Arzamendia(Cambios)
+
+Este archivo deja por escrito TODOS los cambios que se hacen en el sitio, en
+orden (del más reciente al más antiguo), con la fecha y la hora exactas.
+
+FORMATO DE CADA ENTRADA (a partir de ahora):
+  [Nº] FECHA HORA - TÍTULO DEL CAMBIO
+        Realizado por: Andres Arzamendia(Cambios)
+        Qué se hizo:  (descripción exacta, archivo por archivo)
+        Verificación: (pruebas realizadas y resultado)
+        Despliegue:   (versión del Worker en Cloudflare)
+
+================================================================================
+
+[1] 2026-09-30 12:27 - ELIMINACIÓN COMPLETA DEL CURRÍCULUM (CV) DEL SISTEMA
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+
+Motivo: se pidió quitar el currículum por completo (ya no se suben, ya no se
+descargan), sin tocar nada más de la página.
+
+QUÉ SE HIZO (exacto):
+
+A) SITIO PÚBLICO (lo que ve la gente)
+   Archivo: src/app/page.tsx
+   - Se eliminaron 4 botones "Currículum Pastoral" de las tarjetas de personas:
+       · tarjeta de coordinadores de zona (pestaña Zonas)
+       · tarjeta de coordinadores de zona (pestaña Consejo/Equipos)
+       · tarjeta de coordinaciones (coordinación, EFO, ECOMU, ELI, MMPJL)
+       · tarjeta de miembros de cada equipo
+   - Se eliminó el botón "Descargar Currículum Pastoral" del modal de perfil.
+   - Se dejó intacto el resto de cada tarjeta (foto, nombre, cargo, biografía,
+     botón "Leer más" y cita) y el botón de descarga de DOCUMENTOS, que es otra
+     cosa y sigue funcionando igual.
+
+B) PANEL DE ADMINISTRACIÓN
+   Archivo: src/app/admin/page.tsx
+   - Se eliminó el bloque completo "Currículum Pastoral" de cada miembro
+     (ícono, texto, botón SUBIR/CAMBIAR, input de archivo PDF/Word y el botón
+     "Quitar CV"), en todos los equipos y coordinaciones.
+   - Se corrigió el texto del estado vacío: antes decía "con su foto, cargo y
+     currículum"; ahora dice "con su foto y cargo".
+   - Se corrigió un comentario interno que mencionaba el currículum.
+
+C) TIPOS Y DATOS
+   Archivo: src/lib/pjlStore.ts
+   - Se quitó el campo cvUrl de la interfaz MemberProfile.
+   - Se quitó cvUrl: '' de los perfiles por defecto.
+   - El comentario de la sección pasó de "Curriculum Profiles" a
+     "Miembros de equipos y coordinaciones".
+   Archivo: src/lib/fileCleanup.ts
+   - Se quitó cvUrl de los campos que limpian archivos del bucket y de la lista
+     de candidatos al borrar un elemento.
+
+D) CSS (limpieza de código muerto, 0 reglas en uso)
+   Archivo: src/app/globals.css
+   - Se borró la clase .btn-cv-pjl completa (estilos, hover, brillo, destello).
+   - Se borró el bloque .pm-cv del modal de perfil y su línea dentro del
+     bloque prefers-reduced-motion.
+   - Se quitó .btn-cv-pjl y .pm-cv de los selectores agrupados de cursor,
+     ripple, brillo al pasar el mouse y efecto al tocar en móvil.
+   - Se borró el bloque del botón CV con destello en las tarjetas (.profile-card
+     .btn-cv-pjl) y su línea en prefers-reduced-motion.
+   - Se borró todo el bloque .profile-cv-box / .profile-cv-icon /
+     .profile-cv-info / .profile-cv-btn / .profile-cv-remove del panel.
+   Archivo: src/app/responsive-fix.css
+   - Se borraron las reglas responsive de .profile-cv-box, .profile-cv-info y
+     .profile-cv-btn, y .profile-card .btn-cv-pjl.
+   Total: se eliminaron más de 100 líneas de CSS que ya no se usaban.
+
+E) APOYO PARA QUE LA COMPIilación PASARA
+   Archivo: tsconfig.json
+   - Se agregó "backup_admin.tsx" a la lista de archivos excluidos del control
+     de tipos. Ese archivo es una copia vieja del panel, en la raíz del
+     proyecto, que la aplicación NO usa; por eso daba errores de cvUrl y frenaba
+     la verificación. No se modificó su contenido.
+
+F) COMENTARIOS
+   Archivo: src/lib/r2.ts
+   - Se actualizaron dos comentarios que mencionaban currículums.
+
+DATOS QUE PODÍAN PERDERSE:
+   Ninguno. Se revisó la base de datos antes de tocar nada y NO había ningún
+   currículum cargado (0 archivos con cvUrl), así que no se borró información
+   de nadie. Los datos de las personas (nombre, cargo, equipo, foto,
+   biografía, cita y fecha de cumpleaños) siguen intactos.
+
+VERIFICACIÓN (todo correcto):
+   - npx tsc --noEmit  → 0 errores.
+   - eslint sobre los 5 archivos modificados  →  0 errores.
+   - npm run build  →  compilación completa sin errores.
+   - Búsqueda de "cvUrl", "btn-cv-pjl", "profile-cv-", "pm-cv" y "Currículum"
+     en todo src/  →  ninguna coincidencia.
+   - Sitio, /admin y /api/supabase/status  →  todos respondieron 200.
+   - El HTML servido ya no contiene la palabra "Currículum".
+
+DESPLIEGUE:
+   Cloudflare Worker "pastoral"  →  versión 51b33f8b-b30e-4931-93b2-4692045dedcb
+   Nota: los dos primeros intentos de despliegue fallaron por corte de red
+   ("The request to Cloudflare's API timed out" y "fetch failed"); el tercero
+   salió bien. El sitio nunca dejó de estar en línea.
+
+EFECTO PARA EL USUARIO:
+   La página carga menos contenido y menos estilos en cada tarjeta de equipo, en
+   el modal de perfil y en el panel, así que se ve más rápida y consume menos
+   datos en el celular y en la computadora.
+
+================================================================================
+FIN DEL REGISTRO
+================================================================================
