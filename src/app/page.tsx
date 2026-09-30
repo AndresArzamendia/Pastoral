@@ -1351,6 +1351,7 @@ const [newsSearch, setNewsSearch] = useState('');
                 {[
                   { id: 'estatuto',      icon: '📜', tag: '#C8973A', t: 'Estatuto',        d: 'El marco y los principios que nos guían' },
                   { id: 'historia',      icon: '🏛️', tag: '#2563EB', t: 'Nuestra Historia', d: 'El camino de fe que nos trajo hasta hoy' },
+                  { id: 'institucional', icon: '🕊️', tag: '#059669', t: 'Institucional',   d: 'Misión, visión y nuestra estructura' },
                 ].map((it, i) => (
                   <button type="button" key={it.id} style={{ '--ad': `${i * 0.05}s`, '--tg': it.tag } as CSSProperties}
                     onClick={() => navigate(it.id)} className="dd-team dd-about">
@@ -1505,6 +1506,7 @@ const [newsSearch, setNewsSearch] = useState('');
                   {[
                     { id: 'estatuto',      icon: '📜', tag: '#C8973A', t: 'Estatuto',          d: 'El marco y los principios que nos guían' },
                     { id: 'historia',      icon: '🏛️', tag: '#2563EB', t: 'Nuestra Historia',   d: 'El camino de fe que nos trajo hasta hoy' },
+                    { id: 'institucional', icon: '🕊️', tag: '#059669', t: 'Institucional',     d: 'Misión, visión y nuestra estructura' },
                   ].map((it) => (
                     <li key={it.id}>
                       <Link href={`/?page=${it.id}`} onClick={(e) => { navigate(it.id, e); setIsMobileMenuOpen(false); }} className="drawer-sublink drawer-sublink-rich">
@@ -1666,38 +1668,6 @@ const [newsSearch, setNewsSearch] = useState('');
                     </button>
                   </div>
                 )}
-              </div>
-            </section>
-
-            {/* MISIÓN VISIÓN VALORES */}
-            <section className="section-pjl section-tint tint-violet" id="identidad">
-              <div className="container">
-                <div className="section-head reveal" onClick={() => navigate('identidad')} style={{ cursor: 'pointer' }}>
-                  <span style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '2px', color: 'var(--gold)', textTransform: 'uppercase' }}>NUESTRA IDENTIDAD</span>
-                  <h3 style={{ margin: '10px 0' }}>Misión, <i style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)', fontWeight: 400 }}>Visión</i> y Valores</h3>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Los pilares que guían el caminar de la Pastoral Juvenil Luqueña.</p>
-                  <div className="line" style={{ margin: '0 auto' }}></div>
-                </div>
-                <div className="mvv-grid">
-                  <div className="mvv-card reveal glass-panel click-card" style={{ animationDelay: '0.1s' }} onClick={() => navigate('identidad')}>
-                    <div className="equipos-icon">🎯</div>
-                    <h4>Misión</h4>
-                    <p>{siteContent.mision || 'Acompañar a los jóvenes de la ciudad de Luque en su proceso de fe, formación integral y compromiso cristiano, desde los valores del Evangelio.'}</p>
-                    <span className="card-arrow">Conocer más →</span>
-                  </div>
-                  <div className="mvv-card reveal glass-panel click-card" style={{ animationDelay: '0.2s' }} onClick={() => navigate('identidad')}>
-                    <div className="equipos-icon">🔭</div>
-                    <h4>Visión</h4>
-                    <p>{siteContent.vision || 'Ser una pastoral juvenil dinámica, inclusiva y transformadora, que forme jóvenes líderes capaces de incidir positivamente en su comunidad.'}</p>
-                    <span className="card-arrow">Conocer más →</span>
-                  </div>
-                  <div className="mvv-card reveal glass-panel click-card" style={{ animationDelay: '0.3s' }} onClick={() => navigate('identidad')}>
-                    <div className="equipos-icon">💎</div>
-                    <h4>Valores</h4>
-                    <p>{siteContent.valores || 'Empatía, Servicio, Responsabilidad, Amor al prójimo, Respeto, Trabajo en equipo y Alegría cristiana.'}</p>
-                    <span className="card-arrow">Conocer más →</span>
-                  </div>
-                </div>
               </div>
             </section>
 

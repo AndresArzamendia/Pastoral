@@ -17,10 +17,48 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+================================================================================
+
+[6] 2026-09-30 17:56 - SE RESTAURA EL MENÚ Y SE QUITA EL BLOQUE «MISIÓN, VISIÓN Y VALORES» DE LA PORTADA
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia
+Solicitado por: Andres Arzamendia
+
+Motivo: el cambio [5] interpretó mal el pedido. El bloque a eliminar era el de
+Misión/Visión/Valores que está debajo del carrusel hero de la portada, NO el ítem
+del menú. Por eso se deshizo el cambio [5] y se eliminó ese bloque.
+
+Qué se hizo, archivo por archivo:
+
+1) src/app/page.tsx
+   - Menú: se restauraron los ítems quitados en el cambio [5]. El desplegable
+     «Nosotros» de escritorio y el cajón móvil vuelven a tener «Estatuto»,
+     «Nuestra Historia» e «Institucional — Misión, visión y nuestra estructura».
+   - Portada: se eliminó el <section id="identidad"> «Misión, Visión y Valores»
+     que estaba justo debajo del carrusel hero, con sus tres tarjetas y el
+     enlace «Conocer más».
+   - Ese bloque era el único que usaba navigate('identidad'), una ruta que no
+     existe como página, así que al quitarlo también desaparecen esos enlaces
+     rotos. No queda ninguna otra referencia a 'identidad' en el archivo.
+   - No se tocó nada más: la página /?page=institucional sigue mostrando Misión,
+     Visión y Valores; tampoco se modificaron el menú, el hero, el resto de las
+     secciones de la portada, el pie ni ninguna otra página.
+
+Verificación:
+- `npx tsc --noEmit`: sin errores.
+- `npm run build`: compilación correcta.
+- Producción: responden 200 inicio, estatuto, historia, institucional, consejo,
+  noticias y agenda, y /api/notifications sigue respondiendo 200.
+
+Despliegue: 35075345-4d29-487e-a8b1-ad040e6da299
+
 [5] 2026-09-30 17:48 - QUITAR «MISIÓN, VISIÓN Y VALORES» DEL MENÚ PRINCIPAL
 --------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia
 Solicitado por: Andres Arzamendia
+
+Nota: este cambio se DESHIZO en el cambio [6]. Se conserva la entrada para no
+alterar el historial.
 
 Motivo: el pedido fue sacar Misión/Visión/Valores del menú principal, sin tocar
 el resto de la página.
