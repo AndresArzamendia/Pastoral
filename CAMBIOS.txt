@@ -21,6 +21,53 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[9] 2026-09-30 17:56 - SE RESTAURE EL "DATO DEL DÍA" A SU VERSIÓN ORIGINAL (BURBUJA FLOTANTE ARRASTRABLE)
+--------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia
+Solicitado por: Andres Arzamendia
+
+Motivo: el "Dato del día" ya estaba bien como estaba; se deshizo el cambio que
+lo había convertido en banner fijo dentro del flujo.
+
+Qué se hizo, archivo por archivo:
+
+src/components/FactWidget.tsx
+- Restaurado íntegro el componente tal como estaba antes del rediseño: burbuja
+  circular arrastrable con `pjl_fact_pos` en localStorage, handlers
+  `startDrag` / `onDrag` / `endDrag`, reclado de posición al girar la tablet o
+  redimensionar (`clampIntoView`) y panel de detalle que se abre al hacer clic.
+  Se descartaron la barra horizontal, los controles `.fact-bar-ctrl` y el
+  `.fact-bar-toggle` ("Ver más / Ocultar").
+
+src/app/page.tsx
+- El render vuelve a ser `<FactWidget />` solo, en el mismo lugar de siempre
+  (antes del navbar), sin el contenedor `.fact-bar-wrap`.
+
+src/app/globals.css
+- Restaurado el bloque original del widget: `.fact-widget` fijo abajo a la
+  izquierda, `.fact-chip` con halo, `.fact-chip-halo`, `.fact-chip-ico`,
+  `.fact-panel` flotante de 360px, `factChipIn` y `factHaloBreath`.
+- Restaurados los media queries originales (540px y 400px) y el bloque
+  `prefers-reduced-motion` con los `.fact-chip`.
+- `.fact-scroll` vuelve a no tener alto máximo.
+- Se eliminaron todas las reglas nuevas: `.fact-bar-wrap`, `.fact-bar*`,
+  `.fact-bar-ctrl`, `.fact-bar-toggle` y `factBarIn`.
+- `.estatuto-page .container` vuelve al relleno inferior de 96–160px, que
+  existe justamente para que el "Dato del día" flotante no tape la última
+  tarjeta.
+
+Se conserva todo lo demás del rediseño (Misión/Visión/Valores, "Nuestro
+Camino", tarjetas de contacto, botón circular de "volver arriba" y footer).
+
+Verificación:
+- `git diff da3d58f` sobre globals.css, page.tsx y FactWidget.tsx: sin ninguna
+  diferencia en el widget "Dato del día" (queda igual al original).
+- `npx tsc --noEmit`: sin errores. `npx eslint` sobre los archivos tocados: sin
+  errores. `npm run build`: compilación correcta.
+- Producción: `/?page=institucional` responde HTTP 200.
+
+Despliegue: Worker 0c6f0264-b8dc-4c53-906d-6ba55e4c4ccf
+
 [8] 2026-09-30 17:38 - REDISEÑO VISUAL DE LA PÁGINA INSTITUCIONAL: IDENTIDAD, VALORES, "NUESTRO CAMINO", CONTACTO, WIDGETS Y FOOTER
 --------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia

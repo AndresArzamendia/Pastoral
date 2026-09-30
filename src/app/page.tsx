@@ -1281,12 +1281,8 @@ const [newsSearch, setNewsSearch] = useState('');
         </button>
       )}
 
-      {/* DATO DEL DÍA — curiosidades católicas de fuentes oficiales (vatican.va).
-          Va en el flujo (banner bajo el navbar), no flotando: antes tapaba las
-          tarjetas y los enlaces del pie. */}
-      <div className="fact-bar-wrap">
-        <FactWidget />
-      </div>
+      {/* DATO DEL DÍA — curiosidades católicas de fuentes oficiales (vatican.va) */}
+      <FactWidget />
 
       {/* 1. NAVBAR REFINADA */}
       <nav className={`top-nav ${navScrolled ? 'nav-scrolled' : ''} ${navEntered ? 'nav-entered' : ''}`}>

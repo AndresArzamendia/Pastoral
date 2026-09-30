@@ -1,10 +1,11 @@
 'use client';
 
-import { CSSProperties, useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
 import { CURIOSITIES, type Curiosity } from '@/lib/facts';
 
 const LS_OPEN = 'pjl_fact_open';
 const LS_HISTORY = 'pjl_fact_history';  /* decks de los últimos días */
+const LS_POS = 'pjl_fact_pos';          /* posición del botón arrastrado */
 const MAX_PER_DAY = 6;
 const NO_REPEAT_DAYS = 3;  /* nunca repetir un dato visto en los últimos 3 días */
 
@@ -132,10 +133,45 @@ export default function FactWidget() {
   const [loading, setLoading] = useState(true);     /* fetch en curso */
   const [deck, setDeck] = useState<Curiosity[]>([]); /* baraja de hoy */
   const [deckIdx, setDeckIdx] = useState(0);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [bio, setBio] = useState('');          /* biografía del santo visible */
   const [bioLoading, setBioLoading] = useState(false);
   const [variant, setVariant] = useState(0);  /* 0 mini bio · 1 curiosidad · 2 datos */
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ baseX: number; baseY: number; startX: number; startY: number } | null>(null);
+  const draggedRef = useRef(false);            /* se detiene el toggle si hubo arrastre */
+  const posRef = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => { posRef.current = pos; }, [pos]);
+
+  /* Al girar la tablet (horizontal ⇄ vertical) o redimensionar, el widget
+     puede quedar arrastrado FUERA de la pantalla (posición guardada en el
+     otro formato). Se reclava la posición dentro del viewport visible para
+     que el "Dato del día" nunca desaparezca con el cambio de orientación. */
+  useEffect(() => {
+    const clampIntoView = () => {
+      const p = posRef.current;
+      const el = widgetRef.current;
+      if (!p || !el) return;
+      const w = el.offsetWidth || 140;
+      const h = el.offsetHeight || 44;
+      const maxX = Math.max(6, window.innerWidth - w - 6);
+      const maxY = Math.max(6, window.innerHeight - h - 6);
+      const nx = Math.min(Math.max(6, p.x), maxX);
+      const ny = Math.min(Math.max(6, p.y), maxY);
+      if (nx !== p.x || ny !== p.y) {
+        setPos({ x: nx, y: ny });
+        try { localStorage.setItem(LS_POS, JSON.stringify({ x: nx, y: ny })); } catch { /* sin almacenamiento */ }
+      }
+    };
+    window.addEventListener('resize', clampIntoView);
+    window.addEventListener('orientationchange', clampIntoView);
+    return () => {
+      window.removeEventListener('resize', clampIntoView);
+      window.removeEventListener('orientationchange', clampIntoView);
+    };
+  }, []);
 
   /* Precarga el pool (contenido automático del Vaticano + selección base). */
   useEffect(() => {
@@ -156,12 +192,17 @@ export default function FactWidget() {
     return () => { live = false; };
   }, []);
 
-  /* Hidratación: preferencia abierta del detalle. */
+  /* Hidratación: preferencia abierta + posición arrastrable del botón. */
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LS_OPEN);
       // En el primer ingreso se muestra la curiosidad; luego respeta lo guardado.
       setOpen(stored === null ? true : stored === '1');
+      const p = localStorage.getItem(LS_POS);
+      if (p) {
+        const o = JSON.parse(p);
+        if (o && typeof o.x === 'number' && typeof o.y === 'number') setPos(o);
+      }
     } catch {
       setOpen(true);
     }
@@ -273,31 +314,61 @@ export default function FactWidget() {
     setDeckIdx(j);
   };
 
-  /* El "Dato del día" ya no es una burbuja arrastrable: es un banner compacto
-     dentro del flujo de la página (justo debajo del navbar), así no tapa las
-     tarjetas ni los enlaces del pie. */
+  const startDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = widgetRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = { baseX: rect.left, baseY: rect.top, startX: e.clientX, startY: e.clientY };
+    draggedRef.current = false;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
+    setDragging(true);
+  };
+
+  const onDrag = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const s = dragRef.current;
+    if (!s) return;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+    if (Math.hypot(dx, dy) > 6) draggedRef.current = true;
+    const w = e.currentTarget.offsetWidth;
+    const h = e.currentTarget.offsetHeight;
+    const x = Math.min(Math.max(6, s.baseX + dx), window.innerWidth - w - 6);
+    const y = Math.min(Math.max(6, s.baseY + dy), window.innerHeight - h - 6);
+    setPos({ x, y });
+  };
+
+  const endDrag = () => {
+    dragRef.current = null;
+    setDragging(false);
+    try {
+      if (posRef.current) localStorage.setItem(LS_POS, JSON.stringify(posRef.current));
+    } catch { /* sin almacenamiento local */ }
+  };
+
   return (
-    <div className={`fact-widget is-hydrated ${open ? 'is-open' : ''}`}>
-      <div className="fact-bar">
-        <span className="fact-bar-ico" aria-hidden="true">{fact.ico}</span>
-        <div className="fact-bar-txt">
-          <span className="fact-bar-label">DATO DEL DÍA · {fact.cat}</span>
-          <strong className="fact-bar-title">{fact.title}</strong>
-        </div>
-        <div className="fact-bar-ctrl">
-          <button type="button" className="fact-nav" onClick={() => step(-1)} aria-label="Curiosidad anterior">‹</button>
-          <button type="button" className="fact-nav fact-nav-rand" onClick={shuffle} aria-label="Otra curiosidad" title="Otra de hoy">⤮</button>
-          <button type="button" className="fact-nav" onClick={() => step(1)} aria-label="Curiosidad siguiente">›</button>
-          <button
-            type="button"
-            className="fact-bar-toggle"
-            onClick={() => setOpen(o => !o)}
-            aria-expanded={open}
-          >
-            {open ? 'Ocultar' : 'Ver más'}
-          </button>
-        </div>
-      </div>
+    <div
+      ref={widgetRef}
+      className={`fact-widget ${open ? 'is-open' : ''} ${dragging ? 'is-dragging' : ''} is-hydrated`}
+      style={pos ? { left: pos.x, top: pos.y, bottom: 'auto' } : undefined}
+    >
+      <button
+        type="button"
+        className="fact-chip"
+        onPointerDown={startDrag}
+        onPointerMove={onDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClick={() => {
+          if (draggedRef.current) { draggedRef.current = false; return; }
+          setOpen(o => !o);
+        }}
+        aria-expanded={open}
+        aria-label={open ? 'Ocultar dato curioso' : 'Mostrar dato curioso'}
+        title="Arrastra para moverme"
+      >
+        <span className="fact-chip-halo" aria-hidden="true" />
+        <span className="fact-chip-ico" aria-hidden="true">📜</span>
+        <span className="fact-chip-txt">Dato del día</span>
+      </button>
 
       <section
         className="fact-panel"
@@ -310,6 +381,11 @@ export default function FactWidget() {
 
         <header className="fact-head">
           <span className="fact-badge" aria-hidden="true">{fact.ico} {fact.cat}</span>
+          <div className="fact-ctrl">
+            <button type="button" className="fact-nav" onClick={() => step(-1)} aria-label="Curiosidad anterior de hoy">‹</button>
+            <button type="button" className="fact-nav fact-nav-rand" onClick={shuffle} aria-label="Otra curiosidad de hoy" title="Otra de hoy">⤮</button>
+            <button type="button" className="fact-nav" onClick={() => step(1)} aria-label="Curiosidad siguiente de hoy">›</button>
+          </div>
         </header>
 
         <div className="fact-scroll">
