@@ -12586,6 +12586,18 @@ html.show-splash .splash-content { visibility: visible; }
   transition: all 0.25s ease;
 }
 .notif-clear-btn:hover { background: var(--gold); color: #fff; }
+.notif-read-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
 .notif-close-btn {
   width: 26px;
   height: 26px;
@@ -12739,6 +12751,46 @@ html.show-splash .splash-content { visibility: visible; }
 .notif-item.tone-red .notif-ico { background: linear-gradient(140deg, rgba(224,69,47,.18), rgba(224,69,47,.05)); border-color: rgba(224,69,47,.32); }
 .notif-item.tone-pink .notif-ico { background: linear-gradient(140deg, rgba(236,72,153,.2), rgba(236,72,153,.05)); border-color: rgba(236,72,153,.35); }
 
+/* Pendiente de lectura: punto azul junto a la fecha */
+.notif-new-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+.notif-read-check {
+  font-size: 11px;
+  font-weight: 900;
+  color: #047857;
+}
+
+/* Aviso ya leído: se apaga y deja de competir con lo pendiente */
+.notif-item.is-read {
+  opacity: 0.6;
+  background: rgba(244, 246, 250, 0.9);
+  border-style: dashed;
+}
+.notif-item.is-read:hover { opacity: 1; }
+.notif-item.is-read .notif-ico { filter: grayscale(0.55); }
+.notif-item.is-read .notif-body strong { font-weight: 700; color: var(--text-muted, #5b6a85); }
+
+.notif-read-toggle {
+  display: block;
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--navy);
+  background: rgba(26, 39, 68, 0.05);
+  border: 1px solid rgba(26, 39, 68, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.notif-read-toggle:hover { background: rgba(200, 151, 58, 0.14); border-color: rgba(200, 151, 58, 0.4); }
+
 /* Estados */
 .notif-state {
   padding: 34px 16px;
@@ -12847,7 +12899,7 @@ html.show-splash .splash-content { visibility: visible; }
 @media (prefers-reduced-motion: reduce) {
   .notif-bell, .notif-bell-ico, .notif-bell.has-unread .notif-bell-ico,
   .notif-badge, .notif-dot, .notif-panel,
-  .notif-item, .notif-item::after, .notif-empty-ico, .notif-skeleton { animation: none !important; transition: none !important; }
+  .notif-item, .notif-item::after, .notif-empty-ico, .notif-skeleton, .notif-read-toggle { animation: none !important; transition: none !important; }
 }
 
 /* ============================================================

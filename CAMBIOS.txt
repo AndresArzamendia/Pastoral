@@ -15,12 +15,173 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
-[1] 2026-09-30 12:27 - ELIMINACIÓN COMPLETA DEL CURRÍCULUM (CV) DEL SISTEMA
+[3] 2026-09-30 13:54 - CENTRO DE AVISOS: SOLO NOTICIAS Y EVENTOS, CON LECTURA GUARDADA POR PERSONA
+--------------------------------------------------------------------------------
+Realizado por: Lucas Nuñez
+Solicitado por: Lucas Nuñez
+
+Motivo: el pedido fue que en la barrita de avisos solo aparezcan las noticias y
+las informaciones importantes que se suben (no un aviso por cada cambio del
+sitio), que un aviso desaparezca cuando la persona lee/entra a la noticia, que
+exista un botón para marcar todo como leído, y que el estado se registre en
+todos los dispositivos.
+
+Qué se hizo, archivo por archivo:
+
+1) migrations/0002_notification_reads.sql (nuevo)
+   - Tabla notification_reads en Cloudflare D1 (binding STATS_DB):
+     una fila por (visitor_key, notification_id) con la fecha de lectura.
+   - Índice idx_notification_reads_visitor (visitor_key, read_at DESC).
+   - Migración aplicada en la base remota con
+     `wrangler d1 migrations apply pastoral-stats --remote`.
+
+2) src/app/api/notifications/route.ts (reescrito)
+   - GET ahora devuelve únicamente dos fuentes: noticias publicadas y próximos
+     eventos (próximos 30 días). Se eliminaron las 6 fuentes automáticas
+     anteriores: novedades/actividades/documentos/cumpleaños del store y el
+     journal "se actualizó X" (meta_updated). Con esto la campana ya no avisa
+     por cada cambio guardado desde el panel.
+   - Como las tablas news_articles y news_events están vacías (el contenido se
+     publica desde el panel y vive en pjl_store), cuando no hay noticias en la
+     base se usan las noticias publicadas (pjl_store['news']) y, si tampoco hay
+     eventos en la base, las actividades activas (pjl_store['activities']). No
+     se duplican avisos entre base y panel.
+   - Cada aviso trae `read` y `readAt`: se leen de D1 para la persona que
+     consulta. La respuesta incluye `unread` y `persistent`.
+   - Nuevo POST /api/notifications: marca avisos como leídos.
+     - { "ids": ["noticia-store-3"] } marca uno o varios.
+     - { "all": true } marca todos los avisos actuales.
+     - Solo acepta ids que existen ahora mismo en el centro de avisos, así no
+       se pueden guardar filas basura desde fuera.
+   - Identidad por cabecera `x-pjl-visitor`: "u:<id de Supabase>" si la persona
+     tiene sesión (mismo estado en todos sus dispositivos) o "d:<uuid del
+     equipo>" si todavía no se identificó. Límite 500 avisos leídos por persona.
+   - Cache-Control: no-store en el GET.
+
+3) src/components/NotificationBell.tsx (reescrito)
+   - Se eliminó el marcado automático: antes, con solo abrir el panel, todo
+     quedaba como leído. Ahora abrir el panel no cambia nada.
+   - Cada aviso se marca como leído al entrar a la noticia (optimista en el
+     momento y guardado en el servidor).
+   - Nuevo botón "✓ Marcar todo leído" (envía all:true).
+   - Los avisos leídos se ocultan de la lista y quedan agrupados bajo
+     "▸ Ver N avisos leídos" (se pueden volver a abrir).
+   - Punto azul en los avisos sin leer y chip "Todo leído" cuando no queda nada.
+   - El estado se guarda en el servidor y, además, se copia en localStorage
+     (pjl_notif_visitor / pjl_notif_reads) para que el panel abra al instante
+     aunque el servidor no responda. Ya no se usa la clave vieja pjl_notif_seen.
+   - Si la persona tiene sesión de Supabase abierta, la clave es su cuenta, de
+     modo que el estado aparece igual en celular y computadora.
+
+4) src/app/globals.css
+   - .notif-read-chip (chip "Todo leído").
+   - .notif-new-dot (punto azul de aviso sin leer) y .notif-read-check (✓).
+   - .notif-item.is-read (aviso leído, atenuado con borde punteado).
+   - .notif-read-toggle (botón para ver/ocultar los leídos).
+   - Los estilos de animación se desactivan también para el botón nuevo.
+
+5) AGENTS.md
+   - La regla de CAMBIOS.txt ya no fija "Andres Arzamendia(Cambios)": ahora pide
+     el nombre de la persona que pide cada cambio (ejemplos: Lucas Nuñez o
+     Andres Arzamendia(Cambios)). Esta entrada es la primera firmada por otra
+     persona.
+
+Nota para el usuario: el estado se comparte entre dispositivos cuando la
+persona tiene su cuenta de Supabase iniciada en el navegador. Si todavía no se
+identificó en ningún dispositivo, el estado se guarda por equipo (cada
+teléfono o computadora lleva su propio registro).
+
+Verificación realizada y resultado:
+- `npx tsc --noEmit`: sin errores.
+- `npx eslint` sobre los dos archivos modificados: 0 errores, 0 avisos.
+- `npm run build`: correcto.
+- Migración D1 aplicada y confirmada (tabla notification_reads creada).
+- Pruebas en producción (https://pastoral.arzamendiaandres-6d2.workers.dev):
+  GET -> success=true, persistent=true, 2 avisos (noticias del panel).
+  POST {ids:[...]} -> marked=2; el GET siguiente bajó unread de 2 a 0.
+  POST {all:true} -> marked=2.
+  Otro identificador de dispositivo arranca con unread=2 (estado independiente).
+  Filas de prueba borradas después (tabla con 0 registros).
+  / y /api/supabase/status -> 200.
+
+Despliegue: Cloudflare Worker versión e237aaa4-c22a-4802-b7a4-e62445b4beb2
+(la anterior 047d93ee-0ce8-40cf-b5c8-99946dfd72f5 quedó en el historial).
+Vercel: sin cambios, el sitio sigue publicado solo en Cloudflare.
+
+================================================================================
+
+[2] 2026-09-30 13:01 - REVISIÓN TÉCNICA DEL SISTEMA DE NOTIFICACIONES (SIN MODIFICAR CÓDIGO)
 --------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
+Persona involucrada: Lucas Nuñez (se toma nota para futura implementación según solicitud)
 
-Motivo: se pidió quitar el currículum por completo (ya no se suben, ya no se
-descargan), sin tocar nada más de la página.
+Qué se hizo:
+- Análisis exhaustivo del sistema de notificaciones (lectura únicamente, sin cambios
+  de código). Se documentó la realidad técnica para implementar lo solicitado por el
+  usuario de forma correcta.
+
+Detalles del análisis:
+
+A) API de notificaciones (src/app/api/notifications/route.ts — 328 líneas)
+   - Solo existe GET (no POST/PATCH/DELETE). Devuelve {success, notifications[], generatedAt}
+   - Lee: news_articles (publicadas, no archivadas), news_events (próximos ≤30 días),
+     y pjl_store (keys: news, activities, docs, profiles, meta_updated, content, chapels)
+   - Genera 8 fuentes de avisos: noticias, eventos, novedades, actividades, documentos,
+     cumpleaños (≤7 días), journal meta_updated (≤7 días). Orden: urgentes primero,
+     luego por fecha desc. Límite: 40.
+   - Usa service role si existe (getSupabaseRouteConfig). GET es PÚBLICO (sin auth).
+   - meta_updated viene de src/lib/pjlStore.ts:494-507 con coalescencia 45s por clave;
+     se traduce con META_TYPES (9 claves genéricas).
+
+B) Generación de avisos
+   - Única llamada cliente: src/components/NotificationBell.tsx:52 (GET /api/notifications).
+   - pjl_admin_write existe (admin/page.tsx:406,890) pero solo escribe logs, NO crea
+     avisos. Publicar/editar noticias no genera un evento de notificación persistida
+     (los avisos se recomputan al leer).
+   - Web Push es independiente: POST /api/push/send (requiere admin writer) envia a
+     push_subscriptions (pjl_store). Suscripciones sin auth: /api/push/subscribe|unsubscribe.
+
+C) Campana pública (src/components/NotificationBell.tsx — 255 líneas)
+   - Montado en src/app/page.tsx:1404 (<NotificationBell/>). Polling 60s, focus,
+     visibilitychange y pjl_store_update (debounce 900ms).
+   - "Leído": clave localStorage 'pjl_notif_seen' (timestamp ISO). Cálculo: no leído
+     si time > seenAt. markAllRead() guarda el máximo time de los items visibles.
+   - Disparadores: abrir panel → markAllRead() (línea 117). Botón "✓ Leído".
+   - UI: campana, badge (unread>0), panel, skeletons, footer con links, navegación
+     emite pjl_navigate → page.tsx:1067-1074. Tonos por type (.tone-*) definidos en
+     globals.css 12735-12740. Animaciones 12416-12851.
+
+D) Persistencia (Supabase/D1)
+   - NO existe tabla de notificaciones. Tablas usadas: news_articles/events/categories,
+     pjl_store, user_profiles, D1 daily_views/devices (analytics).
+   - Clave huérfana 'notifications' existe en ALLOWED_KEYS (store/route.ts:23) pero
+     nunca se lee ni usa. Push usa pjl_store['push_subscriptions'] (array, sin user_id/email).
+   - Sin registro por usuario (read_at/is_read). Solo localStorage global por navegador.
+
+E) Autenticación
+   - GET /api/notifications: 100% público. Sin request/auth.
+   - Escrituras admin usan requireAdminWriter (src/lib/requireAdmin.ts) → requiere token
+     Supabase válido + perfil activo + rol con permiso (WRITE_ROLES: superadmin, desarrollador).
+   - Para asociar "leído" por usuario en servidor sería necesario cambiar GET a recibir
+     request y leer session.email (authorizeAdmin/verifyToken). Hoy no exportado verifyToken.
+
+F) CSS de notificaciones
+   - globals.css: bloque 12416–12851 (~55 selectores + 11 keyframes). responsive-fix.css:
+     0 coincidencias. layout.tsx oculta campana durante splash.
+
+Conclusión: para cumplir lo solicitado ("notificaciones solo noticias/informaciones
+importantes que se suben", "quitar los avisos por cada cambio", "marcar como leído al
+entrar en la noticia o botón 'marcar todo como leído'", "registrar leídos por usuario
+y en todos los dispositivos", y "cambiar el registro a que otra persona (Lucas Nuñez)
+pueda dejar su nombre en CAMBIOS.txt") se requiere añadir una tabla de notificaciones
+persistidas + endpoints POST/PATCH (autenticados) + tracking read_at por usuario/email
+(sincronizado entre dispositivos). No hay nada de eso hoy (solo lectura derivada).
+El análisis queda registrado para guiar la implementación exacta.
+
+Verificación: solo lectura, sin modificaciones. 0 cambios en archivos.
+
+Despliegue: no aplica (sin modificaciones de código).
+
 
 QUÉ SE HIZO (exacto):
 

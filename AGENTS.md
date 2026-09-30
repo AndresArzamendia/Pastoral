@@ -14,7 +14,11 @@ Requisitos de la entrada:
 - Número consecutivo `[Nº]`, empezando en `[1]`, del más reciente al más antiguo.
 - Fecha y hora exactas del cambio.
 - Título corto del cambio.
-- `Realizado por: Andres Arzamendia(Cambios)`.
+- `Realizado por:` con el **nombre de la persona que pide el cambio** (el
+  proyecto lo firma la persona, no la herramienta). Ejemplos:
+  `Realizado por: Lucas Nuñez` o `Realizado por: Andres Arzamendia(Cambios)`.
+  Cuando el cambio lo pida otra persona, se anota su nombre y no el de la
+  herramienta.
 - Qué se hizo, archivo por archivo, de forma concreta.
 - Verificación realizada y resultado.
 - Versión del Worker en Cloudflare, si hubo despliegue.
