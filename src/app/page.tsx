@@ -1006,7 +1006,11 @@ const [newsSearch, setNewsSearch] = useState('');
     reveals.forEach(r => observer.observe(r));
 
     return () => observer.disconnect();
-  }, [currentPage, activeZoneTab, activeConsejoTab, selectedZone, globalCommFilter, liveChapels]);
+  // `estatutoReady` está en la lista porque la sección del Estatuto se
+  // dibuja detrás de un esqueleto: al cambiar a true aparecen nodos .reveal
+  // nuevos que el observer debe volver a observar (si no, quedarían
+  // invisibles al abrir /?page=estatuto directamente).
+  }, [currentPage, activeZoneTab, activeConsejoTab, selectedZone, globalCommFilter, liveChapels, estatutoReady]);
 
   // --- ESTADÍSTICAS (Cloudflare D1) ---
   // Antes cada visita leía y reescribía en Supabase la lista completa de dispositivos

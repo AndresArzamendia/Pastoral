@@ -92,6 +92,22 @@ Verificación:
 
 Despliegue: 6396e4fc-363a-48ae-ab89-234e99064457
 
+Corrección posterior (2026-09-30 17:34) — «Estatuto en blanco»:
+
+- Causa: la clase .reveal de las tarjetas nuevas nace con opacity 0 y solo se
+  muestra cuando el IntersectionObserver la marca como visible. Como el
+  contenido del Estatuto se dibuja detrás del esqueleto, al abrir
+  /?page=estatuto directamente el observer se ejecutaba cuando en el DOM solo
+  existían los esqueletos; las tarjetas del PDF nunca se observaron y
+  quedaron invisibles (pantalla en blanco).
+- Arreglo en src/app/page.tsx: se agregó `estatutoReady` a las dependencias del
+  useLayoutEffect del IntersectionObserver, para que al montar el contenido
+  real vuelva a observar los nodos .reveal nuevos.
+- Verificación: npx tsc --noEmit sin errores, npm run build correcto, y en
+  producción responden 200 las páginas inicio, estatuto, historia, zonas y
+  agenda.
+- Despliegue de la corrección: 2d5c75d9-072c-4a7a-8fc4-56bec1cd3a6f
+
 [3] 2026-09-30 13:54 - CENTRO DE AVISOS: SOLO NOTICIAS Y EVENTOS, CON LECTURA GUARDADA POR PERSONA
 --------------------------------------------------------------------------------
 Realizado por: Lucas Nuñez
