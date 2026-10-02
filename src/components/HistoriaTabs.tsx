@@ -94,6 +94,104 @@ function hasOwnNumber(title?: string): boolean {
   return /^\s*\d/.test(title || '');
 }
 
+/* ------------------------------------------------------------------ */
+/* La vista desplegada. Vive aparte porque es un bloque grande que se    */
+/* monta y desmonta entero: si estuviera dentro del recorrido del padre, */
+/* cada render volvería a calcular sus textos aunque no cambiara nada.   */
+/* ------------------------------------------------------------------ */
+function HistoriaPanel({
+  item,
+  index,
+  onViewPdf,
+}: {
+  item: TimelineEvent;
+  index: number;
+  onViewPdf: (item: TimelineEvent) => void;
+}) {
+  const accent = item.accentColor || 'var(--gold)';
+  const kicker = (item.kicker || '').trim() || 'Memoria pastoral';
+  /* `heading` es el título corto de la vista desplegada («Santuario Virgen del
+     Rosario») frente al largo de la píldora. Si el panel no lo tiene, se usa el
+     título de la píldora: nunca queda una vista sin encabezado. */
+  const heading = (item.heading || '').trim() || item.title || `Hito ${index + 1}`;
+  const summary = (item.summary || '').trim() || item.text;
+  const docUrl = safeUrl(item.docUrl);
+  const onlineUrl = safeUrl(item.onlineUrl);
+  const meta = docMetaParts(item);
+  const downloadUrl = downloadUrlOf(docUrl);
+  const fileName = fileNameOf(item);
+
+  return (
+    <div
+      id={`hs-panel-${item.id}`}
+      role="region"
+      aria-labelledby={`hs-btn-${item.id}`}
+      className="hs-panel"
+      style={{ '--hs-accent': accent } as CSSProperties}
+    >
+      <div className="hs-panel-head">
+        <span className="hs-kicker">✦ {kicker}</span>
+        <h3 className="serif hs-title">{heading}</h3>
+        {item.period && <span className="hs-period">{item.period}</span>}
+      </div>
+
+      {item.image && (
+        <figure className="hs-figure">
+          <img src={item.image} alt={heading} loading="lazy" decoding="async" />
+        </figure>
+      )}
+
+      <div className="hs-resume">
+        <span className="hs-resume-label">Resumen</span>
+        <p className="hs-summary">{summary}</p>
+        {item.text && item.text !== summary && <p className="hs-text">{item.text}</p>}
+      </div>
+
+      {meta.length > 0 && (
+        <p className="hs-docmeta">
+          <span className="hs-docmeta-ico" aria-hidden="true">📄</span>
+          {meta.map((m, mi) => (
+            <span className="hs-docmeta-part" key={m}>
+              {mi > 0 && <span className="hs-dot" aria-hidden="true">•</span>}
+              {m}
+            </span>
+          ))}
+        </p>
+      )}
+
+      {docUrl || onlineUrl ? (
+        <div className="hs-actions">
+          {onlineUrl ? (
+            <a className="hs-btn hs-btn-ghost" href={onlineUrl} target="_blank" rel="noopener noreferrer">
+              <span aria-hidden="true">👁️</span> Ver Online
+            </a>
+          ) : (
+            <button type="button" className="hs-btn hs-btn-ghost" onClick={() => onViewPdf(item)}>
+              <span aria-hidden="true">👁️</span> Ver Online
+            </button>
+          )}
+          {downloadUrl && (
+            <a
+              className="hs-btn hs-btn-primary"
+              href={downloadUrl}
+              download={fileName}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span aria-hidden="true">📥</span> Descargar PDF
+            </a>
+          )}
+        </div>
+      ) : (
+        <p className="hs-note">
+          Todavía no hay un documento asociado a este hito. Cargalo desde{' '}
+          <strong>Panel de administración → Contenido → Historia</strong>.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
   /* Hitos que no están vacíos. Se recalcula solo cuando cambia la lista, así
      que recorrer el array no pasa en cada render. */
@@ -110,8 +208,7 @@ export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
 
   /* Si el panel borra o reordena hitos y el que estaba abierto ya no existe,
      caemos en el primero sin dejar la vista en blanco. */
-  const active = idx >= 0 && idx < lista.length ? idx : lista.length ? -1 : -1;
-  const item = active >= 0 ? lista[active] : undefined;
+  const active = idx >= 0 && idx < lista.length ? idx : -1;
 
   const move = useCallback(
     (delta: number) => {
@@ -143,7 +240,12 @@ export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
      el contenido que acaba de cambiar. */
   useEffect(() => { setPdfItem(null); }, [active]);
 
-  if (!lista.length || !item) {
+  /* El estado vacío es SOLO para cuando no hay hitos. Si el visitante cerró la
+     última píldora abierta (`active === -1`) las píldoras tienen que seguir ahí
+     para poder volver a abrirlas: mostrarlas era la única forma de llegar de
+     vuelta. Antes esta condición también incluía `!item` y cerrando todo
+     desaparecía la lista entera sin forma de recuperarla. */
+  if (!lista.length) {
     return (
       <div className="pjl-empty-state" style={{ maxWidth: '560px', margin: '0 auto' }}>
         <div className="empty-icon">📜</div>
@@ -155,26 +257,13 @@ export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
     );
   }
 
-  const accent = item.accentColor || 'var(--gold)';
-  const kicker = (item.kicker || '').trim() || 'Memoria pastoral';
-  /* `heading` es el título corto de la vista desplegada («Santuario Virgen del
-     Rosario») frente al largo de la píldora. Si el panel no lo tiene, se usa el
-     título de la píldora: nunca queda una vista sin encabezado. */
-  const heading = (item.heading || '').trim() || item.title || `Hito ${active + 1}`;
-  const summary = (item.summary || '').trim() || item.text;
-  const docUrl = safeUrl(item.docUrl);
-  const onlineUrl = safeUrl(item.onlineUrl);
-  const meta = docMetaParts(item);
-  const downloadUrl = downloadUrlOf(docUrl);
-  const fileName = fileNameOf(item);
-  const showNumber = !hasOwnNumber(item.title);
+  const pdfUrl = safeUrl(pdfItem?.docUrl);
 
   return (
     <div className="hs">
       <div className="hs-list">
         {lista.map((it, i) => {
           const open = i === active;
-          const panelId = `hs-panel-${it.id}`;
           return (
             <div className="hs-item" key={it.id}>
               <button
@@ -184,7 +273,7 @@ export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
                 className={`hs-pill${open ? ' is-open' : ''}`}
                 style={{ '--hs-accent': it.accentColor || 'var(--gold)' } as CSSProperties}
                 aria-expanded={open}
-                aria-controls={panelId}
+                aria-controls={`hs-panel-${it.id}`}
                 onClick={() => setIdx(open ? -1 : i)}
                 onKeyDown={onPillKeyDown}
               >
@@ -193,7 +282,7 @@ export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
                 </span>
 
                 <span className="hs-pill-main">
-                  {showNumber && (
+                  {!hasOwnNumber(it.title) && (
                     <span className="hs-pill-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
                   )}
                   <span className="hs-pill-label">{it.title || `Hito ${i + 1}`}</span>
@@ -211,87 +300,20 @@ export default function HistoriaTabs({ items }: { items?: TimelineEvent[] }) {
 
               {/* La vista se dibuja acá, entre esta píldora y la siguiente, que
                   es justo donde el ojo ya está: no hay que volver arriba. */}
-              {open && (
-                <div
-                  id={panelId}
-                  role="region"
-                  aria-labelledby={`hs-btn-${it.id}`}
-                  className="hs-panel"
-                  style={{ '--hs-accent': accent } as CSSProperties}
-                >
-                  <div className="hs-panel-head">
-                    <span className="hs-kicker">✦ {kicker}</span>
-                    <h3 className="serif hs-title">{heading}</h3>
-                    {item.period && <span className="hs-period">{item.period}</span>}
-                  </div>
-
-                  {item.image && (
-                    <figure className="hs-figure">
-                      <img src={item.image} alt={heading} loading="lazy" decoding="async" />
-                    </figure>
-                  )}
-
-                  <div className="hs-resume">
-                    <span className="hs-resume-label">Resumen</span>
-                    <p className="hs-summary">{summary}</p>
-                    {item.text && item.text !== summary && (
-                      <p className="hs-text">{item.text}</p>
-                    )}
-                  </div>
-
-                  {meta.length > 0 && (
-                    <p className="hs-docmeta">
-                      <span className="hs-docmeta-ico" aria-hidden="true">📄</span>
-                      {meta.map((m, mi) => (
-                        <span className="hs-docmeta-part" key={m}>
-                          {mi > 0 && <span className="hs-dot" aria-hidden="true">•</span>}
-                          {m}
-                        </span>
-                      ))}
-                    </p>
-                  )}
-
-                  {docUrl || onlineUrl ? (
-                    <div className="hs-actions">
-                      {onlineUrl ? (
-                        <a className="hs-btn hs-btn-ghost" href={onlineUrl} target="_blank" rel="noopener noreferrer">
-                          <span aria-hidden="true">👁️</span> Ver Online
-                        </a>
-                      ) : (
-                        <button type="button" className="hs-btn hs-btn-ghost" onClick={() => setPdfItem(it)}>
-                          <span aria-hidden="true">👁️</span> Ver Online
-                        </button>
-                      )}
-                      {downloadUrl && (
-                        <a
-                          className="hs-btn hs-btn-primary"
-                          href={downloadUrl}
-                          download={fileName}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <span aria-hidden="true">📥</span> Descargar PDF
-                        </a>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="hs-note">
-                      Todavía no hay un documento asociado a este hito. Cargalo desde{' '}
-                      <strong>Panel de administración → Contenido → Historia</strong>.
-                    </p>
-                  )}
-                </div>
-              )}
+              {open && <HistoriaPanel item={it} index={i} onViewPdf={setPdfItem} />}
             </div>
           );
         })}
       </div>
 
-      {pdfItem && docUrl && (
+      {/* La URL se saca del PDF abierto, no del hito activo: si el visitante
+          cierra la píldora mientras el visor está encima, el visor tiene que
+          seguir teniendo su archivo aunque ya no haya ninguna vista abierta. */}
+      {pdfItem && pdfUrl && (
         <PdfViewerModal
-          url={docUrl}
+          url={pdfUrl}
           title={pdfItem.docFileName?.trim() || pdfItem.title || 'Documento'}
-          fileName={fileName}
+          fileName={fileNameOf(pdfItem)}
           onClose={() => setPdfItem(null)}
         />
       )}

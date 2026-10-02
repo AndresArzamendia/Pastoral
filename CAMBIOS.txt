@@ -21,6 +21,80 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[16] 2026-10-02 19:00 - HISTORIA: SE ARREGLA EL BUG DE "DESAPARECEN LAS PILDORAS" Y SE FIJAN LOS TRES TITULOS
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: al cerrar la ultima pilaora abierta (tocando la que ya estaba abierta)
+desaparecian las tres pilaoras y en su lugar aparecia el mensaje "Nuestra
+historia se esta escribiendo", sin forma de volver a abrirlas. Ademas se
+fijaron los tres titulos e iconos definitivos.
+
+EL BUG
+- La condicion de pantalla vacia era "si no hay hitos O no hay hito abierto".
+  Con todo cerrado el hito abierto no existe, asi que caia en el mensaje de
+  estado vacio y se llevaba por delante las tres pilaoras.
+  El error era mio, de la entrada [15]: se copio la condicion de la version con
+  pestanas, donde "no hay item" y "no hay datos" significaban lo mismo. En un
+  acordeon no: no hay item abierto es un estado valido y de uso normal.
+- Que la lista desaparezca no es un detalle estetico. Las pilaoras eran el UNICO
+  camino de vuelta, asi que perderlas dejaba la seccion muerta hasta recargar.
+- El arreglo: el estado vacio se muestra SOLO cuando no hay hitos. Si el
+  visitante cierra todo, las pilaoras siguen ahi, ahora con "Ver detalle" en
+  las tres, y con solo tocar una vuelve a abrirse.
+
+src/components/HistoriaTabs.tsx
+- La condicion pasa a ser "if (!lista.length)" a secas.
+- La vista desplegada se movio a su propio componente HistoriaPanel. Antes sus
+  datos (antetitulo, resumen, ficha, URLs) se calculaban en el padre con el hito
+  activo, y al cerrar todo ese "item" era undefined: tener que separarlo fue
+  justo lo que destapo el bug. Ahora cada vista calcula lo suyo a partir del
+  hito que recibey no depende de que haya alguna abierta.
+- La resolucion del indice abierto se simplifico. Antes era una doble negacion
+  ("-1 o el ultimo") que devolvia lo mismo en los dos casos; ahora es una sola
+  linea que da -1 cuando el indice guardado ya no corresponde a un hito real
+  (lo pasa a -1 cuando el panel borra o reordena la lista).
+- BUG DE LA MISMA ZONA, encontrado de paso: la URL del visor de PDF se sacaba del
+  hito ACTIVO, no del PDF abierto. Si el visitante cerraba la pilaora con el
+  visor abierto, la URL se vaciaba y el visor se caia. Ahora se lee del propio
+  pdfItem, asi que el visor conserva su archivo aunque la pilaora se cierre.
+
+TITULOS E ICONOS FIJADOS (en DEFAULT_CONTENT)
+- 1. icono :] imagen de iglesia | 01. Nuestra Parroquia
+- 2. iko | 02. Pai Garcia
+- 3. fuego | 03. Pastoral Juvenil Luquena (PJL)
+- El campo heading se deja VACIO a proposito en los tres: el titulo ya es corto,
+  asi que la vista abierta usa el titulo de la pilaora y no hace falta un texto
+  paralelo. El campo sigue existiendo por si algun hito lo necesita.
+- Ojo de nuevo: esto solo aplica a una base nueva. Si ya hay contenido en
+  Supabase, ese manda y hay que corregirlo en Panel de administracion >
+  Contenido > Historia.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- npx eslint sobre los dos archivos -> 0 errores, 1 warning (el de <img>, que
+  ya tiene todo el sitio).
+- Prueba de render con react-dom/server, 28 comprobaciones, todas OK. Se
+  agregaron tres: que el titulo corto caiga al titulo de la pilaora cuando no
+  hay heading, que la 2 y la 3 aparezcan con su nombre completo, y que el
+  numero no se duplique.
+- El guard roto se comprobo sobre el codigo ya compilado: la condicion que sale
+  es exactamente "if (!lista.length)", y no queda rastro de la que fallaba.
+- Prueba de click en el DOM: NO cubierta. El proyecto no tiene runner de tests
+  ni jsdom, y agregar las dependencias solo para eso no parecio justificado. El
+  arreglo se verifico leyendo el guard compilado, que es la linea exacta que
+  rompia.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: e014a455-7fcf-4588-b6d6-5d3acf3fbb0d
+              Anterior: 13e5388b-e73f-4884-a8c1-c16a0ebf1fa5
+              Verificado en linea: el HTML sirve el chunk page-ed29800b9b8f4a66.js
+              con el acordeon ya sin la condicion rota. Tambien /admin.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [15] 2026-10-02 18:52 - HISTORIA: LAS PESTAÑAS HORIZONTALES PASAN A ACORDEÓN VERTICAL
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
