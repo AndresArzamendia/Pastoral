@@ -2123,6 +2123,23 @@ function AdminContent() {
     });
   };
 
+  /* Ficha del documento tal como la pinta el sitio: `📄 Documento oficial •
+     8 págs. • 2.8 MB`. Vive acá y no dentro del JSX para que la vista previa
+     del panel no pueda desviarse de lo que ve el visitante. */
+  const metaPartsOf = (item: TimelineEvent): string[] => {
+    const out: string[] = [];
+    const push = (v?: string) => {
+      const t = (v || '').trim();
+      if (t) out.push(t);
+    };
+    push(item.docType);
+    if (item.docPages) push(`${item.docPages.trim()} págs.`);
+    push(item.docSize);
+    push(item.docArchive);
+    push(item.docUpdated);
+    return out;
+  };
+
   /* PDF de un hito de Historia: pasa lo que ya estaba cargado y solo completa
      lo que el archivo aporta (nombre y tamaño). Si el admin ya escribió las
      páginas o el archivo, subir un PDF nuevo no borra esa información. */
@@ -4488,6 +4505,9 @@ function AdminContent() {
                                 setContent({ ...content, historiaTimeline: nt });
                               };
                               const previewUrl = (item.docUrl || '').trim();
+                              /* Ficha del documento en una línea, igual que en el
+                                 sitio. Solo con los datos que hay cargados. */
+                              const metaPrevia = metaPartsOf(item);
                               return (
                               <div key={item.id} className="ctx-tl-item">
                                 <span className="ctx-tl-dot" style={{ background: item.accentColor || 'var(--gold)' }} />
@@ -4535,6 +4555,16 @@ function AdminContent() {
 
                                 <div className="ctx-row2">
                                   <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                    <label className="ctx-label"><span className="chip">📌</span> ENCABEZADO DE LA VISTA ABIERTA</label>
+                                    <input
+                                      className="pjl-input"
+                                      value={item.heading || ''}
+                                      onChange={e => patch({ heading: e.target.value })}
+                                      placeholder="Ej: Santuario Virgen del Rosario"
+                                    />
+                                    <span className="ctx-hint" style={{ margin: '6px 0 0' }}>Opcional. Si lo dejás vacío se usa el título de la píldora. Sirve cuando la píldora es larga y el título corto se lee mejor abierto.</span>
+                                  </div>
+                                  <div className="ctx-field" style={{ marginBottom: 0 }}>
                                     <label className="ctx-label"><span className="chip">📣</span> ANTETÍTULO</label>
                                     <input
                                       className="pjl-input"
@@ -4543,6 +4573,9 @@ function AdminContent() {
                                       placeholder="Memoria pastoral"
                                     />
                                   </div>
+                                </div>
+
+                                <div className="ctx-row2">
                                   <div className="ctx-field" style={{ marginBottom: 0 }}>
                                     <label className="ctx-label"><span className="chip">📆</span> PERIODO</label>
                                     <input
@@ -4693,54 +4726,58 @@ function AdminContent() {
                                     es exactamente lo que ve el visitante. */}
                                 <div className="tl-shot">
                                   <div className="hs" style={{ '--hs-accent': item.accentColor || 'var(--gold)' } as CSSProperties}>
-                                    <div className="hs-tablist">
-                                      <button type="button" className="hs-tab is-active" aria-hidden="true" tabIndex={-1}>
-                                        <span className="hs-tab-ico">{item.icon || '📜'}</span>
-                                        <span className="hs-tab-text">
-                                          <span className="hs-tab-num">{String(idx + 1).padStart(2, '0')}</span>
-                                          <span className="hs-tab-label">{item.title || 'Sin título'}</span>
-                                        </span>
-                                      </button>
-                                    </div>
-                                    <div className="hs-panel">
-                                      <div className="hs-panel-head">
-                                        <span className="hs-kicker">{item.kicker || 'Memoria pastoral'}</span>
-                                        <h3 className="serif hs-title">{item.title || 'Sin título'}</h3>
-                                        {item.period && <span className="hs-period">{item.period}</span>}
-                                        <span className="hs-rule" />
-                                      </div>
-                                      <div className="hs-panel-body">
-                                        <div className="hs-narrative">
+                                    <div className="hs-list">
+                                      <div className="hs-item">
+                                        <button type="button" className="hs-pill is-open" aria-hidden="true" tabIndex={-1}>
+                                          <span className="hs-pill-ico">{item.icon || '📜'}</span>
+                                          <span className="hs-pill-main">
+                                            {!/^\s*\d/.test(item.title || '') && (
+                                              <span className="hs-pill-num">{String(idx + 1).padStart(2, '0')}</span>
+                                            )}
+                                            <span className="hs-pill-label">{item.title || 'Sin título'}</span>
+                                          </span>
+                                          <span className="hs-pill-state">Seleccionado</span>
+                                          <span className="hs-pill-chev" />
+                                        </button>
+
+                                        <div className="hs-panel">
+                                          <div className="hs-panel-head">
+                                            <span className="hs-kicker">✦ {(item.kicker || 'Memoria pastoral')}</span>
+                                            <h3 className="serif hs-title">
+                                              {(item.heading || '').trim() || item.title || 'Sin título'}
+                                            </h3>
+                                            {item.period && <span className="hs-period">{item.period}</span>}
+                                          </div>
+
                                           {item.image && (
                                             <figure className="hs-figure">
                                               <img src={item.image} alt="" />
                                             </figure>
                                           )}
-                                          <p className="hs-summary">{item.summary || item.text || 'Acá va el resumen del hito.'}</p>
-                                          {item.text && item.text !== item.summary && <p className="hs-text">{item.text}</p>}
-                                        </div>
-                                        <aside className="hs-aside">
-                                          <dl className="hs-ficha">
-                                            {([
-                                              ['Tipo', item.docType],
-                                              ['Páginas', item.docPages],
-                                              ['Tamaño', item.docSize],
-                                              ['Archivo', item.docArchive],
-                                              ['Actualizado', item.docUpdated],
-                                            ] as [string, string | undefined][])
-                                              .filter(([, v]) => (v || '').trim())
-                                              .map(([label, value]) => (
-                                                <div className="hs-ficha-row" key={label}>
-                                                  <dt>{label}</dt>
-                                                  <dd>{(value || '').trim()}</dd>
-                                                </div>
+
+                                          <div className="hs-resume">
+                                            <span className="hs-resume-label">Resumen</span>
+                                            <p className="hs-summary">{item.summary || item.text || 'Acá va el resumen del hito.'}</p>
+                                            {item.text && item.text !== item.summary && <p className="hs-text">{item.text}</p>}
+                                          </div>
+
+                                          {metaPrevia.length > 0 && (
+                                            <p className="hs-docmeta">
+                                              <span className="hs-docmeta-ico" aria-hidden="true">📄</span>
+                                              {metaPrevia.map((m, mi) => (
+                                                <span className="hs-docmeta-part" key={m}>
+                                                  {mi > 0 && <span className="hs-dot" aria-hidden="true">•</span>}
+                                                  {m}
+                                                </span>
                                               ))}
-                                          </dl>
+                                            </p>
+                                          )}
+
                                           <div className="hs-actions">
-                                            <span className="hs-btn hs-btn-ghost" aria-hidden="true"><span>👁️</span> Ver documento online</span>
+                                            <span className="hs-btn hs-btn-ghost" aria-hidden="true"><span>👁️</span> Ver Online</span>
                                             <span className="hs-btn hs-btn-primary" aria-hidden="true"><span>📥</span> Descargar PDF</span>
                                           </div>
-                                        </aside>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>

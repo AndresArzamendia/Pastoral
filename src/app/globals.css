@@ -13683,95 +13683,78 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ==========================================================================
-   NUESTRA HISTORIA - PESTANAS (píldoras) + VISTA DESPLEGADA
+   NUESTRA HISTORIA - ACORDEÓN DE PÍLDORAS VERTICALES
    --------------------------------------------------------------------------
-   Reemplaza la línea de tiempo en tarjetas sueltas. Tres píldoras navegables
-   arriba y, al elegir una, un bloque con resumen, ficha técnica del documento
-   y las acciones para verlo o bajarlo.
+   Las píldoras van apiladas, una debajo de otra, y la vista se despliega justo
+   debajo de la píldora elegida. Apiladas y no en fila porque en el teléfono
+   ocupan todo el ancho y caen en la zona que el pulgar alcanza sin obligar a
+   deslizar un carrusel horizontal.
 
    Notas de peso:
    - Solo se anima `opacity` y `transform`: es lo único que la GPU compone sin
      repintar el bloque entero.
    - `content-visibility: auto` + `contain-intrinsic-size` permiten al navegador
      saltarse el pintado de la sección si el visitante no llega hasta abajo.
-   - Las Pills usan `--hs-accent`, que cada hito define con su color de acento;
-     así el mismo bloque sirve para los tres sin repetir reglas.
+   - Las píldoras usan `--hs-accent`, que cada hito define con su color de
+     acento; así el mismo bloque sirve para los tres sin repetir reglas.
    ========================================================================== */
 .hs {
-  --hs-gap: 16px;
+  --hs-gap: 14px;
   content-visibility: auto;
   contain-intrinsic-size: auto 620px;
 }
 
-/* ---------- 1. PÍLDORAS / PESTAÑAS ---------- */
-.hs-tablist {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-  margin: 0 0 28px;
-  padding: 8px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 240, 227, 0.72));
-  border: 1px solid rgba(200, 151, 58, 0.2);
-  box-shadow: 0 10px 30px -18px rgba(26, 39, 68, 0.35);
-}
+/* ---------- 1. PÍLDORAS APILADAS ---------- */
+.hs-list { display: grid; gap: 12px; }
+.hs-item { min-width: 0; }
 
-.hs-tab {
+.hs-pill {
   --hs-accent: var(--gold);
   position: relative;
   display: flex;
   align-items: center;
-  gap: 13px;
-  min-width: 0;
-  padding: 15px 17px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: transparent;
+  gap: 16px;
+  width: 100%;
+  min-height: 68px;
+  padding: 16px 20px;
+  border: 1px solid rgba(200, 151, 58, 0.24);
+  border-color: color-mix(in srgb, var(--hs-accent) 24%, transparent);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 227, 0.72));
   cursor: pointer;
   text-align: left;
   font: inherit;
   color: var(--navy);
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 8px 22px -18px rgba(26, 39, 68, 0.45);
+  transition: background 0.25s ease, border-color 0.25s ease,
+              transform 0.25s ease, box-shadow 0.25s ease;
 }
-.hs-tab::after {
-  content: '';
-  position: absolute;
-  left: 17px;
-  right: 17px;
-  bottom: 7px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--hs-accent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  opacity: 0.65;
-  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.hs-tab:hover {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(200, 151, 58, 0.28);
-  transform: translateY(-2px);
-}
-.hs-tab.is-active {
+.hs-pill:hover {
   background: #fff;
-  border-color: rgba(200, 151, 58, 0.42);
-  border-color: color-mix(in srgb, var(--hs-accent) 42%, transparent);
-  box-shadow: 0 14px 32px -16px rgba(26, 39, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(200, 151, 58, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px -20px rgba(26, 39, 68, 0.5);
 }
-.hs-tab.is-active::after { transform: scaleX(1); }
-.hs-tab:focus-visible {
+.hs-pill:focus-visible {
   outline: 2px solid var(--hs-accent);
   outline-offset: 3px;
 }
+.hs-pill.is-open {
+  background: #fff;
+  border-color: rgba(200, 151, 58, 0.5);
+  border-color: color-mix(in srgb, var(--hs-accent) 48%, transparent);
+  box-shadow: 0 18px 38px -24px rgba(26, 39, 68, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
 
-.hs-tab-ico {
+/* Icono: cuadrado redondeado a la izquierda. */
+.hs-pill-ico {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  font-size: 20px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  font-size: 21px;
   line-height: 1;
   background: rgba(200, 151, 58, 0.1);
   background: color-mix(in srgb, var(--hs-accent) 12%, #fff);
@@ -13779,74 +13762,116 @@ html.show-splash .splash-content { visibility: visible; }
   border-color: color-mix(in srgb, var(--hs-accent) 26%, transparent);
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
 }
-.hs-tab:hover .hs-tab-ico { transform: scale(1.06) rotate(-3deg); }
-.hs-tab.is-active .hs-tab-ico {
+.hs-pill:hover .hs-pill-ico { transform: scale(1.06) rotate(-3deg); }
+.hs-pill.is-open .hs-pill-ico {
   background: var(--hs-accent);
   box-shadow: 0 8px 18px -8px var(--hs-accent);
 }
-.hs-tab-text { min-width: 0; display: grid; gap: 2px; }
-.hs-tab-num {
+
+/* Título: número (si el título no lo trae) + etiqueta. */
+.hs-pill-main { min-width: 0; flex: 1 1 auto; display: grid; gap: 3px; }
+.hs-pill-num {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--text-muted);
   opacity: 0.7;
 }
-.hs-tab-label {
+.hs-pill-label {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
   color: var(--navy);
   overflow-wrap: anywhere;
 }
 
+/* Estado a la derecha: «Seleccionado» / «Ver detalle». */
+.hs-pill-state {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(26, 39, 68, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.hs-pill.is-open .hs-pill-state {
+  background: var(--hs-accent);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* Chevron: gira al abrir. Es decorativo, va con aria-hidden en el HTML. */
+.hs-pill-chev {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  border-radius: 1px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hs-pill.is-open .hs-pill-chev {
+  color: var(--hs-accent);
+  opacity: 1;
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
 /* ---------- 2. VISTA DESPLEGADA ---------- */
+/* Va inmediatamente debajo de su píldora: por eso se separa con el mismo
+   `--hs-gap` y lleva el filete de acento en el borde izquierdo. */
 .hs-panel {
   --hs-accent: var(--gold);
   position: relative;
-  border-radius: 26px;
+  margin-top: var(--hs-gap);
+  padding: 28px 30px 26px;
+  border-radius: 20px;
   border: 1px solid rgba(200, 151, 58, 0.22);
   border-color: color-mix(in srgb, var(--hs-accent) 22%, rgba(26, 39, 68, 0.1));
   background: linear-gradient(180deg, #ffffff, #fdfaf4);
-  box-shadow: 0 22px 50px -26px rgba(26, 39, 68, 0.4);
-  padding: 34px 36px 32px;
-  animation: hsPanelIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  box-shadow: 0 20px 44px -30px rgba(26, 39, 68, 0.45);
+  animation: hsPanelIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .hs-panel::before {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  border-radius: 26px 0 0 26px;
+  border-radius: 20px 0 0 20px;
   background: linear-gradient(180deg, var(--hs-accent), transparent 78%);
 }
 @keyframes hsPanelIn {
-  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  from { opacity: 0; transform: translate3d(0, -10px, 0); }
   to { opacity: 1; transform: none; }
 }
 
-.hs-panel-head { margin-bottom: 26px; }
+.hs-panel-head { display: grid; gap: 6px; margin-bottom: 18px; }
 .hs-kicker {
-  display: inline-block;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--hs-accent);
-  margin-bottom: 10px;
 }
 .hs-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.4vw, 2.15rem);
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
   line-height: 1.18;
   color: var(--navy);
   overflow-wrap: anywhere;
 }
 .hs-period {
-  display: inline-block;
-  margin-top: 10px;
+  justify-self: start;
+  margin-top: 6px;
   padding: 5px 13px;
   border-radius: 20px;
   background: rgba(200, 151, 58, 0.1);
@@ -13859,29 +13884,13 @@ html.show-splash .splash-content { visibility: visible; }
   text-transform: uppercase;
   color: var(--navy);
 }
-.hs-rule {
-  display: block;
-  width: 64px;
-  height: 2px;
-  margin-top: 18px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--hs-accent), transparent);
-}
-
-.hs-panel-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
-}
-.hs-narrative { min-width: 0; display: grid; gap: 18px; }
 
 .hs-figure {
-  margin: 0;
-  border-radius: 20px;
+  margin: 0 0 20px;
+  border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(26, 39, 68, 0.08);
-  box-shadow: 0 16px 36px -22px rgba(26, 39, 68, 0.5);
+  box-shadow: 0 14px 32px -24px rgba(26, 39, 68, 0.5);
   background: var(--cream);
 }
 .hs-figure img {
@@ -13891,6 +13900,21 @@ html.show-splash .splash-content { visibility: visible; }
   object-fit: cover;
 }
 
+/* ---------- 3. RESUMEN ---------- */
+.hs-resume {
+  padding: 20px 0;
+  border-top: 1px solid rgba(26, 39, 68, 0.1);
+  border-bottom: 1px solid rgba(26, 39, 68, 0.1);
+}
+.hs-resume-label {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
 .hs-summary {
   margin: 0;
   font-family: var(--font-display);
@@ -13899,7 +13923,7 @@ html.show-splash .splash-content { visibility: visible; }
   color: var(--navy);
 }
 .hs-text {
-  margin: 0;
+  margin: 12px 0 0;
   font-size: 14.5px;
   line-height: 1.82;
   color: var(--text-muted);
@@ -13907,47 +13931,33 @@ html.show-splash .splash-content { visibility: visible; }
   overflow-wrap: break-word;
 }
 
-/* ---------- 3. FICHA TÉCNICA ---------- */
-.hs-aside {
-  min-width: 0;
-  display: grid;
-  gap: 16px;
-  padding: 22px 22px 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--hs-accent) 7%, #fff), rgba(255, 255, 255, 0.92));
-  border: 1px solid rgba(200, 151, 58, 0.2);
-  border-color: color-mix(in srgb, var(--hs-accent) 20%, transparent);
-}
-.hs-ficha { margin: 0; display: grid; gap: 1px; }
-.hs-ficha-row {
+/* ---------- 4. FICHA EN LÍNEA ---------- */
+/* `📄 Documento oficial • 8 págs. • 2.8 MB`. Un renglón con puntos separadores
+   en vez de una tabla: los datos del documento son de lectura rápida, no algo
+   que se compare fila por fila, y así no compiten con los botones. */
+.hs-docmeta {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px dashed rgba(26, 39, 68, 0.12);
-}
-.hs-ficha-row:last-child { border-bottom: 0; }
-.hs-ficha dt {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.hs-ficha dd {
-  margin: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
   font-size: 12.5px;
-  font-weight: 700;
-  color: var(--navy);
-  text-align: right;
-  overflow-wrap: anywhere;
+  font-weight: 600;
+  color: var(--text-muted);
 }
+.hs-docmeta-ico { font-size: 14px; line-height: 1; }
+.hs-docmeta-part { display: inline-flex; align-items: center; gap: 8px; }
+.hs-dot { opacity: 0.5; }
 
-/* ---------- 4. ACCIONES ---------- */
-.hs-actions { display: grid; gap: 10px; }
+/* ---------- 5. ACCIONES ---------- */
+/* Los dos botones en fila, que es como se muestran en el diseño pedido. */
+.hs-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
 .hs-btn {
   /* Sin redeclarar `--hs-accent` a propósito: el valor lo hereda de `.hs-panel`,
      así el botón primario usa el color del hito que está abierto. */
@@ -13955,6 +13965,7 @@ html.show-splash .splash-content { visibility: visible; }
   align-items: center;
   justify-content: center;
   gap: 9px;
+  min-height: 50px;
   padding: 13px 18px;
   border-radius: 13px;
   font-size: 13px;
@@ -13986,79 +13997,76 @@ html.show-splash .splash-content { visibility: visible; }
 .hs-btn:active { transform: translateY(0); }
 
 .hs-note {
-  margin: 0;
+  margin: 18px 0 0;
   font-size: 12.5px;
   line-height: 1.7;
   color: var(--text-muted);
 }
 .hs-note strong { color: var(--navy); }
 
-/* ---------- 5. RESPONSIVE ---------- */
-/* Tablet: la ficha pasa debajo del texto pero mantiene dos columnas de datos. */
+/* ---------- 6. RESPONSIVE ---------- */
+/* Tablet: menos aire, la ficha sigue en una línea. */
 @media (max-width: 900px) {
-  .hs-panel { padding: 28px 26px 26px; }
-  .hs-panel-body { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .hs-ficha { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
-  .hs-actions { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .hs-panel { padding: 24px 22px 22px; }
+  .hs-pill { min-height: 64px; padding: 14px 16px; }
 }
 
-/* Móvil: las píldoras pasan a carrusel con enganche, que es lo que funciona
-   con títulos largos como «Pa’i García y la Construcción». */
+/* Móvil: píldoras más altas y con el estado en su propia línea. El objetivo
+   es que el dedo acierte fácil: ancho completo y objetivo táctil cómodo. */
 @media (max-width: 680px) {
-  .hs { --hs-gap: 12px; }
-  .hs-tablist {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    border-radius: 18px;
-    margin-bottom: 20px;
-  }
-  .hs-tablist::-webkit-scrollbar { display: none; }
-  .hs-tab {
-    flex: 0 0 auto;
-    width: min(78vw, 260px);
-    scroll-snap-align: start;
-    padding: 12px 14px;
-    gap: 11px;
-  }
-  .hs-tab::after { left: 14px; right: 14px; bottom: 6px; }
-  .hs-tab-ico { width: 36px; height: 36px; font-size: 17px; border-radius: 11px; }
-  .hs-tab-label { font-size: 13px; }
+  .hs { --hs-gap: 10px; }
+  .hs-list { gap: 10px; }
 
-  .hs-panel { padding: 22px 18px 20px; border-radius: 20px; }
-  .hs-panel::before { border-radius: 20px 0 0 20px; width: 3px; }
-  .hs-panel-head { margin-bottom: 20px; }
-  .hs-title { font-size: clamp(1.25rem, 6vw, 1.6rem); }
-  .hs-figure { border-radius: 15px; }
+  .hs-pill {
+    min-height: 76px;
+    padding: 14px;
+    gap: 12px;
+    border-radius: 16px;
+    /* Toque: sin brillos ni untado mientras se desliza el dedo. */
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hs-pill-ico { width: 42px; height: 42px; font-size: 19px; border-radius: 12px; }
+  .hs-pill-label { font-size: 15px; }
+  .hs-pill-state { padding: 4px 9px; font-size: 9px; letter-spacing: 0.1em; }
+  /* Con el pulgar no se busca la chevron, y a 15 px ocupa ancho de más. */
+  .hs-pill-chev { display: none; }
+
+  .hs-panel {
+    padding: 20px 16px 18px;
+    border-radius: 16px;
+  }
+  .hs-panel::before { border-radius: 16px 0 0 16px; width: 3px; }
+  .hs-panel-head { margin-bottom: 14px; }
+  .hs-title { font-size: clamp(1.2rem, 5.6vw, 1.5rem); }
+  .hs-resume { padding: 16px 0; }
+  .hs-figure { border-radius: 13px; margin-bottom: 16px; }
   .hs-figure img { aspect-ratio: 3 / 2; }
-  .hs-aside { padding: 18px 16px 16px; border-radius: 16px; }
-  .hs-ficha { grid-template-columns: minmax(0, 1fr); }
-  .hs-actions { grid-auto-flow: row; }
-  .hs-btn { padding: 12px 14px; font-size: 12.5px; }
+  .hs-docmeta { margin-top: 14px; }
+
+  /* En una columna los botones se apilan: en 360 px de ancho dos botones con
+     icono y texto no entran sin quedar ilegibles. */
+  .hs-actions { grid-auto-flow: row; gap: 10px; }
+  .hs-btn { min-height: 52px; }
 }
 
 @media (max-width: 380px) {
-  .hs-tab { width: min(84vw, 240px); }
-  .hs-tab-num { display: none; }
+  .hs-pill-num { display: none; }
 }
 
+/* ---------- 7. ACCESIBILIDAD ---------- */
 body.high-contrast .hs-panel,
-body.high-contrast .hs-tab,
-body.high-contrast .hs-aside { border-color: currentColor; }
-body.high-contrast .hs-tab.is-active { background: var(--navy); color: var(--white); }
-body.high-contrast .hs-tab.is-active .hs-tab-label,
-body.high-contrast .hs-tab.is-active .hs-tab-num { color: var(--white); }
+body.high-contrast .hs-pill { border-color: currentColor; }
+body.high-contrast .hs-pill.is-open { background: var(--navy); color: var(--white); }
+body.high-contrast .hs-pill.is-open .hs-pill-label { color: var(--white); }
+body.high-contrast .hs-pill-state { border-color: currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
   .hs-panel { animation: none !important; }
-  .hs-tab,
-  .hs-tab::after,
-  .hs-tab-ico,
+  .hs-pill,
+  .hs-pill-ico,
+  .hs-pill-chev,
   .hs-btn { transition: none !important; }
-  .hs-tab:hover,
+  .hs-pill:hover,
   .hs-btn:hover { transform: none; }
 }
 
@@ -14150,7 +14158,7 @@ body.high-contrast .hs-tab.is-active .hs-tab-num { color: var(--white); }
    posicione el bloque con la altura estimada y no la real. */
 .ctx-tl-item .hs { content-visibility: visible; contain-intrinsic-size: none; }
 .ctx-tl-item .hs-panel { animation: none; box-shadow: 0 12px 28px -20px rgba(26, 39, 68, 0.4); }
-.ctx-tl-item .hs-tab { cursor: default; pointer-events: none; }
+.ctx-tl-item .hs-pill { cursor: default; pointer-events: none; }
 .ctx-tl-item .hs-btn { cursor: default; }
 
 @media (max-width: 680px) {

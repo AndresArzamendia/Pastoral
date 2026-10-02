@@ -21,6 +21,119 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[15] 2026-10-02 18:52 - HISTORIA: LAS PESTAÑAS HORIZONTALES PASAN A ACORDEÓN VERTICAL
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: la entrega anteriorebaHorizontal (tres píldoras en una fila y la vista
+debajo de todas). Se corrigio porque en el telefono obligaba a deslizar un
+carrusel horizontal para llegar a los tres hitos. Ahora las píldoras van
+apiladas, una debajo de otra, a todo el ancho, y la vista se despliega JUSTO
+DEBAJO de la píldora que se eligio, que es donde ya esta el ojo.
+
+src/components/HistoriaTabs.tsx  (reescrito)
+- Cambio de estructura: se recorre la lista y, cuando un hito es el abierto, su
+  vista se dibuja ahi mismo, entre esa pilldora y la siguiente. Antes se
+  renderizaba el tablist completo y despues UN panel al final.
+- Cambio de patron de accesibilidad, a proposito: de PESTAÑAS a ACORDEON.
+  Con role="tab" un lector de pantalla anuncia "pestaña", pero lo que cambia
+  aqui es una seccion que se despliega debajo del control que la abrio. Ahora
+  cada control lleva aria-expanded + aria-controls, y la vista es
+  role="region" + aria-labelledby apuntando a su propia pila. Ese enlace es lo
+  que permite que el lector salte directo a la vista abierta.
+- El recorrido de teclado paso de izquierda/derecha a arriba/abajo, que es lo
+  que corresponde a una lista vertical. Inicio y Fin se mantienen. La tecla
+  espacio/enter ya funcionaba sola por ser un <button>.
+- La vista ahora se dibuja justo despues de su control en el DOM, no aparte.
+  La prueba de render lo verifica.
+- Estado visible de cada pilaora: la abierta dice "Seleccionado" y las demas
+  "Ver detalle", como en el diseno pedido. Va con aria-hidden porque para un
+  lector de pantalla lo que importa ya lo dice aria-expanded; el texto es una
+  ayuda visual.
+- Se agrego una chevron que gira al abrir. En movil se oculta: a 15 px ocupa
+  ancho de mas y con el pulgar nadie la busca.
+- Si el titulo ya empieza con su numero ("01. Nuestra Parroquia"), ya no se
+  imprime el indice aparte: se veria "01 01. Nuestra Parroquia". La funcion
+  hasOwnNumber() decide, y el numero autogenerado solo aparece si el titulo no
+  lo trae.
+- Campo nuevo: heading (opcional), el titulo corto de la vista abierta. Sirve
+  justo para este caso: la pilaora larga ("01. Nuestra Parroquia (Santuario
+  Virgen del Rosario)") y el encabezado sobrio ("Santuario Virgen del Rosario").
+  Si no se carga, la vista usa el titulo de la pilaora: nunca queda sin titulo.
+- La ficha del documento dejo de ser una tabla <dl> con filas y ahora es un
+  renglon con puntos: "Documento oficial - 8 paginas - 2.8 MB". Los cinco datos
+  que el administrador puede cargar siguen entrando, solo cambia el formato.
+  Se ve mejor y deja de competir con los botones por la atencion.
+- Se conserva todo lo que ya funcionaba: un solo panel en el DOM (lo que no
+  esta abierto no existe, asi que no se descargan sus imagenes), navegacion por
+  teclado, cierre del PDF al cambiar de hito, safeUrl contra javascript:, la
+  descarga con ?dl=1, lazy/async en imagenes y la caida al primer hito si el
+  abierto fue borrado.
+
+src/lib/pjlStore.ts
+- TimelineEvent.heading?: string, opcional y documentado.
+- DEFAULT_CONTENT.historiaTimeline alineado con los titulos del diseno
+  ("01. Nuestra Parroquia (Santuario Virgen del Rosario)", "02. Pai Garcia y la
+  Construccion", "03. Pastoral Juvenil Luquena (PJL)"). Ojo: esto solo aplica a
+  una base nueva. Si ya hay contenido en Supabase, ese manda. No se toco ningun
+  dato vivo.
+
+src/app/globals.css
+- Bloque hs-* reescrito. Las reglas viejas (.hs-tablist, .hs-tab*, .hs-ficha,
+  .hs-aside, .hs-panel-body, .hs-rule, .hs-narrative) desaparecieron y en su
+  lugar quedaron .hs-list, .hs-item, .hs-pill*, .hs-docmeta y .hs-resume.
+- La pilaora mide min-height 68px en escritorio y 76px en movil: es un blanco
+  grande, pensado para el dedo, no para el mouse.
+- En movil las dos acciones se APILAN (una arriba de la otra). En fila no
+  entran legibles a 360 px con icono y texto.
+- Se elimino el carrusel horizontal con scroll-snap que tenia el corte de
+  680 px: ya no aplica, las pilaoras no se desplazan.
+- responsive-fix.css (que se carga despues) no menciona ninguna clase hs-*.
+- El bloque del panel de administracion quedo intacto.
+
+src/app/admin/page.tsx
+- La vista previa se reescribio con las clases nuevas, para que lo que ve el
+  administrador sea exactamente lo que ve el visitante.
+- Campo nuevo en el editor: "Encabezado de la vista abierta", con nota de que
+  es opcional y de que si esta vacio se usa el titulo de la pilaora.
+- Se creo metaPartsOf() con la regla de la ficha y ahora la comparten el sitio
+  y la vista previa, para que no puedan divergir.
+- PERIODO y COLOR ACENTO volvieron a su propia fila: al meter el campo nuevo
+  habian quedado con un cierre de div sin abrir.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores. (A la primera tirada quedaron 5 errores
+  TS18048 por optional chaining en la ficha; se corrigio moviendo el recorte a
+  una funcion aparte.)
+- npx eslint sobre los tres archivos -> 0 errores, 44 warnings, todos los que
+  ya tenia el sitio.
+- npm run build -> correcto. "/" quedo en 57.9 kB y 235 kB de First Load JS:
+  identico a la version con pestañas. Cambiar de horizontal a vertical no costo
+  ni un KB.
+- Prueba de render con react-dom/server, 28 comprobaciones, todas OK: 3
+  pilaoras, una sola abierta, una sola vista y colgando de su control,
+  aria-expanded en las tres, aria-controls y aria-labelledby cruzados,
+  "Seleccionado"/"Ver detalle" en su lugar, encabezado corto en la vista,
+  antetitulo con la estrella, resumen y descripcion, imagen con lazy y async,
+  ficha en linea con los puntos, sin la tabla vieja, los dos botones, descarga
+  con ?dl=1, que el cuerpo de un hito cerrado no se dibuja, que no se duplica
+  el numero, estado vacio, no rompe con items undefined y que una URL
+  javascript: queda bloqueada.
+- CSS validado: llaves balanceadas (0 sin cerrar, profundidad minima 0).
+- La respuesta visual en el navegador sigue pendiente de mirar a ojo.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: 13e5388b-e73f-4884-a8c1-c16a0ebf1fa5
+              Anterior: 8c604f4b-76ae-41dc-b4d6-b917aaee5e96
+              Archivo subido: 5 assets (103 ya estaban), 7.48 MiB / 1.37 MiB gzip.
+              Verificado en linea: el HTML sirve el CSS d1697be095980dd4.css y el
+              chunk page-54181b7dd616191c.js, los dos ya sin ninguna clase hs-tablist
+              del diseño horizontal anterior. Tambien /admin.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [14] 2026-10-02 18:25 - HISTORIA COMO PESTAÑAS (PIÑORAS) CON VISTA DESPLEGADA, FICHA Y PDF
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)

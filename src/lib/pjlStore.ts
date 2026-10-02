@@ -21,6 +21,11 @@ export interface TimelineEvent {
   id: string;
   /** Etiqueta de la píldora, p. ej. «01. Nuestra Parroquia». */
   title: string;
+  /** Título corto de la vista desplegada, cuando es más corto que el de la
+   *  píldora (p. ej. píldora «01. Nuestra Parroquia (Santuario Virgen del
+   *  Rosario)» → encabezado «Santuario Virgen del Rosario»). Si falta, se usa
+   *  `title`. */
+  heading?: string;
   /** Descripción histórica larga (cuerpo del desplegado). */
   text: string;
   image?: string;
@@ -339,9 +344,9 @@ export const DEFAULT_CONTENT: SiteContent = {
     mode: 'MONTH',
   },
   historiaTimeline: [
-    { id: '1', icon: '🏛️', title: '01. Nuestra Parroquia', kicker: 'Memoria pastoral', period: 'Los primeros años', summary: 'El lugar donde empezó todo y que todavía hoy reúne a la pastoral.', text: 'La Pastoral Juvenil Luqueña nació con la misión de acompañar a los jóvenes de la ciudad de Luque en su camino de fe.', accentColor: '#C8973A' },
-    { id: '2', icon: '✝️', title: '02. Pa’i García y la Construcción', kicker: 'Memoria pastoral', period: 'La obra que nos trajo hasta aquí', summary: 'El paso de un grupo pequeño a una pastoral organizada y con casa propia.', text: 'Hoy en día, la PJL Luque se consolida como un referente diocesano de organización y fe activa.', accentColor: '#1A2744' },
-    { id: '3', icon: '🔥', title: '03. Pastoral Juvenil Luqueña', kicker: 'Memoria pastoral', period: 'El presente', summary: 'Una red de comunidades y zonas que sigue creciendo.', text: 'Cada zona y comunidad de la pastoral mantiene viva la fe y la deja abierta a las nuevas generaciones.', accentColor: '#8B2635' }
+    { id: '1', icon: '🏛️', title: '01. Nuestra Parroquia (Santuario Virgen del Rosario)', heading: 'Santuario Virgen del Rosario', kicker: 'Templo & Santuario', period: 'Los primeros años', summary: 'El origen de nuestra fe comunitaria se remonta a mediados del siglo XVIII. Conoce la historia, arquitectura y consagración del principal templo católico de la ciudad de Luque, corazón espiritual de nuestra comunidad.', text: 'La Pastoral Juvenil Luqueña nació con la misión de acompañar a los jóvenes de la ciudad de Luque en su camino de fe.', accentColor: '#C8973A' },
+    { id: '2', icon: '✝️', title: '02. Pa’i García y la Construcción', heading: 'Pa’i García y la Construcción', kicker: 'Los orígenes', period: 'La obra que nos trajo hasta aquí', summary: 'El paso de un grupo pequeño a una pastoral organizada y con casa propia.', text: 'Hoy en día, la PJL Luque se consolida como un referente diocesano de organización y fe activa.', accentColor: '#1A2744' },
+    { id: '3', icon: '🔥', title: '03. Pastoral Juvenil Luqueña (PJL)', heading: 'Pastoral Juvenil Luqueña (PJL)', kicker: 'Nuestra comunidad', period: 'El presente', summary: 'Una red de comunidades y zonas que sigue creciendo.', text: 'Cada zona y comunidad de la pastoral mantiene viva la fe y la deja abierta a las nuevas generaciones.', accentColor: '#8B2635' }
   ],
   instiTitulo: 'Nuestra Identidad',
   instiSubtitle: 'Una red pastoral joven que hace de la fe una experiencia comunitaria',
