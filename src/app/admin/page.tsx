@@ -1009,6 +1009,39 @@ function AdminContent() {
   const [pushMsg, setPushMsg] = useState<{ title: string; body: string; url: string; image: string; icon: string }>({ title: '', body: '', url: '/', image: '', icon: '' });
   const [pushStatus, setPushStatus] = useState<{ type: 'ok' | 'err' | 'info'; text: string } | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
+
+  /* Imágenes subidas al compositor de avisos push que todavía NO se enviaron.
+     Estas no quedan guardadas en ninguna base: /api/push/send solo entrega el aviso
+     a los dispositivos y no anota nada. Por eso el comparador central de useLS no
+     las puede ver, y si el administrador sube una imagen, se arrepiente y sube otra
+     (o la quita con la ✕), la primera se queda en el bucket para siempre.
+     Se anotan acá y se borran al quitarlas o al mandar el aviso.
+     Las que YA se enviaron no entran en esta lista a propósito: un teléfono sin
+     conexión puede mostrar el aviso más tarde y todavía necesita descargar esa
+     imagen. Borrarlas dejaría el banner roto. */
+  const pushSinEnviar = useRef<string[]>([]);
+
+  const olvidarImagenPushSinEnviar = (url?: string) => {
+    if (!url) return;
+    const i = pushSinEnviar.current.indexOf(url);
+    if (i === -1) return;
+    pushSinEnviar.current.splice(i, 1);
+    void deleteStoredUrlList([url]);
+  };
+
+  /* Cambia la imagen de un campo del aviso. Si se estaba reemplazando o quitando
+     algo que todavía no se envió, ese archivo sobrante se borra en el momento. */
+  const cambiarImagenPush = (campo: 'icon' | 'image', valor: string) => {
+    const previo = pushMsg[campo];
+    if (previo && previo !== valor) olvidarImagenPushSinEnviar(previo);
+    /* Solo se anotan los archivos que salieron de nuestro propio bucket. Si el
+       administrador pega una dirección de otro sitio, esa imagen no es nuestra y no
+       hay que borrarla nunca. */
+    if (valor.startsWith('/api/files/') && valor !== previo) {
+      pushSinEnviar.current.push(valor);
+    }
+    setPushMsg(prev => ({ ...prev, [campo]: valor }));
+  };
   const [pushAdminToken, setPushAdminToken] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     try { return localStorage.getItem('pjl_pushAdminToken') || ''; } catch { return ''; }
@@ -1121,6 +1154,12 @@ function AdminContent() {
       });
       const json = await res.json();
       if (json?.success) {
+        /* El aviso ya salió, así que las imágenes que llevaba quedan protegidas: un
+           teléfono sin conexión puede necesitarlas más tarde. Lo que se borra son las
+           que se habían subido en este compositor y quedaron sin usar (subidas y
+           reemplazadas, o quitadas con la ✕). Esas nunca se enviaron, así que
+           ningún dispositivo las está pidiendo y se pueden ir sin problema. */
+        pushSinEnviar.current = [];
         setPushStatus({ type: 'ok', text: `Aviso enviado a ${json.sent} dispositivo(s)${json.removed ? ` (${json.removed} removidos por inválidos)` : ''}.` });
         await loadPushConfig();
       } else {
@@ -1603,7 +1642,14 @@ function AdminContent() {
      bucket y nada la va a mencionar nunca. Se anotan acá para borrarlas al cancelar.
      Al guardar no se borran: para eso está el borrado por comparación de useLS. */
   const subidasDelModal = useRef<string[]>([]);
-  const anotarSubida = (url: string) => { if (url) subidasDelModal.current.push(url); };
+  const anotarSubida = (url: string) => {
+    /* Solo se anotan los archivos subidos DENTRO de un modal.
+       Los campos de la página (logos, fotos de contenido, carrusel) se guardan en el
+       momento en que se suben: no hay forma de cancelar esa subida, y su archivo
+       viejo lo borra solo el comparador de useLS. Anotarlos no serviría de nada y
+       haría que la lista creciera durante toda la sesión del administrador. */
+    if (url && modal) subidasDelModal.current.push(url);
+  };
 
   /* Sólo se llama desde los caminos que DESHACEN el modal (cancelar, la X, click
      fuera). Las guardas llaman a closeModal() sin argumentos, y ahí no se borra nada:
@@ -1626,8 +1672,8 @@ function AdminContent() {
     subidasDelModal.current = [];
     setModal(null); setEditId(null); setForm({});
   };
-  const openNew = (type: Module) => { setModal(type); setEditId(null); setForm({}); };
-  const openEdit = (type: Module, item: NewsItem | Activity | FaqItem | DocItem | GalleryItem | Chapel | MemberProfile | User | Record<string, string>) => { setModal(type); setEditId((item as { id?: number | string }).id || null); setForm(item); };
+  const openNew = (type: Module) => { setModal(type); setEditId(null); setForm({}); subidasDelModal.current = []; };
+  const openEdit = (type: Module, item: NewsItem | Activity | FaqItem | DocItem | GalleryItem | Chapel | MemberProfile | User | Record<string, string>) => { setModal(type); setEditId((item as { id?: number|string }).id || null); setForm(item); subidasDelModal.current = []; };
 
   const syncActivityToGoogleCalendar = async (
     activity: Activity,
@@ -6838,15 +6884,15 @@ function AdminContent() {
                       />
                       <PushImageField
                         label="ICONO DE NOTIFICACIÓN (opcional)"
-                        value={pushMsg.icon}
-                        onChange={(v) => setPushMsg({ ...pushMsg, icon: v })}
+value={pushMsg.icon}
+                          onChange={(v) => cambiarImagenPush('icon', v)}
                         placeholder="https://… (si no ponés, se usa el logo de la Pastoral)"
                         hint="Viene per imágenes: https://tuweb.com/logo.png"
                       />
                       <PushImageField
                         label="IMAGEN EN GRANDE (opcional)"
-                        value={pushMsg.image}
-                        onChange={(v) => setPushMsg({ ...pushMsg, image: v })}
+value={pushMsg.image}
+                          onChange={(v) => cambiarImagenPush('image', v)}
                         placeholder="https://… (se muestra como banner dentro de la notificación)"
                       />
                       <button

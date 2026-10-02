@@ -21,6 +21,80 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[13] 2026-10-02 17:30 - SEGUNDA RONDA DE AUDITORÍA DE ARCHIVOS: REEMPLAZOS, QUITADOS Y AVISOS PUSH
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: en la ronda anterior se taparon los huecos más evidentes, pero al seguir
+buscando "dónde más hay archivos" aparecieron cuatro casos más. Todos dejaban
+archivos en el bucket sin que nada los borrara. Se revisaron los 14 puntos de
+subida del panel y los 3 del proyecto entero, uno por uno.
+
+src/components/admin/NewsArticleForm.tsx
+- EL CASO MÁS GRAVE. El formulario guardaba en una sola variable la última imagen
+  subida, así que si el administrador subía una imagen, se arrepentía y subía otra,
+  la primera se perdía sin dejar rastro: nadie la tenía anotada en ningún lado.
+  Ahora se guarda una LISTA de todo lo subido en la sesión.
+- Al guardar, se borra de esa lista todo lo que no quedó guardado. Esto tapó dos
+  huecos de una: la imagen que se quitó con la ✕ (que antes quedaba ahí para
+  siempre) y las que se fueron reemplazando una detrás de otra.
+- Para decidir cuál imagen sobrevivió se compara contra la que se ENVIÓ, no contra
+  lo que devuelve el servidor. Si el servidor devolviera el campo vacío o con otra
+  forma, la comparación borraría la imagen del artículo, que es un problema bastante
+  más serio que dejar un archivo de más.
+
+src/app/admin/page.tsx
+- AVISOS PUSH. Este caso era distinto a todos los demás: /api/push/send no guarda
+  nada, solo entrega el aviso a los teléfonos. Por lo tanto las imágenes del
+  compositor de avisos no quedan anotadas en ninguna base, y el comparador central
+  no tenía forma de verlas. Subir una imagen, arrepentirse y subir otra (o quitarla
+  con la ✕) la dejaba huérfana para siempre.
+- Ahora se anotan las imágenes propias que se usaron en un aviso y, al reemplazar o
+  quitar una, se borra en el momento. Al mandar el aviso, las que sí salieron
+  quedan protegidas y las que quedaron sin usar se descartan.
+- IMPORTANTE Y DELIBERADO: las imágenes de un aviso YA ENVIADO no se borran. Un
+  teléfono sin conexión puede mostrar el aviso más tarde y todavía necesita
+  descargar esa imagen; borrarla dejaría el banner roto. El costo es que la última
+  imagen de cada aviso permanece en el bucket. Es una decisión consciente, porque acá
+  conservar un archivo es lo correcto y no un error.
+- La lista de archivos de los modales ahora se anota SOLO para lo que se sube
+  dentro de un modal. Antes también anotaba los campos de la página (logos, fotos de
+  contenido, carrusel), que no se pueden cancelar y no necesitan deshacerse: eso
+  hacía que la lista creciera durante toda la sesión del administrador.
+- La lista se limpia al abrir cada modal (openNew / openEdit), para que una sesión
+  no arrastre archivos de la anterior.
+
+COMPROBACIONES HECHAS ANTES DE TOCAR NADA:
+- Se revisaron los 14 lugares del panel que suben archivos y los 3 del proyecto
+  (el panel, el formulario de noticias y la definición de uploadFile). Las 14
+  llamadas pasan 2 argumentos, así que la función que borra el archivo anterior al
+  subir el nuevo nunca recibía el archivo viejo y nunca borró nada. Se dejó así a
+  propósito: el borrado correcto lo hace el comparador de useLS cuando el valor se
+  guarda de verdad, no en el momento de subir, que es lo que evita que al cancelar
+  un modal quede apuntando a un archivo ya borrado.
+- collectFileUrls recorre arrays y objetos anidados, así que cubre todos los campos
+  con archivos (logos, fotos de miembros, capillas, galería, línea de tiempo,
+  documentos, carrusel) sin tener que nombrarlos uno por uno.
+- El único modal del panel (el overlay de .glass-modal-overlay) sí detiene la
+  propagación del clic en su tarjeta interior: tocar un campo adentro no cierra el
+  modal ni borra lo subido.
+- FaviconSync no guarda nada, solo arma el ícono en memoria del navegador.
+
+VERIFICACIÓN:
+- npx tsc --noEmit  -> 0 errores.
+- eslint --quiet sobre los archivos modificados  -> 0 errores (solo avisos previos
+  del proyecto, como el de @ts-ignore y variables sin usar).
+- npm run build  ->  compilación correcta.
+- En producción: /, /admin y /api/news/articles devuelven 200; POST
+  /api/files/limpiar y DELETE /api/files devuelven 401 sin sesión; los 6 archivos
+  reales siguen sirviendo (307 hacia R2, que resuelve en 200).
+
+DESPLIEGUE:
+   Cloudflare Worker "pastoral"  ->  versión 86bca29e-a0d9-44af-bd3a-3caf42080b1e
+
+================================================================================
+
 [12] 2026-10-02 13:07 - EL BORRADO DE ARCHIVOS ABARCA TODO EL SITIO, Y SE CIERRA UNA RUTA QUE NO PEDÍA SESIÓN
 -----------------------------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)

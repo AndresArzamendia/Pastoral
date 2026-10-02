@@ -20,19 +20,29 @@ interface NewsArticleFormProps {
 export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
-  /* Imagen subida durante esta sesión del formulario.
-     Si el usuario sube una portada y después le da a Cancelar, esa imagen queda en
-     el bucket sin que ningún artículo la use. El borrado de la imagen VIEJA no se
-     hace acá, sino al guardar: es el PATCH el que sabe con certeza que fue
+  /* Archivos subidos durante esta sesión del formulario.
+     Es una LISTA y no una sola URL: si el usuario sube una imagen, cambia de idea y
+     sube otra, la primera queda sin usar en ningún lado. Guardando solo la última
+     esa primera se perdía para siempre. También se guardan las que después se
+     quitan con la X, porque el formulario deja de referenciarlas y al guardar ya
+     no hay forma de saber cuáles eran.
+     El borrado de la imagen VIEJA del artículo no se hace acá: se hace al guardar,
+     en el PATCH, que es el único momento en que se sabe con certeza que fue
      reemplazada. */
-  const subidaEnEstaSesion = useRef<string | null>(null);
+  const subidasEnEstaSesion = useRef<string[]>([]);
+
+  /* Borra del bucket todo lo que se subió en esta sesión salvo la dirección que se
+     quiere conservar, que es la que quedó guardada (al guardar) o la que ya estaba
+     en el artículo (al cancelar).
+     Conservar vacío o nulo significa que no queda ninguna: se borran todas. */
+  const borrarSubidasSobrantes = (conservar?: string | null) => {
+    const sobrantes = subidasEnEstaSesion.current.filter(url => url !== conservar);
+    subidasEnEstaSesion.current = [];
+    if (sobrantes.length > 0) void deleteStoredUrlList(sobrantes);
+  };
 
   const cancelar = () => {
-    const subida = subidaEnEstaSesion.current;
-    subidaEnEstaSesion.current = null;
-    if (subida && subida !== article?.featured_image_url) {
-      void deleteStoredUrlList([subida]);
-    }
+    borrarSubidasSobrantes(article?.featured_image_url);
     onCancel?.();
   };
 
@@ -107,7 +117,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
       setError(res.error);
       return;
     }
-    subidaEnEstaSesion.current = res.url;
+    subidasEnEstaSesion.current.push(res.url);
     setFormData(prev => ({
       ...prev,
       featured_image_url: res.url,
@@ -137,6 +147,15 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
       const data = await response.json();
 
       if (data.success) {
+/* Ahora que el artículo quedó guardado se sabe qué imagen sobrevivió: la que se
+           envió, que es la que el servidor guarda tal cual. Todas las demás que se
+           hubieran subido durante esta sesión quedaron sin usar (se reemplazaron, o
+           se quitaron con la X), y hay que borrarlas del bucket.
+           A propósito se compara contra lo enviado y no contra lo que devuelve la
+           respuesta: si el servidor devolviera el campo vacío o con otra forma, acá
+           se borraría la imagen del artículo, que es un error mucho más grave que
+           dejar un archivo de más. */
+        borrarSubidasSobrantes(formData.featured_image_url || null);
         onSave?.(data.data);
       } else {
         setError(data.error || (data.details ? data.details.join(', ') : 'Error al guardar el artículo'));
