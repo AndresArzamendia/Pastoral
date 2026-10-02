@@ -81,7 +81,7 @@ try {
   process.exit(1);
 }
 
-const { sigV4Headers, r2PublicUrl, r2PublicBaseUrl, r2KeyFromUrl } = r2;
+const { sigV4Headers, canonicalQuery, r2PublicUrl, r2PublicBaseUrl, r2KeyFromUrl } = r2;
 
 let fallos = 0;
 let omitidos = 0;
@@ -115,6 +115,12 @@ function leerAuthorization(texto) {
   return linea ? linea.slice(linea.indexOf(':') + 1).trim() : '';
 }
 
+/* La query del canonical request esperado va como tercera línea, después de la
+   ruta. Se lee de ahí para reproducir exactamente la entrada que AWS firmó. */
+function leerQuery(canonico) {
+  return canonico.query;
+}
+
 const nombres = readdirSync(suite, { withFileTypes: true })
   .filter((e) => e.isDirectory())
   .map((e) => e.name)
@@ -141,9 +147,6 @@ for (const nombre of nombres) {
   const contexto = JSON.parse(readFileSync(join(carpeta, 'context.json'), 'utf8'));
   const canonico = leerCanonico(readFileSync(join(carpeta, 'header-canonical-request.txt'), 'utf8'));
   const esperado = leerAuthorization(readFileSync(join(carpeta, 'header-signed-request.txt'), 'utf8'));
-
-  // El firmante de R2 nunca lleva query string: S3 no las usa en estas rutas.
-  if (canonico.query) { omitidos++; continue; }
 
   const textoRequest = readFileSync(join(carpeta, 'request.txt'), 'utf8');
   const lineaRequest = textoRequest.split('\n')[0] || '';
@@ -176,6 +179,7 @@ for (const nombre of nombres) {
     method: metodo,
     host,
     path: ruta,
+    query: leerQuery(canonico),
     region: contexto.region,
     service: contexto.service,
     accessKeyId: contexto.credentials.access_key_id,
@@ -235,15 +239,23 @@ comprobar('otro archivo, otra firma', (await sigV4Headers({ ...misma, path: '/pa
 /* ── 4) Armado de las URL públicas ────────────────────────────────────────────*/
 
 console.log('\n── URL públicas del bucket ──\n');
+/* El bucket público se sirve desde la raíz del dominio r2.dev: el subdominio
+   pub-<hash> ya identifica el bucket, así que la clave va tal cual, sin anteponer
+   el nombre del bucket. Por eso NO se autoderiva la URL desde R2_ACCOUNT_ID (eso
+   daba una dirección que no existía) y sin R2_PUBLIC_BASE_URL no se arma ninguna. */
+delete process.env.R2_PUBLIC_BASE_URL;
+comprobar('sin base pública no inventa URL', r2PublicBaseUrl() === '' && r2PublicUrl('logo.png') === '', `${r2PublicBaseUrl()} | ${r2PublicUrl('logo.png')}`);
 
-comprobar('base pública automática', r2PublicBaseUrl() === 'https://pub-abc123.r2.dev/pastoral-uploads', r2PublicBaseUrl());
+process.env.R2_PUBLIC_BASE_URL = 'https://pub-abc123.r2.dev/';
+comprobar('respeta la base pública y le quita la barra final', r2PublicBaseUrl() === 'https://pub-abc123.r2.dev', r2PublicBaseUrl());
+
 comprobar(
   'codifica espacios y conserva las barras',
-  r2PublicUrl('carpeta con espacio/archivo.jpg') === 'https://pub-abc123.r2.dev/pastoral-uploads/carpeta%20con%20espacio/archivo.jpg',
+  r2PublicUrl('carpeta con espacio/archivo.jpg') === 'https://pub-abc123.r2.dev/carpeta%20con%20espacio/archivo.jpg',
   r2PublicUrl('carpeta con espacio/archivo.jpg'),
 );
 comprobar('extrae la clave de /api/files', r2KeyFromUrl('/api/files/1790391300929-4x5im3zthgn2.png') === '1790391300929-4x5im3zthgn2.png');
-comprobar('extrae la clave de una URL de r2.dev', r2KeyFromUrl('https://pub-abc123.r2.dev/pastoral-uploads/logo.png') === 'logo.png');
+comprobar('extrae la clave de una URL de r2.dev', r2KeyFromUrl('https://pub-abc123.r2.dev/logo.png') === 'logo.png');
 comprobar('ignora la query al extraer la clave', r2KeyFromUrl('/api/files/logo.png?v=2') === 'logo.png');
 comprobar('no inventa clave para una URL externa', r2KeyFromUrl('https://ejemplo.com/foto.png') === '');
 
@@ -256,8 +268,8 @@ rmSync(temporal, { recursive: true, force: true });
 
 console.log(
   `\nFirmas idénticas a las de AWS: ${firmasIguales}.` +
-  `\nCasos de normalización de ruta (S3/R2 no normalizan): ${sinNormalizar}.` +
-  `\nCasos omitidos por usar query string: ${omitidos}.`,
+  `\nCasos de canonicalización de ruta (S3/R2 firman la ruta tal cual): ${sinNormalizar}.` +
+  `\nCasos omitidos: ${omitidos}.`,
 );
 console.log(fallos ? `\n${fallos} comprobación(es) fallaron.` : '\nTodo correcto.');
 process.exit(fallos ? 1 : 0);

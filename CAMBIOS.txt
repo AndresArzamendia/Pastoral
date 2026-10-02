@@ -21,6 +21,98 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[10] 2026-10-02 12:02 - LOS ARCHIVOS DEL BUCKET SE BORRAN AL REEMPLAZAR O ELIMINAR, Y BARREDOR DE HUÉRFANOS
+----------------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: al cambiar el logo, la foto de un miembro, el carrusel o un documento, el
+archivo anterior quedaba en el bucket sin que nada lo borrara. La base ya no lo
+mencionaba, así que no había forma de saber que había que limpiarlo: se acumulaban
+archivos pagados y sin uso.
+
+Qué se hizo, archivo por archivo:
+
+src/lib/fileCleanup.ts
+- Agregado cvUrl a StoredFileRef: si un archivo se referenciaba solo por ese campo,
+  nunca se borraba.
+- Agregadas collectFileUrls() y cleanupRemovedFiles(). La primera recorre cualquier
+  estructura JSON y junta las direcciones de archivo; la segunda compara el valor
+  anterior con el nuevo y devuelve las que quedaron sin referencia. Ignora los
+  data: URL (esas imágenes viven en la base, no en el bucket) y nunca tira un error:
+  un fallo de limpieza no puede impedir que se guarde el contenido.
+
+src/app/api/files/limpiar/route.ts  (nuevo)
+- Endpoint POST que borra por lote. Va en una sola petición a propósito: un guardado
+  con ocho imágenes reemplazadas son ocho archivos, y mandar una request por archivo
+  multiplicaría el trabajo del servidor sin necesidad. Requiere permisos de
+  escritura de administrador (requireAdminWriter), filtra los duplicados y cuenta
+  aparte lo que no es del bucket, para no mandarle a borrar un video de YouTube o
+  una imagen de otro sitio.
+
+src/app/admin/page.tsx
+- useLS().update(), que es por donde pasa TODA escritura del panel, ahora guarda el
+  valor anterior y, después de persistir, llama a cleanupRemovedFiles(anterior,
+  nuevo). Con un solo punto se cubren el logo reemplazado, la foto cambiada, el
+  currículum quitado y el documento o la diapositiva borrados, sin acordarse de
+  limpiar en cada botón ni en cada campo.
+- handleFileUpload() acepta el archivo anterior y borra el viejo al reemplazarlo.
+- Corregido un borrado doble: deleteStoredFiles se estaba invocando dos veces sobre
+  el mismo elemento, con lo que se enviaban dos peticiones para el mismo archivo.
+
+src/lib/r2.ts
+- Agregada canonicalQuery(): los parámetros se ordenan por nombre y se codifican
+  según RFC 3986.
+- sigV4Headers() ahora acepta la query string, que antes se suponía siempre vacía.
+  Sin esto, el listado del bucket devolvía 403.
+- Agregado r2S3ListObjects() (ListObjectsV2) y su utilería para desencriptar las
+  entidades XML de la respuesta.
+
+scripts/verificar-firma-r2.mjs
+- La suite de AWS tiene 11 casos con query string que antes se saltaban por no
+  soportarla. Ahora se verifican: pasan los 23 casos de firma y quedan 0 omitidos.
+- Corregidas 3 comprobaciones de URL que seguían suponiendo el nombre del bucket
+  dentro de la ruta (…/pastoral-uploads/archivo). El bucket público se sirve desde
+  la raíz del dominio r2.dev, así que esas expectativas eran falsas.
+- Agregada una comprobación de que, sin R2_PUBLIC_BASE_URL, no se arma ninguna URL
+  (antes se autoderivaba desde R2_ACCOUNT_ID y daba una dirección que no existía).
+
+scripts/barrerar-huerfanos-r2.mjs  (nuevo)
+- Cruza los archivos del bucket con los que la base referencia y avisa, o borra con
+  --borrar, lo que quedó sin uso. Cubre lo que el panel no puede cubrir: un archivo
+  subido y luego cancelado sin guardar, los que se subida al migrar las imágenes
+  embebidas, y los borrados a mano desde el panel de Cloudflare.
+- Arranca en simulación. Si no puede leer alguna tabla por falta de permisos, avisa y
+  no borra nada: mandar a borrar a ciegas sería peor que no borrar.
+- El borrado usa la API de S3 y, si fallara, cae a Wrangler, que ya tiene sesión por
+  OAuth, para no dejar archivos a medias por una credencial vencida.
+
+VERIFICACIÓN:
+- npx tsc --noEmit  ->  0 errores.
+- npm run build  ->  compilación correcta; las tres rutas quedaron registradas:
+  /api/files, /api/files/[key] y /api/files/limpiar.
+- npx eslint --quiet sobre los 5 archivos  ->  0 errores (solo advertencias previas
+  del proyecto, como <img> y dependencias de hooks).
+- node scripts/verificar-firma-r2.mjs  ->  23 firmas idénticas a las de AWS,
+  15 casos de canonicalización de ruta, 0 omitidos, todas las comprobaciones de URL
+  en verde.
+- scripts/barrerar-huerfanos-r2.mjs  ->  NO se pudo probar de punta a punta: las
+  credenciales de la API de S3 (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+  R2_SECRET_ACCESS_KEY) no están en .env.local ni en .env.production, solo están
+  documentadas en .env.example. Wrangler no puede listar el bucket (solo get, put y
+  delete), así que el listado depende de esas claves. El script avisó el motivo y
+  terminó sin borrar nada. Falta crearlas en el panel de Cloudflare para probarlo.
+
+DATOS QUE PODÍAN PERDERSE:
+   Ninguno. No se tocó la base de datos ni se borró ningún archivo del bucket. Este
+   cambio solo prepara la limpieza; lo único que corre al borrar es el código que se
+   escribía antes, más la comparación con el valor anterior.
+
+DESPLIEGUE:
+   No se desplegó. Queda pendiente de confirmación antes de subirlo a Cloudflare.
+
+================================================================================
+
 [9] 2026-09-30 17:56 - SE RESTAURE EL "DATO DEL DÍA" A SU VERSIÓN ORIGINAL (BURBUJA FLOTANTE ARRASTRABLE)
 --------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia

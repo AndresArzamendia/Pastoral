@@ -16,6 +16,7 @@ import { adminFetch } from './adminAuth';
 export type StoredFileRef = {
   url?: string | null;
   photo?: string | null;
+  cvUrl?: string | null;
   logoUrl?: string | null;
   previewImage?: string | null;
   imageUrl?: string | null;
@@ -34,6 +35,7 @@ export async function deleteStoredFiles(item: StoredFileRef | null | undefined):
   const candidatos = [
     item.url,
     item.photo,
+    item.cvUrl,
     item.logoUrl,
     item.previewImage,
     item.imageUrl,
@@ -60,4 +62,89 @@ export async function deleteStoredFiles(item: StoredFileRef | null | undefined):
     }
   }
   return borrados;
+}
+
+/**
+ * Borra el archivo que queda sin usar al cambiarlo por otro.
+ *
+ * Es la fuente más común de archivos huérfanos: cambiar el logo, la foto de un
+ * miembro, el carrusel o el PDF del estatuto deja el archivo anterior en el
+ * bucket para siempre, porque en la base queda solo la dirección nueva y del
+ * archivo viejo no queda ni rastro. Sin esto el bucket se llena de archivos que
+ * nadie vuelve a usar y se sigue pagando por ellos.
+ */
+export async function replaceStoredFile(previousUrl: unknown, nextUrl: unknown): Promise<void> {
+  const antes = typeof previousUrl === 'string' ? previousUrl : '';
+  const despues = typeof nextUrl === 'string' ? nextUrl : '';
+
+  if (!antes) return;
+  if (antes === despues) return;
+  // Las imágenes embebidas en la base desaparecen con la fila, no en el bucket.
+  if (antes.startsWith('data:')) return;
+
+  await deleteStoredFiles({ url: antes });
+}
+
+/* ── Limpieza al guardar ─────────────────────────────────────────────────────
+ *
+ * Todas las escrituras del panel pasan por useLS(key). Comparando el valor
+ * anterior con el nuevo se detecta, de una sola vez y en un único lugar, todo
+ * archivo que quedó sin referencia: el logo que se reemplazó, la foto que se
+ * cambió, el currículum que se quitó, el documento o la diapositiva que se
+ * borró. Es más confiable que acordarse de limpiar en cada botón.
+ */
+
+/** URLs que podrían apuntar a un archivo del bucket. */
+function pareceArchivo(valor: string): boolean {
+  if (!valor || valor.startsWith('data:')) return false;
+  return valor.startsWith('/api/files/') || /^https?:\/\//i.test(valor);
+}
+
+/** Junta todas las direcciones de archivo de cualquier estructura JSON. */
+export function collectFileUrls(valor: unknown, out: Set<string> = new Set()): Set<string> {
+  if (typeof valor === 'string') {
+    if (pareceArchivo(valor)) out.add(valor);
+    return out;
+  }
+  if (Array.isArray(valor)) {
+    for (const item of valor) collectFileUrls(item, out);
+    return out;
+  }
+  if (valor && typeof valor === 'object') {
+    for (const key of Object.keys(valor as object)) collectFileUrls((valor as Record<string, unknown>)[key], out);
+  }
+  return out;
+}
+
+/**
+ * Borra del bucket los archivos que estaban en el valor anterior y ya no están
+ * en el nuevo.
+ *
+ * Va en una sola petición: es lo que se ejecuta en cada guardado del panel, así
+ * que mandar una request por archivo multiplicaría el trabajo sin necesidad.
+ * Nunca tira: un fallo acá no puede impedir que se guarde el contenido.
+ */
+export async function cleanupRemovedFiles(previous: unknown, next: unknown): Promise<number> {
+  try {
+    const antes = collectFileUrls(previous);
+    const despues = collectFileUrls(next);
+
+    const huerfanos = [...antes].filter((url) => !despues.has(url));
+    if (huerfanos.length === 0) return 0;
+
+    const res = await adminFetch('/api/files/limpiar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls: huerfanos }),
+    });
+    if (!res.ok) {
+      console.warn(`[ficheros] no se pudo limpiar ${huerfanos.length} archivo(s): ${res.status}`);
+      return 0;
+    }
+    const json = (await res.json().catch(() => null)) as { borrados?: number } | null;
+    return json?.borrados ?? 0;
+  } catch (error) {
+    console.warn('[ficheros] falló la limpieza de archivos huérfanos:', error);
+    return 0;
+  }
 }

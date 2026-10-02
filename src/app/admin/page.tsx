@@ -20,7 +20,7 @@ import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingPro
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 import { uploadFile, uploadFileToR2 } from '@/lib/uploadFile';
-import { deleteStoredFiles, type StoredFileRef } from '@/lib/fileCleanup';
+import { deleteStoredFiles, replaceStoredFile, cleanupRemovedFiles, type StoredFileRef } from '@/lib/fileCleanup';
 import { LIT_COLORS, liturgicalColor, type LitColorKey } from '@/lib/liturgy';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
@@ -393,8 +393,9 @@ function useLS<T>(key: keyof typeof store, def: T) {
   }, [key]);
 
   const update = (v: T | ((prev: T) => T)) => {
+    const previo = (store[key].get as () => T)();
     const next = typeof v === 'function'
-      ? (v as (prev: T) => T)((store[key].get as () => T)())
+      ? (v as (prev: T) => T)(previo)
       : v;
 
     setVal(next);
@@ -403,6 +404,12 @@ function useLS<T>(key: keyof typeof store, def: T) {
     upsertStoreValue(String(key), next).catch(() => {
       // Fallback to local persistence if Supabase no está disponible
     });
+    /* Toda escritura del panel pasa por acá. Es el único lugar donde se puede
+       ver qué archivos quedaron sin referencia: comparando el valor anterior con
+       el nuevo se limpian de una el logo reemplazado, la foto que se cambió, el
+       currículum que se quitó y el documento o la diapositiva que se borró, sin
+       acordarse de hacerlo en cada botón. */
+    if (next !== previo) void cleanupRemovedFiles(previo, next);
     window.dispatchEvent(new CustomEvent('pjl_admin_write', { detail: { key: String(key) } }));
   };
   return [val, update] as const;
@@ -1972,12 +1979,21 @@ function AdminContent() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+  /* `previousUrl` es el archivo que ese campo tenía antes de la subida. Se borra
+     del bucket al reemplazarlo: si no, cambiar el logo, la foto de un miembro o
+     el carrusel deja el archivo viejo ahí para siempre, y en la base ya no queda
+     ninguna referencia que permita saber que hay que limpiarlo. */
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    callback: (url: string) => void,
+    previousUrl?: unknown,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
     const res = await uploadFile(file);
     if (res.ok) {
+      void replaceStoredFile(previousUrl, res.url);
       callback(res.url);
       return;
     }

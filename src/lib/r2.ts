@@ -120,6 +120,20 @@ function canonicalUri(path: string): string {
   return path.split('/').map(rfc3986).join('/');
 }
 
+/**
+ * Query string canónica: parámetros ordenados por nombre y codificados.
+ * Se necesita para ListObjectsV2 (el barredor de archivos huérfanos), que
+ * R2 atiende por la API S3 igual que cualquier otra operación.
+ */
+export function canonicalQuery(params: Record<string, string | number | undefined>): string {
+  return Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => [rfc3986(k), rfc3986(String(v))] as const)
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
+}
+
 function amzDates(now: Date): { stamp: string; iso: string } {
   const iso = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
   return { stamp: iso.slice(0, 8), iso };
@@ -158,6 +172,8 @@ export async function sigV4Headers(params: {
   date: Date;
   /** Hash del cuerpo, o UNSIGNED_PAYLOAD para poder mandarlo en streaming. */
   payloadHash?: string;
+  /** Query string, ya en su forma canónica (ver canonicalQuery). */
+  query?: string;
   /**
    * Headers adicionales que entran en la firma. R2 exige x-amz-content-sha256;
    * con la suite de AWS se pueden comprobar los casos que no la incluyen.
@@ -182,7 +198,7 @@ export async function sigV4Headers(params: {
   const canonicalRequest = [
     params.method,
     canonicalUri(params.path),
-    '', // sin query string
+    params.query || '', // query string canónica, ya vacía si no hay
     canonicalHeaders,
     signedHeaders,
     payloadHash,
@@ -249,6 +265,77 @@ export async function r2S3PutObject(
     const detail = await res.text().catch(() => '');
     throw new Error(`R2 respondió ${res.status}${detail ? `: ${detail.slice(0, 300)}` : ''}`);
   }
+}
+
+export type R2S3Object = { key: string; size: number; lastModified?: string };
+
+export type R2ListResult = { objects: R2S3Object[]; truncated: boolean; nextToken?: string };
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+/**
+ * Lista los objetos del bucket (ListObjectsV2).
+ *
+ * Lo usa el barredor de archivos huérfanos: cruzando lo que hay en el bucket con
+ * lo que la base referencia, se puede borrar lo que quedó sin usar. Limpiar en el
+ * momento del borrado es lo correcto, pero esto cubre lo que se haya quedado
+ * huérfano antes, o por un borrado hecho a mano desde el panel de Cloudflare.
+ */
+export async function r2S3ListObjects(
+  config: R2S3Config,
+  options: { maxKeys?: number; continuationToken?: string } = {},
+): Promise<R2ListResult> {
+  const host = `${config.accountId}.r2.cloudflarestorage.com`;
+  const path = `/${config.bucket}`;
+
+  const query = canonicalQuery({
+    'list-type': '2',
+    'max-keys': options.maxKeys ?? 1000,
+    ...(options.continuationToken ? { 'continuation-token': options.continuationToken } : {}),
+  });
+
+  const signed = await sigV4Headers({
+    method: 'GET',
+    host,
+    path,
+    query,
+    accessKeyId: config.accessKeyId,
+    secretAccessKey: config.secretAccessKey,
+    date: new Date(),
+    signedExtraHeaders: { 'x-amz-content-sha256': UNSIGNED_PAYLOAD },
+  });
+
+  const res = await fetch(`https://${host}${canonicalUri(path)}?${query}`, { headers: signed });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`R2 respondió ${res.status}${detail ? `: ${detail.slice(0, 300)}` : ''}`);
+  }
+
+  const xml = await res.text();
+  const objects: R2S3Object[] = [];
+  for (const match of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+    const bloque = match[1];
+    const key = /<Key>([\s\S]*?)<\/Key>/.exec(bloque)?.[1];
+    if (!key) continue;
+    objects.push({
+      key: decodeXmlEntities(key),
+      size: Number(/<Size>(\d+)<\/Size>/.exec(bloque)?.[1] ?? 0),
+      lastModified: /<LastModified>([\s\S]*?)<\/LastModified>/.exec(bloque)?.[1],
+    });
+  }
+
+  return {
+    objects,
+    truncated: /<IsTruncated>true<\/IsTruncated>/.test(xml),
+    nextToken: /<NextContinuationToken>([\s\S]*?)<\/NextContinuationToken>/.exec(xml)?.[1],
+  };
 }
 
 /**
