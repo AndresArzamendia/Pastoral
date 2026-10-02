@@ -599,21 +599,91 @@ function setLocalTs(key: string, ts: string | number) {
   } catch { /* ignore */ }
 }
 
+/* ------------------------------------------------------------------
+   ESCRITURAS DIFERIDAS A LA BASE
+   ------------------------------------------------------------------
+   Escribir en cada tecla era el problema más TEDIOSO del panel: por cada
+   carácter se disparaban DOS peticiones a Supabase (una desde save() y otra
+   desde el propio useLS) y ninguna esperaba a la anterior. Con la red fuera de
+   orden, el eco de la escritura anterior llegaba cuando el input ya tenía
+   caracteres nuevos: el eco comparaba contra localStorage, veía diferencia y
+   escribía el valor VIEJO encima del input. Eso es lo que hacía que al escribir
+   se borrara una letra y un instante después volviera sola.
+
+   Ahora hay una sola escritura, diferida: el texto se guarda en localStorage al
+   instante (el input no espera a nadie) y solo se manda a la base cuando el
+   administrador deja de escribir.
+   ------------------------------------------------------------------ */
+
+/* Espera a que pare la mano antes de mandar. Corto a propósito: si fuera más
+   largo, el contenido tardaría en verse en el celular de un visitante que no
+   está mirando el panel. */
+const REMOTE_WRITE_DEBOUNCE_MS = 700;
+
+/* Margen durante el cual se ignora lo que llega de la base para una clave que
+   este dispositivo acaba de escribir. Cubre el viaje de ida y vuelta del eco.
+   While typing it slides, porque cada tecla refresca la marca. */
+const ECHO_IGNORE_MS = 4000;
+
+const writeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const pendingWrites = new Map<string, { at: number }>();
+
+function queueRemoteWrite(key: string, value: unknown): void {
+  pendingWrites.set(key, { at: Date.now() });
+  const anterior = writeTimers.get(key);
+  if (anterior) clearTimeout(anterior);
+  writeTimers.set(
+    key,
+    setTimeout(() => {
+      writeTimers.delete(key);
+      upsertStoreValue(key, value)
+        .then((ok) => {
+          // El servidor rechaza el cambio si la sesión no tiene permiso de
+          // escritura (cuenta vencida, rol de solo lectura, etc.).
+          if (!ok) window.dispatchEvent(new CustomEvent('pjl_write_blocked', { detail: { key } }));
+        })
+        .catch(() => {
+          // Si Supabase no está disponible, se sigue guardando localmente.
+        });
+    }, REMOTE_WRITE_DEBOUNCE_MS),
+  );
+}
+
+/* ¿Este dispositivo está en medio de escribir esta clave? Si lo está, lo que
+   llega de la base es su propio eco atrasado y no debe pisar lo que se está
+   escribiendo. Se exporta para que el panel aplique la misma regla. */
+export function isPendingLocalWrite(key: string, windowMs: number = ECHO_IGNORE_MS): boolean {
+  const p = pendingWrites.get(key);
+  if (!p) return false;
+  return Date.now() - p.at < windowMs;
+}
+
+/* Vacía lo pendiente de inmediato. Sin esto, escribir y cerrar la pestaña en
+   menos de `REMOTE_WRITE_DEBOUNCE_MS` perdía las últimas letras: el temporizador
+   muere con la pestaña. */
+function flushRemoteWrites(): void {
+  for (const [key, timer] of writeTimers) {
+    clearTimeout(timer);
+    writeTimers.delete(key);
+  }
+  for (const key of pendingWrites.keys()) {
+    try {
+      const raw = localStorage.getItem('pjl_' + key);
+      if (raw === null) continue;
+      void upsertStoreValue(key, JSON.parse(raw)).catch(() => {});
+    } catch {
+      // ignore
+    }
+    pendingWrites.delete(key);
+  }
+}
+
 function save<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem('pjl_' + key, JSON.stringify(value));
   setLocalTs(key, new Date().toISOString());
   window.dispatchEvent(new CustomEvent('pjl_store_update', { detail: { key } }));
-  upsertStoreValue(key, value)
-    .then((ok) => {
-      // El servidor rechaza el cambio si la sesión no tiene permiso de escritura
-      // (cuenta vencida, rol de solo lectura, etc.). Se avisa para que el panel
-      // no dé la impresión de que se guardó.
-      if (!ok) window.dispatchEvent(new CustomEvent('pjl_write_blocked', { detail: { key } }));
-    })
-    .catch(() => {
-      // Si Supabase no está disponible, seguimos guardando localmente.
-    });
+  queueRemoteWrite(key, value);
   journalUpdate(key);
 }
 
@@ -744,6 +814,11 @@ function initializeRemoteStoreSync() {
   const unsubscribe = subscribeStoreChanges((key, value, updatedAt) => {
     if (!key) return;
     try {
+      /* Si este dispositivo acaba de escribir esta clave, lo que llega es su
+         propio eco y llega ATRASADO. Aplicarlo, escribir en localStorage y
+         despachar el evento terminaba pisando el input del panel con el valor
+         viejo. */
+      if (isPendingLocalWrite(key)) return;
       const localMs = getLocalTs(key);
       const remoteMs = toMs(updatedAt);
       if (localMs && remoteMs && remoteMs < localMs) return;
@@ -764,11 +839,29 @@ function initializeRemoteStoreSync() {
     }
   });
 
+  /* Si se cierra la pestaña con texto sin mandar, se manda igual. Antes el
+     temporizador moría con la pestaña y se perdían las últimas letras. También
+     al ocultar la pestaña, que es el caso real de "escribí y me cambié de
+     ventana sin darme cuenta". */
+  const flushOnLeave = () => {
+    if (writeTimers.size > 0 || pendingWrites.size > 0) flushRemoteWrites();
+  };
+  const onVisibilityHidden = () => {
+    if (document.visibilityState === 'hidden') flushOnLeave();
+  };
+
   window.addEventListener('beforeunload', () => {
+    flushOnLeave();
     unsubscribe();
     clearInterval(poll);
     document.removeEventListener('visibilitychange', syncWhenVisible);
   });
+  document.addEventListener('visibilitychange', onVisibilityHidden);
+  /* Última red de seguridad: si la pestaña estuvo abierta un rato con algo
+     pendiente, se manda solo. */
+  setInterval(() => {
+    if (writeTimers.size > 0) flushRemoteWrites();
+  }, 15000);
 }
 
 initializeRemoteStoreSync();

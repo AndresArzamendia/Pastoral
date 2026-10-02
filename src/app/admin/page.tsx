@@ -11,10 +11,10 @@ import {
   Branding, ThemePalette, PageStat, Chapel, HeroSlide, User, DeviceLog, TimelineEvent,
   DEFAULT_NEWS, DEFAULT_ACTIVITIES, DEFAULT_FAQ,
   DEFAULT_DOCS, DEFAULT_CONTENT, DEFAULT_SOCIAL, DEFAULT_SECTIONS, DEFAULT_BRANDING,
-  DEFAULT_STATS, DEFAULT_THEME_PALETTE, DEFAULT_USERS
+  DEFAULT_STATS, DEFAULT_THEME_PALETTE, DEFAULT_USERS, isPendingLocalWrite
 } from '@/lib/pjlStore';
 import { buildGoogleCalendarCreateUrl } from '@/lib/googleCalendar';
-import { fetchStoreValue, upsertStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
+import { fetchStoreValue, subscribeStoreChanges } from '@/lib/supabaseStore';
 import { hasAdminSession, signOutAdmin, adminFetch } from '@/lib/adminAuth';
 import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingProfiles, approveProfile, signInProfile, signUpProfile, subscribeProfileChanges, deleteProfile, resendVerificationEmail, updateProfile } from '@/lib/supabaseProfiles';
 import { siteUrlOf } from '@/lib/siteUrl';
@@ -353,6 +353,11 @@ function useLS<T>(key: keyof typeof store, def: T) {
 
     const applyRemoteValue = (remoteValue: unknown) => {
       if (remoteValue === null || remoteValue === undefined) return;
+      /* Mientras este dispositivo está escribiendo esta clave, lo que llega por
+         Realtime es su propio eco atrasado. Aplicarlo reescribía el input con el
+         valor viejo y era lo que hacía desaparecer lo que el administrador
+         acababa de escribir. */
+      if (isPendingLocalWrite(String(key))) return;
       try {
         const parsed = remoteValue as T;
         const current = (store[key].get as () => T)();
@@ -399,11 +404,12 @@ function useLS<T>(key: keyof typeof store, def: T) {
       : v;
 
     setVal(next);
+    /* El setter ya deja el valor en localStorage y lo manda a Supabase (de forma
+       diferida). Aquí había además un `upsertStoreValue` propio que duplicaba la
+       escritura: dos peticiones por tecla, ninguna esperando a la anterior, y el
+       eco de la primera pisaba lo que se estaba escribiendo. */
     const setter = store[key].set as (v: T) => void;
     setter(next);
-    upsertStoreValue(String(key), next).catch(() => {
-      // Fallback to local persistence if Supabase no está disponible
-    });
     /* Toda escritura del panel pasa por acá. Es el único lugar donde se puede
        ver qué archivos quedaron sin referencia: comparando el valor anterior con
        el nuevo se limpian de una el logo reemplazado, la foto que se cambió, el

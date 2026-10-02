@@ -21,6 +21,98 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[17] 2026-10-02 19:28 - SE ARREGLA EL BUG DE ESCRIBIR EN EL PANEL: SE BORRA Y VUELVE
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: al escribir cualquier texto del panel, una letra se borraba y un
+instante despues volvia sola. A veces no volvia nunca. Hacia el manejo del
+sitio inutilizable.
+
+POR QUE PASABA (no era la red: era el propio panel)
+- El panel escribia en Supabase DOS VECES por tecla. Una desde save() y otra
+  desde el propio useLS.update(), que repetia un upsertStoreValue que ya hacia
+  el setter.
+- Peor: esas dos escrituras salian en paralelo y NO TENIAN ORDEN. La que se
+  mandaba primero era la que se quedaba esperando en la cola, y su confirmacion
+  llegaba ULTIMA.
+- Cuando llegaba, su handler comparaba el valor remoto contra localStorage,
+  veía diferencia y escribía el valor VIEJO encima del input. Ese era el
+  sintoma: se veía la letra correcta y un instante después volvía la anterior.
+- El mecanismo se cierra solo con dos golpes seguidos, así que la sensación era
+  de aleatorio.
+- El input se actualizaba al instante, pero la base no se enteraba hasta mucho
+  después.
+
+LO QUE SE HIZO
+- Una sola escritura, DIFERIDA. El texto se guarda en localStorage al instante
+  (el input no espera a nadie: la letra aparece apenas se tipea) y solo se manda
+  a la base cuando el administrador deja de escribir 700 ms. Antes se pegarle a
+  la red en cada tecla.
+- Se IGNORA el eco propio mientras se esta escribiendo. isPendingLocalWrite(key)
+  avisa si este dispositivo acaba de escribir esa clave; si es asi, lo que llega
+  por Realtime es la confirmacion de lo que el mismo acaba de escribir, que
+  llega atrasada, y no debe pisar el input. Margen de 4 s que se renueva con
+  cada tecla mientras se sigue escribiendo.
+  El guard esta en los DOS lados: en el handler de Realtime de pjlStore (que
+  escribia en localStorage) y en applyRemoteValue del panel (que pisaba el
+  input). Con uno solo no alcanzaba.
+- El margen es para lo propio, no un bloqueo: un cambio que venga de otro
+  dispositivo DESPUES de 4 s se aplica normal. Un administrador mas puede
+  escribir; solo se evita que se pisen mientras uno esta tipeando.
+
+LO QUE SE AGREGARA PARA QUE NO SE PIERDA TEXTO
+- Vaciado de lo pendiente en tres momentos: al cerrar la pestana, al ocultar la
+  pestana (que es el caso real de "escribi y me cambie de ventana") y cada 15 s
+  si quedo algo colgado. Sin esto, escribir y cerrar en menos de 700 ms perdia
+  las ultimas letras, porque el temporizador moria con la pestana.
+
+src/lib/pjlStore.ts
+- Nuevo bloque "ESCRITURAS DIFERIDAS A LA BASE" con REMOTE_WRITE_DEBOUNCE_MS
+  (700), ECHO_IGNORE_MS (4000), writeTimers, pendingWrites,
+  queueRemoteWrite(), isPendingLocalWrite() (exportada) y flushRemoteWrites().
+- save() ahora llama a queueRemoteWrite() en vez de escribir directo. Lo demas de
+  save() queda igual: localStorage y el evento pjl_store_update siguen siendo
+  inmediatos.
+- El handler de subscribeStoreChanges vuelve temprano si isPendingLocalWrite(key).
+- flushRemoteWrites() se llama en beforeunload, en visibilitychange y cada 15 s.
+
+src/app/admin/page.tsx
+- Se SACO el upsertStoreValue que estaba dentro de useLS.update(). El setter ya
+  escribe; ese era el que duplicaba la peticion.
+- applyRemoteValue() vuelve temprano si isPendingLocalWrite(key).
+- Import isPendingLocalWrite y se saca upsertStoreValue del import, que quedo
+  sin uso.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- npx eslint sobre los dos archivos -> 0 errores.
+- npm run build -> correcto.
+- Se reprodujo el defecto y se comprobo el arreglo, con un reloj simulado y
+  latencias distintas por escritura para forzar el desorden (la primera tecla con
+  90 ms, la ultima con 10 ms, que es lo que pasa en la red real):
+    ANTES   escribiste "Inic" -> el input quedo en "I"     (letra perdida)
+    AHORA   escribiste "Inic" -> el input quedo en "Inic"  (conservado)
+    Y con el reloj corrido mucho mas alla del margen, la base sigue mandando:
+    el guard frena lo propio, no los cambios de otro dispositivo.
+- Comprobado sobre el codigo compilado: el guard existe en el chunk compartido
+  (minificado, con el margen escrito 4e3) y se invoca 2 veces. Las escrituras
+  directas a la base en ese chunk quedaron en 0 y hay un solo 700, el del
+  diferido. En el panel quedaron 0 llamadas a upsertStoreValue.
+- Ojo con un detalle al verificar: el numero 4000 aparece tambien en un contador
+  de caracteres de la herramienta de IA del panel. La primera busqueda dio un
+  positivo falso por ahi, no por el guard.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: 4478c4d6-b349-4066-8fbc-a8b94a346338
+              Anterior: e014a455-7fcf-4588-b6d6-5d3acf3fbb0d
+              Verificado en linea: el chunk compartido 4087-e8ff4b45c21099f8.js
+              ya se sirve con el margen de eco y el diferido de 700 ms dentro.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [16] 2026-10-02 19:00 - HISTORIA: SE ARREGLA EL BUG DE "DESAPARECEN LAS PILDORAS" Y SE FIJAN LOS TRES TITULOS
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
