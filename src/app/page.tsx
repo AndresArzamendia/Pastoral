@@ -2181,31 +2181,42 @@ const [newsSearch, setNewsSearch] = useState('');
           </section>
         )}
 
-        {/* HISTORIA - TIMELINE */}
+        {/* HISTORIA - ACORDEÓN */}
         {currentPage === 'historia' && (
           <section className="section-pjl history-premium-section nosotros-page">
+                {/* Marco ornamental. Es lo que le da aire y caracter a la sección:
+                    sin esto el bloque queda suelto sobre un fondo liso y se ve
+                    vacío. Los cuatro esquinas son decorativas (aria-hidden). */}
+            <div className="historia-watermark" aria-hidden="true">✦</div>
             <div className="container">
-              <div className="nosotros-hero reveal">
-                <div className="nosotros-hero-badge"><span>✦</span> LEGADO</div>
-                <h2 className="serif nosotros-hero-title">Nuestra <i style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>Historia</i></h2>
-                <div className="nosotros-hero-divider"><span className="dot">†</span></div>
-                <p className="nosotros-hero-intro">{siteContent.nosotrosHistoria || 'Seguí la línea de tiempo...'}</p>
-              </div>
+              <div className="historia-stage">
+                <span className="historia-corner historia-corner-tl" aria-hidden="true" />
+                <span className="historia-corner historia-corner-tr" aria-hidden="true" />
+                <span className="historia-corner historia-corner-bl" aria-hidden="true" />
+                <span className="historia-corner historia-corner-br" aria-hidden="true" />
 
-              {/* CIFRAS / LOGROS */}
-              {(siteContent.logros && siteContent.logros.length > 0) && (
-                <div className="nosotros-logros" style={{ marginBottom: '56px' }}>
-                  {siteContent.logros.map((lg, i) => (
-                    <div key={lg.id} className="nosotros-logro reveal" style={{ '--ad': `${i * 0.09}s` } as CSSProperties}>
-                      <span className="nl-ico">{lg.icon}</span>
-                      <strong>{lg.valor}</strong>
-                      <small>{lg.label}</small>
-                    </div>
-                  ))}
+                <div className="nosotros-hero reveal historia-hero">
+                  <div className="historia-badge"><span aria-hidden="true">✦</span> LEGADO</div>
+                  <h2 className="serif historia-title">Nuestra <em>Historia</em></h2>
+                  <div className="historia-ornament" aria-hidden="true"><span /><b>†</b><span /></div>
+                  <p className="historia-intro">{siteContent.nosotrosHistoria || 'Selecciona una etapa para conocer más y consultar los documentos oficiales.'}</p>
                 </div>
-              )}
 
-              <HistoriaTabs items={siteContent.historiaTimeline} />
+                {/* CIFRAS / LOGROS */}
+                {(siteContent.logros && siteContent.logros.length > 0) && (
+                  <div className="nosotros-logros historia-logros">
+                    {siteContent.logros.map((lg, i) => (
+                      <div key={lg.id} className="nosotros-logro reveal" style={{ '--ad': `${i * 0.09}s` } as CSSProperties}>
+                        <span className="nl-ico">{lg.icon}</span>
+                        <strong>{lg.valor}</strong>
+                        <small>{lg.label}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <HistoriaTabs items={siteContent.historiaTimeline} />
+              </div>
             </div>
           </section>
         )}

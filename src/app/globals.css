@@ -13683,23 +13683,31 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ==========================================================================
-   NUESTRA HISTORIA - ACORDEÓN DE PÍLDORAS VERTICALES
+   NUESTRA HISTORIA - ACORDEÓN DE PÍLDORAS
    --------------------------------------------------------------------------
    Las píldoras van apiladas, una debajo de otra, y la vista se despliega justo
    debajo de la píldora elegida. Apiladas y no en fila porque en el teléfono
    ocupan todo el ancho y caen en la zona que el pulgar alcanza sin obligar a
    deslizar un carrusel horizontal.
 
+   Estas reglas son las del bloque en sí, y las comparte la vista previa del
+   panel de administración, para que lo que se ve ahí sea lo mismo que ve el
+   visitante. El fondo, el marco y los ornamentos de la sección viven aparte,
+   más abajo, porque son cosa de la página y no del bloque.
+
    Notas de peso:
    - Solo se anima `opacity` y `transform`: es lo único que la GPU compone sin
      repintar el bloque entero.
    - `content-visibility: auto` + `contain-intrinsic-size` permiten al navegador
-     saltarse el pintado de la sección si el visitante no llega hasta abajo.
+     saltarse el pintado si el visitante no llega hasta abajo.
    - Las píldoras usan `--hs-accent`, que cada hito define con su color de
      acento; así el mismo bloque sirve para los tres sin repetir reglas.
+   - Donde se usa `color-mix()` se declara antes el color plano equivalente, para
+     que en un navegador sin soporte no quede la regla inválida.
    ========================================================================== */
 .hs {
   --hs-gap: 14px;
+  --hs-line: rgba(26, 39, 68, 0.12);
   content-visibility: auto;
   contain-intrinsic-size: auto 620px;
 }
@@ -13713,97 +13721,122 @@ html.show-splash .splash-content { visibility: visible; }
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   width: 100%;
-  min-height: 68px;
-  padding: 16px 20px;
-  border: 1px solid rgba(200, 151, 58, 0.24);
-  border-color: color-mix(in srgb, var(--hs-accent) 24%, transparent);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 240, 227, 0.72));
+  min-height: 74px;
+  padding: 16px 22px 16px 26px;
+  border: 1px solid rgba(200, 151, 58, 0.28);
+  border-radius: 20px;
+  /* Superficie de pergamino: nunca blanco puro. El blanco plano es lo que hace
+     que la sección se lea como vacía. */
+  background: linear-gradient(135deg, #FFFDF8 0%, #FBF3E2 62%, #F6EAD3 100%);
   cursor: pointer;
   text-align: left;
   font: inherit;
   color: var(--navy);
-  box-shadow: 0 8px 22px -18px rgba(26, 39, 68, 0.45);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 10px 24px -18px rgba(26, 39, 68, 0.55);
   transition: background 0.25s ease, border-color 0.25s ease,
               transform 0.25s ease, box-shadow 0.25s ease;
 }
+
+/* Filete de acento a la izquierda: es lo que ata cada píldora con su color y
+   hace que la fila se lea como una lista y no como tres cajas sueltas. */
+.hs-pill::before {
+  content: '';
+  position: absolute;
+  inset: 12px auto 12px 10px;
+  width: 5px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 45%, transparent));
+  opacity: 0.55;
+  transition: opacity 0.25s ease, inset 0.25s ease;
+}
+
 .hs-pill:hover {
-  background: #fff;
-  border-color: rgba(200, 151, 58, 0.45);
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px -20px rgba(26, 39, 68, 0.5);
+  background: linear-gradient(135deg, #FFFDF9 0%, #FDF7EA 62%, #F9EEDD 100%);
+  border-color: rgba(200, 151, 58, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 34px -22px rgba(26, 39, 68, 0.55);
 }
 .hs-pill:focus-visible {
   outline: 2px solid var(--hs-accent);
   outline-offset: 3px;
 }
 .hs-pill.is-open {
-  background: #fff;
-  border-color: rgba(200, 151, 58, 0.5);
-  border-color: color-mix(in srgb, var(--hs-accent) 48%, transparent);
-  box-shadow: 0 18px 38px -24px rgba(26, 39, 68, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(200, 151, 58, 0.62);
+  border-color: color-mix(in srgb, var(--hs-accent) 58%, transparent);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FDF6E7 58%, #F9EDD4 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 22px 44px -26px rgba(26, 39, 68, 0.6);
 }
+.hs-pill.is-open::before { inset: 8px auto 8px 10px; opacity: 1; }
 
-/* Icono: cuadrado redondeado a la izquierda. */
+/* Icono: cuadrado redondeado, con relieve cuando la píldora está abierta. */
 .hs-pill-ico {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  font-size: 21px;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  font-size: 22px;
   line-height: 1;
-  background: rgba(200, 151, 58, 0.1);
-  background: color-mix(in srgb, var(--hs-accent) 12%, #fff);
-  border: 1px solid rgba(200, 151, 58, 0.26);
-  border-color: color-mix(in srgb, var(--hs-accent) 26%, transparent);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+  background: color-mix(in srgb, var(--hs-accent) 14%, #FFF);
+  border: 1px solid color-mix(in srgb, var(--hs-accent) 30%, transparent);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.85) inset;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, background 0.3s ease;
 }
-.hs-pill:hover .hs-pill-ico { transform: scale(1.06) rotate(-3deg); }
+.hs-pill:hover .hs-pill-ico { transform: scale(1.07) rotate(-4deg); }
 .hs-pill.is-open .hs-pill-ico {
   background: var(--hs-accent);
-  box-shadow: 0 8px 18px -8px var(--hs-accent);
+  border-color: color-mix(in srgb, var(--hs-accent) 70%, #000);
+  box-shadow: 0 10px 20px -10px var(--hs-accent), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
 }
 
 /* Título: número (si el título no lo trae) + etiqueta. */
-.hs-pill-main { min-width: 0; flex: 1 1 auto; display: grid; gap: 3px; }
+.hs-pill-main { min-width: 0; flex: 1 1 auto; display: grid; gap: 4px; }
 .hs-pill-num {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  color: var(--text-muted);
-  opacity: 0.7;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  opacity: 0.9;
 }
 .hs-pill-label {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: clamp(1rem, 1.5vw, 1.18rem);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.26;
+  letter-spacing: -0.005em;
   color: var(--navy);
   overflow-wrap: anywhere;
 }
+.hs-pill.is-open .hs-pill-label { color: var(--navy); }
 
 /* Estado a la derecha: «Seleccionado» / «Ver detalle». */
 .hs-pill-state {
   flex: 0 0 auto;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(26, 39, 68, 0.14);
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 10px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 39, 68, 0.16);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--text-muted);
   white-space: nowrap;
 }
+.hs-pill:hover .hs-pill-state { border-color: rgba(200, 151, 58, 0.45); color: var(--navy); }
 .hs-pill.is-open .hs-pill-state {
-  background: var(--hs-accent);
+  background: linear-gradient(135deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 72%, #000));
   border-color: transparent;
   color: #fff;
+  box-shadow: 0 6px 14px -8px var(--hs-accent);
 }
 
 /* Chevron: gira al abrir. Es decorativo, va con aria-hidden en el HTML. */
@@ -13811,86 +13844,85 @@ html.show-splash .splash-content { visibility: visible; }
   flex: 0 0 auto;
   width: 9px;
   height: 9px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
+  border-right: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
   border-radius: 1px;
-  color: var(--text-muted);
-  opacity: 0.6;
+  opacity: 0.7;
   transform: rotate(45deg) translate(-2px, -2px);
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.hs-pill.is-open .hs-pill-chev {
-  color: var(--hs-accent);
-  opacity: 1;
-  transform: rotate(-135deg) translate(-2px, -2px);
-}
+.hs-pill.is-open .hs-pill-chev { transform: rotate(-135deg) translate(-2px, -2px); opacity: 1; }
 
 /* ---------- 2. VISTA DESPLEGADA ---------- */
-/* Va inmediatamente debajo de su píldora: por eso se separa con el mismo
-   `--hs-gap` y lleva el filete de acento en el borde izquierdo. */
+/* Va inmediatamente debajo de su píldora. El filete de acento baja desde el
+   borde izquierdo de la píldora, así se lee como una sola pieza continua. */
 .hs-panel {
   --hs-accent: var(--gold);
   position: relative;
-  margin-top: var(--hs-gap);
-  padding: 28px 30px 26px;
-  border-radius: 20px;
-  border: 1px solid rgba(200, 151, 58, 0.22);
-  border-color: color-mix(in srgb, var(--hs-accent) 22%, rgba(26, 39, 68, 0.1));
-  background: linear-gradient(180deg, #ffffff, #fdfaf4);
-  box-shadow: 0 20px 44px -30px rgba(26, 39, 68, 0.45);
-  animation: hsPanelIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  margin: -4px 0 4px 14px;
+  padding: 32px 34px 30px;
+  border-radius: 6px 22px 22px 22px;
+  border: 1px solid color-mix(in srgb, var(--hs-accent) 26%, rgba(26, 39, 68, 0.12));
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--hs-accent) 8%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, #FFFDF8 0%, #FBF4E4 100%);
+  box-shadow: 0 24px 50px -34px rgba(26, 39, 68, 0.55);
+  animation: hsPanelIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .hs-panel::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: 14px auto 14px 0;
   width: 4px;
-  border-radius: 20px 0 0 20px;
-  background: linear-gradient(180deg, var(--hs-accent), transparent 78%);
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 12%, transparent));
 }
 @keyframes hsPanelIn {
   from { opacity: 0; transform: translate3d(0, -10px, 0); }
   to { opacity: 1; transform: none; }
 }
 
-.hs-panel-head { display: grid; gap: 6px; margin-bottom: 18px; }
+.hs-panel-head { display: grid; gap: 8px; margin-bottom: 20px; }
 .hs-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--hs-accent);
 }
 .hs-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.4rem, 3.2vw, 2rem);
-  line-height: 1.18;
+  font-size: clamp(1.55rem, 3.4vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.14;
+  letter-spacing: -0.015em;
   color: var(--navy);
   overflow-wrap: anywhere;
 }
 .hs-period {
   justify-self: start;
-  margin-top: 6px;
-  padding: 5px 13px;
-  border-radius: 20px;
-  background: rgba(200, 151, 58, 0.1);
-  background: color-mix(in srgb, var(--hs-accent) 10%, #fff);
-  border: 1px solid rgba(200, 151, 58, 0.24);
-  border-color: color-mix(in srgb, var(--hs-accent) 24%, transparent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  margin-top: 8px;
+  padding: 6px 15px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hs-accent) 12%, #FFF);
+  border: 1px solid color-mix(in srgb, var(--hs-accent) 32%, transparent);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--navy);
 }
 
 .hs-figure {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(26, 39, 68, 0.08);
-  box-shadow: 0 14px 32px -24px rgba(26, 39, 68, 0.5);
+  border: 1px solid rgba(26, 39, 68, 0.1);
+  box-shadow: 0 16px 34px -26px rgba(26, 39, 68, 0.55);
   background: var(--cream);
 }
 .hs-figure img {
@@ -13902,52 +13934,67 @@ html.show-splash .splash-content { visibility: visible; }
 
 /* ---------- 3. RESUMEN ---------- */
 .hs-resume {
-  padding: 20px 0;
-  border-top: 1px solid rgba(26, 39, 68, 0.1);
-  border-bottom: 1px solid rgba(26, 39, 68, 0.1);
+  position: relative;
+  padding: 22px 0 22px 20px;
+  border-top: 1px solid var(--hs-line);
+  border-bottom: 1px solid var(--hs-line);
+}
+.hs-resume::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--hs-accent), transparent);
+  opacity: 0.5;
 }
 .hs-resume-label {
-  display: inline-block;
-  margin-bottom: 8px;
+  display: block;
+  margin-bottom: 9px;
   font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 .hs-summary {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1rem, 1.6vw, 1.12rem);
-  line-height: 1.62;
+  font-size: clamp(1.05rem, 1.7vw, 1.2rem);
+  line-height: 1.66;
   color: var(--navy);
 }
 .hs-text {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   font-size: 14.5px;
-  line-height: 1.82;
+  line-height: 1.85;
   color: var(--text-muted);
   white-space: pre-line;
   overflow-wrap: break-word;
 }
 
 /* ---------- 4. FICHA EN LÍNEA ---------- */
-/* `📄 Documento oficial • 8 págs. • 2.8 MB`. Un renglón con puntos separadores
-   en vez de una tabla: los datos del documento son de lectura rápida, no algo
-   que se compare fila por fila, y así no compiten con los botones. */
+/* `📄 Documento oficial • 8 págs. • 2.8 MB`, sobre una banda de papel con
+   puntos de corte a los lados: parece un documento, no texto suelto. */
 .hs-docmeta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 18px 0 0;
+  gap: 9px;
+  margin: 20px 0 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--hs-accent) 34%, transparent);
+  background: color-mix(in srgb, var(--hs-accent) 6%, #FFF);
   font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--navy);
 }
-.hs-docmeta-ico { font-size: 14px; line-height: 1; }
-.hs-docmeta-part { display: inline-flex; align-items: center; gap: 8px; }
-.hs-dot { opacity: 0.5; }
+.hs-docmeta-ico { font-size: 15px; line-height: 1; }
+.hs-docmeta-part { display: inline-flex; align-items: center; gap: 9px; }
+.hs-dot { opacity: 0.45; }
 
 /* ---------- 5. ACCIONES ---------- */
 /* Los dos botones en fila, que es como se muestran en el diseño pedido. */
@@ -13961,43 +14008,68 @@ html.show-splash .splash-content { visibility: visible; }
 .hs-btn {
   /* Sin redeclarar `--hs-accent` a propósito: el valor lo hereda de `.hs-panel`,
      así el botón primario usa el color del hito que está abierto. */
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  min-height: 50px;
-  padding: 13px 18px;
-  border-radius: 13px;
-  font-size: 13px;
-  font-weight: 700;
+  min-height: 52px;
+  padding: 13px 20px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
+  overflow: hidden;
   transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
 }
-.hs-btn > span { font-size: 15px; line-height: 1; }
+.hs-btn > span { font-size: 15px; line-height: 1; text-transform: none; }
 .hs-btn:focus-visible { outline: 2px solid var(--hs-accent); outline-offset: 3px; }
+
+/* Barrido de luz que cruza el botón al pasar el mouse. Se hace con un
+   pseudo-elemento: no cuesta JavaScript ni una imagen. */
+.hs-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+  transition: transform 0.6s ease;
+}
+.hs-btn:hover::after { transform: translateX(120%); }
+
 .hs-btn-ghost {
   color: var(--navy);
   background: #fff;
-  border: 1px solid rgba(26, 39, 68, 0.18);
+  border: 1.5px solid rgba(26, 39, 68, 0.2);
 }
 .hs-btn-ghost:hover {
   border-color: var(--hs-accent);
+  color: var(--hs-accent);
   transform: translateY(-2px);
-  box-shadow: 0 10px 22px -12px rgba(26, 39, 68, 0.5);
+  box-shadow: 0 12px 24px -14px rgba(26, 39, 68, 0.55);
 }
 .hs-btn-primary {
   color: #fff;
-  background: var(--hs-accent);
-  border: 1px solid transparent;
-  box-shadow: 0 10px 24px -14px var(--hs-accent);
+  background: linear-gradient(135deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 62%, #000));
+  border: 1px solid color-mix(in srgb, var(--hs-accent) 55%, #000);
+  box-shadow: 0 12px 26px -14px var(--hs-accent);
 }
-.hs-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -14px var(--hs-accent); }
+.hs-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px -14px var(--hs-accent);
+}
 .hs-btn:active { transform: translateY(0); }
 
 .hs-note {
-  margin: 18px 0 0;
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(26, 39, 68, 0.18);
+  background: rgba(255, 255, 255, 0.6);
   font-size: 12.5px;
   line-height: 1.7;
   color: var(--text-muted);
@@ -14005,48 +14077,45 @@ html.show-splash .splash-content { visibility: visible; }
 .hs-note strong { color: var(--navy); }
 
 /* ---------- 6. RESPONSIVE ---------- */
-/* Tablet: menos aire, la ficha sigue en una línea. */
 @media (max-width: 900px) {
-  .hs-panel { padding: 24px 22px 22px; }
-  .hs-pill { min-height: 64px; padding: 14px 16px; }
+  .hs-panel { padding: 26px 22px 24px; margin-left: 10px; }
+  .hs-pill { min-height: 68px; padding: 14px 16px 14px 22px; }
 }
 
-/* Móvil: píldoras más altas y con el estado en su propia línea. El objetivo
-   es que el dedo acierte fácil: ancho completo y objetivo táctil cómodo. */
 @media (max-width: 680px) {
   .hs { --hs-gap: 10px; }
   .hs-list { gap: 10px; }
 
   .hs-pill {
-    min-height: 76px;
-    padding: 14px;
+    min-height: 80px;
+    padding: 14px 14px 14px 20px;
     gap: 12px;
-    border-radius: 16px;
-    /* Toque: sin brillos ni untado mientras se desliza el dedo. */
+    border-radius: 18px;
     -webkit-tap-highlight-color: transparent;
   }
-  .hs-pill-ico { width: 42px; height: 42px; font-size: 19px; border-radius: 12px; }
+  .hs-pill-ico { width: 44px; height: 44px; font-size: 20px; border-radius: 13px; }
   .hs-pill-label { font-size: 15px; }
-  .hs-pill-state { padding: 4px 9px; font-size: 9px; letter-spacing: 0.1em; }
-  /* Con el pulgar no se busca la chevron, y a 15 px ocupa ancho de más. */
+  .hs-pill-state { padding: 5px 10px; font-size: 8.5px; letter-spacing: 0.1em; }
+  /* Con el pulgar no se busca la chevron, y a 9 px ocupa ancho de más. */
   .hs-pill-chev { display: none; }
 
   .hs-panel {
-    padding: 20px 16px 18px;
-    border-radius: 16px;
+    padding: 22px 16px 20px;
+    margin: -2px 0 2px 8px;
+    border-radius: 6px 16px 16px 16px;
   }
-  .hs-panel::before { border-radius: 16px 0 0 16px; width: 3px; }
-  .hs-panel-head { margin-bottom: 14px; }
-  .hs-title { font-size: clamp(1.2rem, 5.6vw, 1.5rem); }
-  .hs-resume { padding: 16px 0; }
+  .hs-panel::before { inset: 12px auto 12px 0; width: 3px; }
+  .hs-panel-head { margin-bottom: 16px; }
+  .hs-title { font-size: clamp(1.25rem, 5.6vw, 1.6rem); }
+  .hs-resume { padding: 18px 0 18px 15px; }
   .hs-figure { border-radius: 13px; margin-bottom: 16px; }
   .hs-figure img { aspect-ratio: 3 / 2; }
-  .hs-docmeta { margin-top: 14px; }
+  .hs-docmeta { margin-top: 16px; padding: 11px 13px; }
 
-  /* En una columna los botones se apilan: en 360 px de ancho dos botones con
-     icono y texto no entran sin quedar ilegibles. */
+  /* En una columna los botones se apilan: a 360 px con icono y texto en fila
+     quedan ilegibles. */
   .hs-actions { grid-auto-flow: row; gap: 10px; }
-  .hs-btn { min-height: 52px; }
+  .hs-btn { min-height: 54px; font-size: 12px; }
 }
 
 @media (max-width: 380px) {
@@ -14056,18 +14125,240 @@ html.show-splash .splash-content { visibility: visible; }
 /* ---------- 7. ACCESIBILIDAD ---------- */
 body.high-contrast .hs-panel,
 body.high-contrast .hs-pill { border-color: currentColor; }
-body.high-contrast .hs-pill.is-open { background: var(--navy); color: var(--white); }
+body.high-contrast .hs-pill.is-open { background: var(--navy); }
 body.high-contrast .hs-pill.is-open .hs-pill-label { color: var(--white); }
 body.high-contrast .hs-pill-state { border-color: currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
   .hs-panel { animation: none !important; }
   .hs-pill,
+  .hs-pill::before,
   .hs-pill-ico,
   .hs-pill-chev,
-  .hs-btn { transition: none !important; }
+  .hs-btn,
+  .hs-btn::after { transition: none !important; }
+  .hs-btn::after { display: none; }
   .hs-pill:hover,
   .hs-btn:hover { transform: none; }
+}
+
+/* ==========================================================================
+   ENTORNO DE LA SECCIÓN "NUESTRA HISTORIA"
+   --------------------------------------------------------------------------
+   Todo lo de abajo está.scopeado a `.history-premium-section` a propósito: es
+   el fondo, el marco y los ornamentos de UNA página. Las otras páginas del
+   sitio que usan `.nosotros-page` (Institucional, Nosotros) comparten ese
+   selector y no deben heredar nada de esto.
+
+   El fondo deja de ser un crema casi blanco y pasa a pergamino: una base de
+   arena con trama de papel, una luz cálida arriba y viñeta en los bordes. Sin
+   eso el bloque se leía como un hueco vacío en medio de la página.
+   ========================================================================== */
+.history-premium-section {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    /* Luz cálida que baja desde el encabezado. */
+    radial-gradient(115% 62% at 50% -4%, rgba(232, 184, 90, 0.30) 0%, rgba(232, 184, 90, 0) 62%),
+    /* Trama de papel: dos tramazas cruzadas, casi imperceptibles. */
+    repeating-linear-gradient(0deg, rgba(26, 39, 68, 0.020) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(26, 39, 68, 0.020) 0 1px, transparent 1px 4px),
+    /* Base de pergamino. */
+    linear-gradient(180deg, #F7ECD7 0%, #F1E2C6 48%, #EAD8B6 100%);
+}
+
+/* Viñeta: oscurece los bordes para que el centro quede como foco. */
+.history-premium-section::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(135% 96% at 50% 42%, rgba(255, 252, 244, 0.42) 0%, rgba(255, 252, 244, 0) 46%, rgba(92, 66, 26, 0.16) 100%);
+}
+
+/* Estrella de agua, atrás de todo. Da profundidad sin cargar nada. */
+.history-premium-section .historia-watermark {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(14rem, 34vw, 30rem);
+  line-height: 1;
+  color: var(--gold);
+  opacity: 0.055;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+.history-premium-section .container { position: relative; z-index: 1; }
+
+/* ---------- MARCO ---------- */
+.historia-stage {
+  position: relative;
+  padding: clamp(26px, 4.5vw, 54px) clamp(16px, 3.5vw, 48px) clamp(24px, 4vw, 46px);
+  border-radius: 26px;
+  border: 1px solid rgba(200, 151, 58, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.90) 0%, rgba(250, 241, 223, 0.80) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 40px 90px -52px rgba(74, 52, 18, 0.75),
+    0 2px 0 rgba(200, 151, 58, 0.10);
+}
+/* Filete interior: el doble borde es lo que hace que parezca una página de
+   archivo y no una caja. */
+.historia-stage::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 18px;
+  border: 1px solid rgba(200, 151, 58, 0.20);
+  pointer-events: none;
+}
+
+.historia-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--gold);
+  opacity: 0.7;
+  pointer-events: none;
+}
+.historia-corner-tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
+.historia-corner-tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
+.historia-corner-bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
+.historia-corner-br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
+
+/* ---------- ENCABEZADO ---------- */
+.historia-hero { text-align: center; max-width: 820px; margin: 0 auto 34px; }
+
+.historia-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 151, 58, 0.5);
+  background: linear-gradient(135deg, #F3DFB4 0%, #E8C87E 100%);
+  box-shadow: 0 8px 18px -12px rgba(139, 96, 16, 0.7), 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #6B4E12;
+}
+
+.historia-title {
+  margin: 0 0 6px;
+  font-size: clamp(2.3rem, 6vw, 3.7rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55);
+}
+.historia-title em {
+  font-style: italic;
+  font-family: var(--font-display);
+  background: linear-gradient(135deg, #B8862B 0%, var(--gold-light) 45%, #A8761F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Oramento: línea — † — línea. */
+.historia-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 20px 0 18px;
+}
+.historia-ornament span {
+  height: 1px;
+  width: clamp(40px, 14vw, 96px);
+  background: linear-gradient(90deg, transparent, rgba(200, 151, 58, 0.75));
+}
+.historia-ornament span:last-child { background: linear-gradient(270deg, transparent, rgba(200, 151, 58, 0.75)); }
+.historia-ornament b {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--gold);
+  opacity: 0.9;
+}
+
+.historia-intro {
+  margin: 0 auto;
+  max-width: 680px;
+  font-family: var(--font-accent);
+  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  font-style: italic;
+  line-height: 1.85;
+  color: var(--text-muted);
+}
+
+/* ---------- CIFRAS ---------- */
+.history-premium-section .historia-logros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 0 0 34px;
+}
+.history-premium-section .historia-logros .nosotros-logro {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  padding: 20px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(200, 151, 58, 0.28);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.92), rgba(247, 237, 217, 0.82));
+  box-shadow: 0 12px 26px -22px rgba(74, 52, 18, 0.8);
+}
+.history-premium-section .historia-logros .nl-ico {
+  font-size: 20px;
+  line-height: 1;
+}
+.history-premium-section .historia-logros strong {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  line-height: 1.1;
+  color: var(--gold);
+}
+.history-premium-section .historia-logros small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---------- RESPONSIVE DEL ENTORNO ---------- */
+@media (max-width: 680px) {
+  .history-premium-section { padding-bottom: 72px; }
+  .historia-stage {
+    padding: 22px 14px 20px;
+    border-radius: 20px;
+  }
+  .historia-stage::before { inset: 6px; border-radius: 14px; }
+  .historia-corner { width: 18px; height: 18px; border-width: 1.5px; }
+  .historia-corner-tl, .historia-corner-tr { top: 10px; }
+  .historia-corner-bl, .historia-corner-br { bottom: 10px; }
+  .historia-corner-tl, .historia-corner-bl { left: 10px; }
+  .historia-corner-tr, .historia-corner-br { right: 10px; }
+  .history-premium-section .historia-logros { gap: 10px; margin-bottom: 26px; }
+  .history-premium-section .historia-logros .nosotros-logro { padding: 15px 10px; }
+}
+
+@media (max-width: 420px) {
+  .history-premium-section .historia-logros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- ACCESIBILIDAD DEL ENTORNO ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .history-premium-section .historia-watermark { display: none; }
 }
 
 /* ==========================================================================

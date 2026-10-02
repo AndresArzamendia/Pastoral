@@ -21,6 +21,103 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[18] 2026-10-02 19:46 - REDISEÑO VISUAL DE "NUESTRA HISTORIA": FONDO, MARCO, PILDORAS Y BOTONES
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: la seccion se veía vacía y con un fondo demasiado blanco. El resto de la
+pagina usa ese mismo crema casi blanco, asi que la seccion no destacaba y
+parecia un hueco. Pido mejorar el fondo, los colores, la forma, los botones y
+los titulos. SOLO esta seccion por ahora: si gusta, despues se aplica la misma
+estetica al resto de la pagina.
+
+ALCANCE (importante)
+- Todo lo nuevo del entorno esta dentro de .history-premium-section o de clases
+  .historia-*, que no existian antes. .nosotros-page la comparten otras paginas
+  (Institucional, Nosotros) y NO se toco: sigue con su fondo original.
+- Las clases del hero que se usaban antes (.nosotros-hero-badge, -title,
+  -divider, -intro) NO se tocaron; la seccion de Historia paso a usar clases
+  propias y las viejas siguen intactas para las otras 7 apariciones que tienen
+  en la pagina.
+
+EL FONDO (era lo que mas molestaba)
+- La base pasa de un crema casi blanco (#FDFAF5 -> #FBF6EA) a PERGAMINO:
+  #F7ECD7 -> #F1E2C6 -> #EAD8B6. Sigue siendo claro, pero con cuerpo.
+- Encima, tres capas mas: una luz calida que baja del encabezado (radial), una
+  trama de papel con dos tramazas cruzadas de 1 px cada 4 (repeating-linear) y
+  una viñeta que oscurece los bordes para que el centro quede como foco.
+- La viñeta va en un ::after propio de la seccion. Se verifico que no hubiera
+  ningun ::after o ::before previo en .history-premium-section, asi que no se
+  pisa nada existente.
+- Estrella de agua ✦ gigante (opacity 0.055) detrás de todo: da profundidad sin
+  cargar ni una imagen. En reduced-motion se oculta.
+- El bloque ya no flota suelto: va dentro de un MARCO con doble filete y cuatro
+  esquinas doradas. Ese marco es lo que quita la sensacion de vacio.
+
+src/app/page.tsx  (solo el JSX de la seccion Historia)
+- Se envuelve el contenido en .historia-stage, con cuatro .historia-corner
+  decorativas (aria-hidden) y el .historia-watermark.
+- El hero pasa de las clases compartidas a .historia-badge, .historia-title,
+  .historia-ornament y .historia-intro.
+- Las cifras (logros) pasan a .historia-logros, sin el marginBottom en linea que
+  tenian: ahora lo maneja el CSS.
+- El texto de respaldo del hero ya no dice "Seguí la linea de tiempo" (ya no hay
+  linea de tiempo): dice "Selecciona una etapa para conocer mas y consultar los
+  documentos oficiales".
+
+src/app/globals.css
+- PILDORAS: dejan de ser blancas. Superficie de pergamino en degradado, filete
+  de acento de 5 px a la izquierda que baja del color de cada hito, icono con
+  relieve cuando esta abierta, titulo mas grande (clamp 1rem-1.18rem), numero de
+  hito en dorado de pagina, estado "Seleccionado" con degradado del color del
+  hito.
+- VISTA DESPLEGADA: esquina superior izquierda redondeada y pegada a su pildora
+  (margin -4px arriba, -4px a la izquierda) para que se lean como una sola
+  pieza continua. El filete de acento baja desde el borde.
+- RESUMEN: filete vertical a la izquierda en degradado del acento.
+- FICHA DEL DOCUMENTO: la linea "Documento oficial - 8 paginas - 2.8 MB" deja de
+  ser texto suelto y pasa a una BANDA con borde punteado y tinte del color del
+  hito, como un documento con linea de corte.
+- BOTONES: primario con degradado del color del hito y sombra proyectada; el
+  secundario con borde que se tiñe al pasar el mouse. Los dos llevan un BARRIDO
+  DE LUZ (pseudo-elemento que cruza al hover, transicion CSS pura, sin JS). Se
+  les subio el peso a 800 con mayusculas para que se lean como acciones.
+- TITULO de la vista abierta: mas grande, con tracking cerrado.
+- Los cortes responsive siguen en 900 / 680 / 380. En movil la pildora mide 80px
+  de alto (mas comodo con el pulgar) y los botones se apilan.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- npx eslint -> 0 errores (1 warning, el de <img> de siempre).
+- npm run build -> correcto. "/" quedo en 58 kB y 235 kB de First Load JS
+  (antes 57.9 kB y 235 kB): el peso de JS no se movio, todo el cambio es CSS.
+- Prueba de render del acordeon con react-dom/server, 18 comprobaciones, todas
+  OK: no se rompió nada del funcionamiento (teclado, aria, descarga, estados).
+- Prueba de contrato del entorno sobre el CSS: 29 comprobaciones, todas OK.
+  Entre ellas: que .nosotros-page conserve su fondo, que las clases del hero
+  compartilhado sigan declaradas, y que el bloque nuevo no redefina
+  .section-pjl ni .container.
+- Se confirmo que responsive-fix.css (que se carga despues) no menciona ninguna
+  clase nueva: 0 coincidencias.
+- Ojo con un falso positivo al verificar: el selector .history-premium-section
+  aparece 3 veces en el archivo (la vieja, la nueva y una dentro de un media
+  query), asi que la primera prueba leia el bloque equivocado y daba dos errores
+  falsos. Se localizo el bloque por su comentario de cabecera.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: 47e31d01-57d4-4364-9670-941baee68ac6
+              Anterior: 4478c4d6-b349-4066-8fbc-a8b94a346338
+              Verificado en linea: el CSS 5db93b1fe4ffd84f.css ya trae el
+              entorno (historia-stage, esquinas, pergamino, trama) y el bloque
+              hs-* nuevo. Institucional y Nosotros siguen respondiendo 200.
+              Ojo: el minificador escribe ".hs-btn:after" con un solo dos
+              puntos, asi que buscar "::after" en el CSS servido da falso
+              negativo.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [17] 2026-10-02 19:28 - SE ARREGLA EL BUG DE ESCRIBIR EN EL PANEL: SE BORRA Y VUELVE
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
