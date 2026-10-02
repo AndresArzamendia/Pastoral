@@ -9,7 +9,44 @@ export interface FaqItem      { id: number; question: string; answer: string; }
 export interface DocItem      { id: number; name: string; type: string; size: string; downloads: number; url?: string; description?: string; category?: string; previewImage?: string; uploadedAt?: string; }
 export interface GalleryItem  { id: number; name: string; src: string; }
 export interface SocialLinks  { instagram: string; facebook: string; youtube: string; whatsapp: string; }
-export interface TimelineEvent { id: string; title: string; text: string; image?: string; accentColor?: string; }
+/** Un hito de la línea de tiempo de «Nuestra Historia».
+ *
+ *  Se presenta como una píldora (pestaña) y, al abrirse, como una vista
+ *  desplegada con resumen, ficha técnica del documento y acciones.
+ *
+ *  Todo lo nuevo es opcional a propósito: los hitos que ya estaban cargados en
+ *  la base siguen funcionando sin tocar nada y el panel les pone valores por
+ *  defecto en pantalla. */
+export interface TimelineEvent {
+  id: string;
+  /** Etiqueta de la píldora, p. ej. «01. Nuestra Parroquia». */
+  title: string;
+  /** Descripción histórica larga (cuerpo del desplegado). */
+  text: string;
+  image?: string;
+  accentColor?: string;
+  /** Emoji de la píldora. Si falta, se usa uno por posición. */
+  icon?: string;
+  /** Antetítulo corto sobre el título, p. ej. «Memoria pastoral». */
+  kicker?: string;
+  /** Periodo o año, p. ej. «1954 · Fundación». */
+  period?: string;
+  /** Resumen de dos o tres líneas: es lo primero que se lee. */
+  summary?: string;
+  /** Ficha técnica del documento. */
+  docType?: string;
+  docPages?: string;
+  docSize?: string;
+  docArchive?: string;
+  docUpdated?: string;
+  /** PDF del documento (se usa para «Ver online» y para «Descargar»). */
+  docUrl?: string;
+  /** Nombre con el que se descarga el PDF. */
+  docFileName?: string;
+  /** Enlace externo donde el documento se lee en la web. Si está vacío,
+   *  «Ver documento online» abre el PDF en el visor de la página. */
+  onlineUrl?: string;
+}
 export interface Chapel { 
   id: string; 
   name: string; 
@@ -302,8 +339,9 @@ export const DEFAULT_CONTENT: SiteContent = {
     mode: 'MONTH',
   },
   historiaTimeline: [
-    { id: '1', title: 'Inicios', text: 'La Pastoral Juvenil Luqueña nació con la misión de acompañar a los jóvenes de la ciudad de Luque en su camino de fe.', accentColor: '#C8973A' },
-    { id: '2', title: 'Presente', text: 'Hoy en día, la PJL Luque se consolida como un referente diocesano de organización y fe activa.', accentColor: '#1A2744' }
+    { id: '1', icon: '🏛️', title: '01. Nuestra Parroquia', kicker: 'Memoria pastoral', period: 'Los primeros años', summary: 'El lugar donde empezó todo y que todavía hoy reúne a la pastoral.', text: 'La Pastoral Juvenil Luqueña nació con la misión de acompañar a los jóvenes de la ciudad de Luque en su camino de fe.', accentColor: '#C8973A' },
+    { id: '2', icon: '✝️', title: '02. Pa’i García y la Construcción', kicker: 'Memoria pastoral', period: 'La obra que nos trajo hasta aquí', summary: 'El paso de un grupo pequeño a una pastoral organizada y con casa propia.', text: 'Hoy en día, la PJL Luque se consolida como un referente diocesano de organización y fe activa.', accentColor: '#1A2744' },
+    { id: '3', icon: '🔥', title: '03. Pastoral Juvenil Luqueña', kicker: 'Memoria pastoral', period: 'El presente', summary: 'Una red de comunidades y zonas que sigue creciendo.', text: 'Cada zona y comunidad de la pastoral mantiene viva la fe y la deja abierta a las nuevas generaciones.', accentColor: '#8B2635' }
   ],
   instiTitulo: 'Nuestra Identidad',
   instiSubtitle: 'Una red pastoral joven que hace de la fe una experiencia comunitaria',

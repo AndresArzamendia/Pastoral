@@ -21,6 +21,137 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[14] 2026-10-02 18:25 - HISTORIA COMO PESTAÑAS (PIÑORAS) CON VISTA DESPLEGADA, FICHA Y PDF
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: en «Nuestra Historia» los tres hitos se mostraban como tarjetas sueltas en
+una linea de tiempo y cada una abria un modal. Se pidio convertirlos en pestanias
+navegables arriba y, al elegir una, desplegar en el mismo lugar el resumen, una
+ficha tecnica del documento y los botones para verlo o bajarlo.
+
+src/lib/pjlStore.ts
+- La interfaz TimelineEvent crece con los datos que pide la vista nueva, TODOS
+  opcionales a proposito: los hitos que ya estaban cargados en Supabase siguen
+  funcionando sin tocar nada y el panel les pone valores por defecto en pantalla.
+  Campos: icon (emoji de la pila), kicker (antetitulo), period, summary (resumen),
+  docType, docPages, docSize, docArchive, docUpdated, docUrl (PDF), docFileName y
+  onlineUrl (enlace externo donde se lee el documento).
+- Se documenta arriba por que los campos nuevos son opcionales.
+- DEFAULT_CONTENT.historiaTimeline pasa a traer tres hitos de ejemplo con icono
+  (Parroquia / Pa'i Garcia / PJL Luqueña). Solo afecta a una base nueva: si ya
+  hay contenido en Supabase, ese manda y no se toca. No se toco ningun dato vivo.
+
+src/components/HistoriaTabs.tsx  (archivo nuevo)
+- Nuevo componente con las pestanias. Lo que hace:
+  * Las tres píldoras son botones reales con role="tablist"/role="tab", y se mueven
+    con las flechas del teclado, Inicio y Fin, como manda el patrón ARIA de
+    pestañas. Antes el clic estaba en un <div>, sin role ni tabIndex: no se podia
+    llegar con el teclado.
+  * Dibuja UN SOLO panel desplegado a la vez. Antes se montaban los tres hitos
+    completos con su imagen; ahora lo que no esta abierto no existe en el DOM,
+    asi que el navegador no descarga ni decodifica las imagenes que el visitante
+    no esta mirando. Ese es el ahorro real de recursos.
+  * Resumen + descripcion historica, ficha tecnica (solo lista los datos que el
+    panel completo; una tabla vacia se veria como un error) y los dos botones:
+    «👁 Ver documento online» y «📥 Descargar PDF».
+  * Si el admin cargo un enlace web, «Ver online» abre ese enlace; si no, abre el
+    PDF en el visor que ya usa el Estatuto (PdfViewerModal).
+  * La descarga apunta a /api/files/<clave>?dl=1 cuando el PDF vive en R2, que es
+    el mismo truco del Estatuto: responde Content-Disposition y el archivo se
+    guarda sin abrir pestana.
+  * Descarga de PDF por defecto: si el admin no escribio nombre, se usa el del
+    archivo; si tampoco, el ultimo segmento de la URL; y si no hay URL, se arma
+    con el titulo del hito.
+  * safeUrl() solo deja pasar http(s) y rutas del propio sitio. Bloquea
+    javascript: y data:, que es lo unico peligroso que podria colarse del panel.
+  * Si el hito abierto ya no existe (el admin lo borro o lo reordeno), cae en el
+    primero en vez de dejar la vista en blanco. Se deriva del estado, sin efecto.
+  * Al cambiar de hito se cierra el PDF, si no el visor queda flotando sobre el
+    contenido que acaba de cambiar.
+  * Imagenes con loading="lazy" y decoding="async"; el contenedor reserva el
+    espacio con aspect-ratio para que no haya salto de layout.
+  * Animacion de entrada en CSS sobre opacity/transform, que es lo unico que la
+    GPU compone sin repintar. NO se agrego ninguna libreria de animacion: el
+    sitio no tiene ninguna y meter una solo para esto serian decenas de KB de
+    JavaScript para un efecto de 300 ms.
+
+src/app/page.tsx
+- La seccion de Historia (antes lineas 2184-2252) pasa a ser
+  <HistoriaTabs items={siteContent.historiaTimeline} />. Se borra el marcado de la
+  linea de tiempo y de las tarjetas.
+- Se borra el modal de detalle del hito (antes lineas 3534-3584) y su estado
+  selectedHistoryItem, que quedaban sin uso. Ese modal era ademas el peor caso
+  de responsive del sitio: traia padding: '60px 50px' y fontSize: '2.5rem'
+  metidos en estilos en linea, sin ninguna regla movil, y con
+  backdropFilter: 'blur(15px)' sobre toda la pantalla.
+- El efecto que bloquea el scroll del cuerpo (linea 745) deja de mirar
+  selectedHistoryItem.
+- Se saca TimelineEvent de los imports de la pagina: ya no se usa ahi.
+
+src/app/admin/page.tsx
+- El handler nuevo handleHistoriaPdfUpload (junto a handleEstatutoPdfUpload, que
+  ya estaba) sube el PDF de un hito a R2 y completa solo lo que el archivo aporta
+  (nombre y tamano). NO pisa las paginas ni el archivo que el admin ya habia
+  escrito. Pasa el PDF anterior como previousUrl para que replaceStoredFile lo
+  borre del bucket.
+- El historial del tiro: el editor de la pestana Historia reescrito con un helper
+  patch() que clona el objeto antes de escribir. El codigo anterior mutaba
+  content.historiaTimeline por indice (nt[idx].title = ...), que rompe el aviso
+  de «cambios pendientes» y con dos escrituras seguidas sobre el mismo content
+  viejo, la segunda borra a la primera.
+- Campos por hito: icono, titulo de la pila, antetitulo, periodo, color de
+  acento, resumen, descripcion historica e imagen (esto ya existia), mas el
+  bloque nuevo «Documento del hito»: PDF, enlace web, nombre al descargar, tipo,
+  paginas, tamano, archivo/coleccion y actualizado. Todo se guarda al instante,
+  como el resto de la pestana.
+- La vista previa del panel ahora usa las clases hs-* reales del sitio (antes
+  era un maqueta con clases tl-strip-* que ya no existian en ningun lado). Lo que
+  el administrador ve es exactamente lo que ve el visitante.
+- Al borrar el PDF se limpian docUrl y docFileName en una sola llamada a patch(),
+  no en dos.
+
+src/app/globals.css
+- Nuevo bloque hs-* al final del archivo: pila de pestanias, panel desplegado,
+  ficha tecnica, botones, tres cortes responsive (900 / 680 / 380 px),
+  variante de alto contraste y prefers-reduced-motion.
+- Los cortes: a 900 px la ficha pasa debajo del texto pero en dos columnas; a
+  680 px las píldoras pasan a carrusel con scroll-snap (que es lo que funciona con
+  titulos largos como «Pa'i Garcia y la Construccion») y todo a una columna; a
+  380 px se oculta el numero de la pila.
+- Donde se usa color-mix() se declara antes el color plano equivalente, para que
+  en un navegador sin soporte no quede la regla invalida.
+- Se borran las 53 lineas de .timeline-premium-* que quedaron sin uso. Las clases
+  .timeline / .timeline-item / .timeline-dot / .timeline-date NO se tocan: la
+  Agenda las sigue usando en otros dos lugares de la pagina.
+- Clases hs-admin-* para el bloque de documento del panel.
+- Responsive-fix.css (que se carga despues) no menciona ninguna clase hs-*, asi
+  que no pisa el bloque nuevo.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- npx eslint sobre los cuatro archivos -> 0 errores. Los avisos que quedan son
+  los que ya tenia el sitio (<img> en vez de next/image, hooks con dependencias
+  sin declarar); el proyecto entero esta en esa.
+- npm run build -> correcto. Bundle: la ruta / paso de 234 kB a 235 kB de First
+  Load JS (+1 kB) y /admin de 246 kB a 248 kB (+2 kB). Ese kilo y medio es el
+  tabs con su navegacion por teclado y el manejo de URLs del PDF, y se paga con
+  la mitad del DOM y sin descargar las imagenes de los hitos cerrados.
+- Prueba de render con react-dom/server sobre el componente, 19 comprobaciones,
+  todas OK: 3 pestañas con role=tab, un solo role=tabpanel en el DOM,
+  aria-selected/aria-controls/aria-labelledby cruzados, resumen y descripcion,
+  img con loading=lazy y decoding=async, ficha de 5 filas, descarga con ?dl=1 y
+  atributo download, que el cuerpo de un hito cerrado NO se dibuja, estado vacio
+  con lista sin datos, no rompe si items llega undefined, y que una URL
+  javascript: queda bloqueada y se muestra el aviso de documento faltante.
+- CSS validado: llaves balanceadas (0 sin cerrar, profundidad minima 0) y
+  respuesta visual pendiente de revisar en el navegador.
+
+Despliegue:   no se desplego. No hay version nueva del Worker en Cloudflare.
+
+================================================================================
+
 [13] 2026-10-02 17:30 - SEGUNDA RONDA DE AUDITORÍA DE ARCHIVOS: REEMPLAZOS, QUITADOS Y AVISOS PUSH
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)

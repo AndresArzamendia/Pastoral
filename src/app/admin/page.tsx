@@ -8,7 +8,7 @@ import {
   store,
   NewsItem, Activity, FaqItem, DocItem, GalleryItem,
   SiteContent, SocialLinks, ActiveSections, MemberProfile,
-  Branding, ThemePalette, PageStat, Chapel, HeroSlide, User, DeviceLog,
+  Branding, ThemePalette, PageStat, Chapel, HeroSlide, User, DeviceLog, TimelineEvent,
   DEFAULT_NEWS, DEFAULT_ACTIVITIES, DEFAULT_FAQ,
   DEFAULT_DOCS, DEFAULT_CONTENT, DEFAULT_SOCIAL, DEFAULT_SECTIONS, DEFAULT_BRANDING,
   DEFAULT_STATS, DEFAULT_THEME_PALETTE, DEFAULT_USERS
@@ -2121,6 +2121,29 @@ function AdminContent() {
         },
       });
     });
+  };
+
+  /* PDF de un hito de Historia: pasa lo que ya estaba cargado y solo completa
+     lo que el archivo aporta (nombre y tamaño). Si el admin ya escribió las
+     páginas o el archivo, subir un PDF nuevo no borra esa información. */
+  const handleHistoriaPdfUpload = (idx: number, previousUrl: unknown) => (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const sizeMb = file.size / (1024 * 1024);
+
+    handleFileUpload(e, (url) => {
+      const nt = [...(content.historiaTimeline || [])];
+      nt[idx] = {
+        ...nt[idx],
+        docUrl: url,
+        docFileName: file.name || nt[idx].docFileName,
+        docSize: `${sizeMb >= 1 ? sizeMb.toFixed(1) : Math.max(sizeMb, 0.1).toFixed(1)} MB`,
+        docType: nt[idx].docType || 'PDF',
+      };
+      setContent({ ...content, historiaTimeline: nt });
+    }, previousUrl);
   };
 
   const applyThemeColor = (navy: string, gold: string, extra?: { bg?: string; card?: string }) => {
@@ -4446,20 +4469,34 @@ function AdminContent() {
                           <div className="sec-head">
                             <span className="sec-ic">🕰️</span>
                             <div style={{ flex: 1 }}>
-                              <h4 className="serif">Línea de tiempo de la PJL</h4>
-                              <p>Edita los hitos; se reflejan al instante en «Nuestra Historia».</p>
+                              <h4 className="serif">Píldoras de la historia</h4>
+                              <p>Cada hito es una pestaña. El orden de esta lista es el orden en que aparecen arriba.</p>
                             </div>
                             <span className="ctx-count">{content.historiaTimeline?.length || 0} hitos</span>
                           </div>
 
                           <div className="ctx-tl">
-                            {(content.historiaTimeline || []).map((item, idx) => (
+                            {(content.historiaTimeline || []).map((item, idx) => {
+                              /* Un solo helper para escribir campos del hito sin
+                                 repetir 8 veces el `const nt = [...]`. Antes de
+                                 escribir se clona el objeto: mutar `content` en
+                                 sitio rompe el aviso de «cambios pendientes». */
+                              const patch = (fields: Partial<TimelineEvent>) => {
+                                const nt = (content.historiaTimeline || []).map((it, i) =>
+                                  i === idx ? { ...it, ...fields } : it,
+                                );
+                                setContent({ ...content, historiaTimeline: nt });
+                              };
+                              const previewUrl = (item.docUrl || '').trim();
+                              return (
                               <div key={item.id} className="ctx-tl-item">
                                 <span className="ctx-tl-dot" style={{ background: item.accentColor || 'var(--gold)' }} />
+
                                 <div className="tl-card-top">
-                                  <div className="tl-year">
-                                    <span style={{ fontSize: '15px' }}>📅</span>
-                                    <input value={item.title} onChange={e => { const nt = [...content.historiaTimeline]; nt[idx].title = e.target.value; setContent({ ...content, historiaTimeline: nt }); }} placeholder="Ej: 2015 · Fundación de la PJL" />
+                                  <div className="hs-admin-pill" style={{ '--hs-accent': item.accentColor || 'var(--gold)' } as CSSProperties}>
+                                    <span className="hs-admin-pill-ico">{item.icon || '📜'}</span>
+                                    <span className="hs-admin-pill-num">{String(idx + 1).padStart(2, '0')}</span>
+                                    <span className="hs-admin-pill-label">{item.title || 'Sin título'}</span>
                                   </div>
                                   <div className="row-actions">
                                     <button className="mini-btn" title="Subir" disabled={idx === 0} onClick={() => moveTL(idx, -1)} style={{ opacity: idx === 0 ? 0.35 : 1 }}>▲</button>
@@ -4472,82 +4509,255 @@ function AdminContent() {
                                   </div>
                                 </div>
 
-                                <div className="ctx-row2 tl-fields">
+                                {/* --- Identidad de la píldora --- */}
+                                <div className="ctx-row2">
                                   <div className="ctx-field" style={{ marginBottom: 0 }}>
-                                    <label className="ctx-label"><span className="chip">📝</span> DESCRIPCIÓN DEL HITO</label>
-                                    <textarea className="pjl-input" rows={4} value={item.text} onChange={e => { const nt = [...content.historiaTimeline]; nt[idx].text = e.target.value; setContent({ ...content, historiaTimeline: nt }); }} placeholder="Escribe la historia de este hito..." />
+                                    <label className="ctx-label"><span className="chip">🏷️</span> TÍTULO DE LA PÍLDORA</label>
+                                    <input
+                                      className="pjl-input"
+                                      value={item.title || ''}
+                                      onChange={e => patch({ title: e.target.value })}
+                                      placeholder="Ej: 01. Nuestra Parroquia"
+                                    />
                                   </div>
-                                  <div style={{ display: 'grid', gap: '14px' }}>
-                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
-                                      <label className="ctx-label">IMAGEN DEL HITO</label>
-                                      <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <div className="thumb-box" style={{ width: 96, height: 72 }}>
-                                          {item.image ? <img src={item.image} alt={item.title || 'Vista previa del hito'} /> : <span className="ph">🖼️</span>}
-                                        </div>
-                                        <div className="row-actions">
-                                          <label className="btn-ghost" style={{ cursor: 'pointer', padding: '9px 14px' }}>
-                                            SUBIR IMAGEN
-                                            <input
-                                              type="file"
-                                              style={{ display: 'none' }}
-                                              accept="image/*"
-                                              onChange={e => handleFileUpload(e, (url) => {
-                                                const nt = [...content.historiaTimeline];
-                                                nt[idx].image = url;
-                                                setContent({ ...content, historiaTimeline: nt });
-                                              })}
-                                            />
-                                          </label>
-                                          {item.image && (
-                                            <button className="mini-btn danger" title="Quitar imagen" onClick={() => { const nt = [...content.historiaTimeline]; nt[idx].image = ''; setContent({ ...content, historiaTimeline: nt }); }}>✕</button>
-                                          )}
-                                        </div>
-                                      </div>
+                                  <div className="ctx-field" style={{ marginBottom: 0, maxWidth: 130 }}>
+                                    <label className="ctx-label"><span className="chip">✨</span> ICONO</label>
+                                    <input
+                                      className="pjl-input"
+                                      value={item.icon || ''}
+                                      onChange={e => patch({ icon: e.target.value })}
+                                      placeholder="🏛️"
+                                      maxLength={8}
+                                    />
+                                    <span className="ctx-hint" style={{ margin: '6px 0 0' }}>Un emoji. Se usa en la píldora y en la vista abierta.</span>
+                                  </div>
+                                </div>
+
+                                <div className="ctx-row2">
+                                  <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                    <label className="ctx-label"><span className="chip">📣</span> ANTETÍTULO</label>
+                                    <input
+                                      className="pjl-input"
+                                      value={item.kicker || ''}
+                                      onChange={e => patch({ kicker: e.target.value })}
+                                      placeholder="Memoria pastoral"
+                                    />
+                                  </div>
+                                  <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                    <label className="ctx-label"><span className="chip">📆</span> PERIODO</label>
+                                    <input
+                                      className="pjl-input"
+                                      value={item.period || ''}
+                                      onChange={e => patch({ period: e.target.value })}
+                                      placeholder="Ej: 1954 · Fundación"
+                                    />
+                                  </div>
+                                  <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                    <label className="ctx-label"><span className="chip">🎨</span> COLOR ACENTO</label>
+                                    <input
+                                      type="color"
+                                      className="pjl-input"
+                                      style={{ width: '64px', height: '46px', padding: '4px' }}
+                                      value={item.accentColor || '#C8973A'}
+                                      onChange={e => patch({ accentColor: e.target.value })}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* --- Textos de la vista desplegada --- */}
+                                <div className="ctx-field">
+                                  <label className="ctx-label"><span className="chip">📌</span> RESUMEN (LO PRIMERO QUE SE LEE)</label>
+                                  <textarea
+                                    className="pjl-input"
+                                    rows={2}
+                                    value={item.summary || ''}
+                                    onChange={e => patch({ summary: e.target.value })}
+                                    placeholder="Dos o tres líneas: de qué trata este hito."
+                                  />
+                                </div>
+                                <div className="ctx-field">
+                                  <label className="ctx-label"><span className="chip">📝</span> DESCRIPCIÓN HISTÓRICA</label>
+                                  <textarea
+                                    className="pjl-input"
+                                    rows={5}
+                                    value={item.text || ''}
+                                    onChange={e => patch({ text: e.target.value })}
+                                    placeholder="Contá la historia completa de este hito."
+                                  />
+                                  <span className="ctx-hint">Si lo dejás vacío, se muestra el resumen.</span>
+                                </div>
+
+                                <div className="ctx-field">
+                                  <label className="ctx-label"><span className="chip">🖼️</span> IMAGEN DEL HITO</label>
+                                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div className="thumb-box" style={{ width: 96, height: 72 }}>
+                                      {item.image ? <img src={item.image} alt={item.title || 'Vista previa del hito'} /> : <span className="ph">🖼️</span>}
                                     </div>
-                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
-                                      <label className="ctx-label">COLOR ACENTO</label>
-                                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <input
-                                          type="color"
-                                          className="pjl-input"
-                                          style={{ width: '64px', height: '46px', padding: '4px' }}
-                                          value={item.accentColor || '#C8973A'}
-                                          onChange={e => {
-                                            const nt = [...content.historiaTimeline];
-                                            nt[idx].accentColor = e.target.value;
-                                            setContent({ ...content, historiaTimeline: nt });
-                                          }}
-                                        />
-                                        <span className="ctx-hint" style={{ margin: 0 }}>Este tono se verá en la línea de tiempo y en el modal.</span>
-                                      </div>
+                                    <div className="row-actions">
+                                      <label className="btn-ghost" style={{ cursor: 'pointer', padding: '9px 14px' }}>
+                                        SUBIR IMAGEN
+                                        <input type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleFileUpload(e, (url) => patch({ image: url }), item.image)} />
+                                      </label>
+                                      {item.image && (
+                                        <button className="mini-btn danger" title="Quitar imagen" onClick={() => patch({ image: '' })}>✕</button>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="tl-shot">
-                                  {item.image && <img src={item.image} alt={item.title || 'Vista previa'} />}
-                                  <div className="tl-shot-body">
-                                    <div className="tl-strip">
-                                      <span className="tl-strip-tag" style={{ color: item.accentColor || 'var(--gold)', borderColor: `${item.accentColor || '#C8973A'}55` }}>
-                                        {item.title || 'Nuevo hito'}
-                                      </span>
-                                      <span className="tl-strip-dot" style={{ background: item.accentColor || 'var(--gold)' }} />
+                                {/* --- Documento: lo que habilita «Ver online» y «Descargar PDF» --- */}
+                                <div className="hs-admin-doc">
+                                  <div className="hs-admin-doc-head">
+                                    <span className="hs-admin-doc-ico" aria-hidden="true">📄</span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <strong>Documento del hito</strong>
+                                      <span>Con esto aparecen los botones «👁️ Ver documento online» y «📥 Descargar PDF».</span>
                                     </div>
-                                    <p className="tl-strip-text">{item.text || 'Aquí aparecerá una vista previa de la historia para que el equipo vea cómo queda en el sitio.'}</p>
+                                    {previewUrl && <span className="hs-admin-doc-ok">✓ Listo</span>}
+                                  </div>
+
+                                  <div className="ctx-row2">
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">ARCHIVO PDF</label>
+                                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <label className="btn-ghost" style={{ cursor: 'pointer', padding: '9px 14px' }}>
+                                          {previewUrl ? 'REEMPLAZAR PDF' : 'SUBIR PDF'}
+                                          <input
+                                            type="file"
+                                            style={{ display: 'none' }}
+                                            accept="application/pdf,.pdf"
+                                            onChange={handleHistoriaPdfUpload(idx, item.docUrl)}
+                                          />
+                                        </label>
+                                        {previewUrl && (
+                                          <button className="mini-btn danger" title="Quitar PDF" onClick={() => { patch({ docUrl: '', docFileName: '' }); }}>✕</button>
+                                        )}
+                                      </div>
+                                      {previewUrl && (
+                                        <a className="ctx-hint hs-admin-doc-link" href={previewUrl} target="_blank" rel="noopener noreferrer">
+                                          {item.docFileName || previewUrl.split('/').pop()}
+                                        </a>
+                                      )}
+                                    </div>
+
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">ENLACE WEB DEL DOCUMENTO (OPCIONAL)</label>
+                                      <input
+                                        className="pjl-input"
+                                        value={item.onlineUrl || ''}
+                                        onChange={e => patch({ onlineUrl: e.target.value })}
+                                        placeholder="https://…  (si lo cargás, «Ver online» lo abre)"
+                                      />
+                                      <span className="ctx-hint">Vacío = «Ver documento online» abre el PDF en el visor.</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="ctx-row2">
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">NOMBRE AL DESCARGAR</label>
+                                      <input
+                                        className="pjl-input"
+                                        value={item.docFileName || ''}
+                                        onChange={e => patch({ docFileName: e.target.value })}
+                                        placeholder="Historia-PJL-01.pdf"
+                                      />
+                                    </div>
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">TIPO</label>
+                                      <input className="pjl-input" value={item.docType || ''} onChange={e => patch({ docType: e.target.value })} placeholder="PDF" />
+                                    </div>
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">PÁGINAS</label>
+                                      <input className="pjl-input" value={item.docPages || ''} onChange={e => patch({ docPages: e.target.value })} placeholder="24" />
+                                    </div>
+                                  </div>
+
+                                  <div className="ctx-row2">
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">TAMAÑO</label>
+                                      <input className="pjl-input" value={item.docSize || ''} onChange={e => patch({ docSize: e.target.value })} placeholder="3.2 MB" />
+                                      <span className="ctx-hint">Se completa solo al subir el PDF.</span>
+                                    </div>
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">ARCHIVO / COLECCIÓN</label>
+                                      <input className="pjl-input" value={item.docArchive || ''} onChange={e => patch({ docArchive: e.target.value })} placeholder="Archivo Parroquial" />
+                                    </div>
+                                    <div className="ctx-field" style={{ marginBottom: 0 }}>
+                                      <label className="ctx-label">ACTUALIZADO</label>
+                                      <input className="pjl-input" value={item.docUpdated || ''} onChange={e => patch({ docUpdated: e.target.value })} placeholder="2026" />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Vista previa con las clases reales del sitio: lo que se ve acá
+                                    es exactamente lo que ve el visitante. */}
+                                <div className="tl-shot">
+                                  <div className="hs" style={{ '--hs-accent': item.accentColor || 'var(--gold)' } as CSSProperties}>
+                                    <div className="hs-tablist">
+                                      <button type="button" className="hs-tab is-active" aria-hidden="true" tabIndex={-1}>
+                                        <span className="hs-tab-ico">{item.icon || '📜'}</span>
+                                        <span className="hs-tab-text">
+                                          <span className="hs-tab-num">{String(idx + 1).padStart(2, '0')}</span>
+                                          <span className="hs-tab-label">{item.title || 'Sin título'}</span>
+                                        </span>
+                                      </button>
+                                    </div>
+                                    <div className="hs-panel">
+                                      <div className="hs-panel-head">
+                                        <span className="hs-kicker">{item.kicker || 'Memoria pastoral'}</span>
+                                        <h3 className="serif hs-title">{item.title || 'Sin título'}</h3>
+                                        {item.period && <span className="hs-period">{item.period}</span>}
+                                        <span className="hs-rule" />
+                                      </div>
+                                      <div className="hs-panel-body">
+                                        <div className="hs-narrative">
+                                          {item.image && (
+                                            <figure className="hs-figure">
+                                              <img src={item.image} alt="" />
+                                            </figure>
+                                          )}
+                                          <p className="hs-summary">{item.summary || item.text || 'Acá va el resumen del hito.'}</p>
+                                          {item.text && item.text !== item.summary && <p className="hs-text">{item.text}</p>}
+                                        </div>
+                                        <aside className="hs-aside">
+                                          <dl className="hs-ficha">
+                                            {([
+                                              ['Tipo', item.docType],
+                                              ['Páginas', item.docPages],
+                                              ['Tamaño', item.docSize],
+                                              ['Archivo', item.docArchive],
+                                              ['Actualizado', item.docUpdated],
+                                            ] as [string, string | undefined][])
+                                              .filter(([, v]) => (v || '').trim())
+                                              .map(([label, value]) => (
+                                                <div className="hs-ficha-row" key={label}>
+                                                  <dt>{label}</dt>
+                                                  <dd>{(value || '').trim()}</dd>
+                                                </div>
+                                              ))}
+                                          </dl>
+                                          <div className="hs-actions">
+                                            <span className="hs-btn hs-btn-ghost" aria-hidden="true"><span>👁️</span> Ver documento online</span>
+                                            <span className="hs-btn hs-btn-primary" aria-hidden="true"><span>📥</span> Descargar PDF</span>
+                                          </div>
+                                        </aside>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
 
                           <button
                             className="btn-add"
                             style={{ marginTop: '20px' }}
                             onClick={() => {
-                              const newEvent = { id: Date.now().toString(), title: '', text: '', image: '', accentColor: '#C8973A' };
+                              const newEvent = { id: Date.now().toString(), icon: '📜', title: '', kicker: '', period: '', summary: '', text: '', image: '', accentColor: '#C8973A', docType: 'PDF' };
                               setContent({ ...content, historiaTimeline: [...(content.historiaTimeline || []), newEvent] });
                             }}
-                          >+ Agregar evento a la historia</button>
+                          >+ Agregar hito a la historia</button>
                         </div>
                       </div>
                     )}

@@ -1269,48 +1269,6 @@ html.pjl-nav-entered .reveal {
 .history-premium-head h3 {
   margin-bottom: 0;
 }
-.timeline-premium-card {
-  --timeline-accent: var(--gold);
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(200, 151, 58, 0.18);
-  background: linear-gradient(180deg, #ffffff, #fcfaf4);
-  box-shadow: 0 16px 40px rgba(26, 39, 68, 0.08);
-}
-.timeline-premium-media img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  display: block;
-}
-.timeline-premium-body {
-  padding: 24px 26px;
-  display: grid;
-  gap: 16px;
-}
-.timeline-premium-topline,
-.timeline-premium-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: center;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-}
-.timeline-premium-topline {
-  color: var(--timeline-accent);
-  font-weight: 800;
-}
-.timeline-premium-footer {
-  color: var(--navy);
-  font-weight: 700;
-  border-top: 1px solid rgba(200, 151, 58, 0.15);
-  padding-top: 14px;
-}
-.timeline-premium-footer strong {
-  color: var(--timeline-accent);
-}
 @media (max-width: 768px) {
   .timeline::before {
     left: 20px;
@@ -1333,17 +1291,6 @@ html.pjl-nav-entered .reveal {
   .timeline-dot, .timeline-item:nth-child(even) .timeline-dot {
     left: 12px;
     right: auto;
-  }
-  .timeline-premium-media img {
-    height: 180px;
-  }
-  .timeline-premium-body {
-    padding: 20px;
-  }
-  .timeline-premium-topline,
-  .timeline-premium-footer {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }
 
@@ -13733,4 +13680,480 @@ html.show-splash .splash-content { visibility: visible; }
   .fact-nav,
   .fact-body,
   .fact-loading-spin { animation: none !important; transition: none !important; }
+}
+
+/* ==========================================================================
+   NUESTRA HISTORIA - PESTANAS (píldoras) + VISTA DESPLEGADA
+   --------------------------------------------------------------------------
+   Reemplaza la línea de tiempo en tarjetas sueltas. Tres píldoras navegables
+   arriba y, al elegir una, un bloque con resumen, ficha técnica del documento
+   y las acciones para verlo o bajarlo.
+
+   Notas de peso:
+   - Solo se anima `opacity` y `transform`: es lo único que la GPU compone sin
+     repintar el bloque entero.
+   - `content-visibility: auto` + `contain-intrinsic-size` permiten al navegador
+     saltarse el pintado de la sección si el visitante no llega hasta abajo.
+   - Las Pills usan `--hs-accent`, que cada hito define con su color de acento;
+     así el mismo bloque sirve para los tres sin repetir reglas.
+   ========================================================================== */
+.hs {
+  --hs-gap: 16px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 620px;
+}
+
+/* ---------- 1. PÍLDORAS / PESTAÑAS ---------- */
+.hs-tablist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 0 0 28px;
+  padding: 8px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 240, 227, 0.72));
+  border: 1px solid rgba(200, 151, 58, 0.2);
+  box-shadow: 0 10px 30px -18px rgba(26, 39, 68, 0.35);
+}
+
+.hs-tab {
+  --hs-accent: var(--gold);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  padding: 15px 17px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--navy);
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.hs-tab::after {
+  content: '';
+  position: absolute;
+  left: 17px;
+  right: 17px;
+  bottom: 7px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--hs-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0.65;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hs-tab:hover {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(200, 151, 58, 0.28);
+  transform: translateY(-2px);
+}
+.hs-tab.is-active {
+  background: #fff;
+  border-color: rgba(200, 151, 58, 0.42);
+  border-color: color-mix(in srgb, var(--hs-accent) 42%, transparent);
+  box-shadow: 0 14px 32px -16px rgba(26, 39, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.hs-tab.is-active::after { transform: scaleX(1); }
+.hs-tab:focus-visible {
+  outline: 2px solid var(--hs-accent);
+  outline-offset: 3px;
+}
+
+.hs-tab-ico {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  font-size: 20px;
+  line-height: 1;
+  background: rgba(200, 151, 58, 0.1);
+  background: color-mix(in srgb, var(--hs-accent) 12%, #fff);
+  border: 1px solid rgba(200, 151, 58, 0.26);
+  border-color: color-mix(in srgb, var(--hs-accent) 26%, transparent);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+}
+.hs-tab:hover .hs-tab-ico { transform: scale(1.06) rotate(-3deg); }
+.hs-tab.is-active .hs-tab-ico {
+  background: var(--hs-accent);
+  box-shadow: 0 8px 18px -8px var(--hs-accent);
+}
+.hs-tab-text { min-width: 0; display: grid; gap: 2px; }
+.hs-tab-num {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+.hs-tab-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 2. VISTA DESPLEGADA ---------- */
+.hs-panel {
+  --hs-accent: var(--gold);
+  position: relative;
+  border-radius: 26px;
+  border: 1px solid rgba(200, 151, 58, 0.22);
+  border-color: color-mix(in srgb, var(--hs-accent) 22%, rgba(26, 39, 68, 0.1));
+  background: linear-gradient(180deg, #ffffff, #fdfaf4);
+  box-shadow: 0 22px 50px -26px rgba(26, 39, 68, 0.4);
+  padding: 34px 36px 32px;
+  animation: hsPanelIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.hs-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 26px 0 0 26px;
+  background: linear-gradient(180deg, var(--hs-accent), transparent 78%);
+}
+@keyframes hsPanelIn {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+.hs-panel-head { margin-bottom: 26px; }
+.hs-kicker {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--hs-accent);
+  margin-bottom: 10px;
+}
+.hs-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.4vw, 2.15rem);
+  line-height: 1.18;
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+.hs-period {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  background: rgba(200, 151, 58, 0.1);
+  background: color-mix(in srgb, var(--hs-accent) 10%, #fff);
+  border: 1px solid rgba(200, 151, 58, 0.24);
+  border-color: color-mix(in srgb, var(--hs-accent) 24%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.hs-rule {
+  display: block;
+  width: 64px;
+  height: 2px;
+  margin-top: 18px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--hs-accent), transparent);
+}
+
+.hs-panel-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.hs-narrative { min-width: 0; display: grid; gap: 18px; }
+
+.hs-figure {
+  margin: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(26, 39, 68, 0.08);
+  box-shadow: 0 16px 36px -22px rgba(26, 39, 68, 0.5);
+  background: var(--cream);
+}
+.hs-figure img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.hs-summary {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.6vw, 1.12rem);
+  line-height: 1.62;
+  color: var(--navy);
+}
+.hs-text {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.82;
+  color: var(--text-muted);
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+/* ---------- 3. FICHA TÉCNICA ---------- */
+.hs-aside {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  padding: 22px 22px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--hs-accent) 7%, #fff), rgba(255, 255, 255, 0.92));
+  border: 1px solid rgba(200, 151, 58, 0.2);
+  border-color: color-mix(in srgb, var(--hs-accent) 20%, transparent);
+}
+.hs-ficha { margin: 0; display: grid; gap: 1px; }
+.hs-ficha-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px dashed rgba(26, 39, 68, 0.12);
+}
+.hs-ficha-row:last-child { border-bottom: 0; }
+.hs-ficha dt {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.hs-ficha dd {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--navy);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 4. ACCIONES ---------- */
+.hs-actions { display: grid; gap: 10px; }
+.hs-btn {
+  /* Sin redeclarar `--hs-accent` a propósito: el valor lo hereda de `.hs-panel`,
+     así el botón primario usa el color del hito que está abierto. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 18px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+}
+.hs-btn > span { font-size: 15px; line-height: 1; }
+.hs-btn:focus-visible { outline: 2px solid var(--hs-accent); outline-offset: 3px; }
+.hs-btn-ghost {
+  color: var(--navy);
+  background: #fff;
+  border: 1px solid rgba(26, 39, 68, 0.18);
+}
+.hs-btn-ghost:hover {
+  border-color: var(--hs-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px -12px rgba(26, 39, 68, 0.5);
+}
+.hs-btn-primary {
+  color: #fff;
+  background: var(--hs-accent);
+  border: 1px solid transparent;
+  box-shadow: 0 10px 24px -14px var(--hs-accent);
+}
+.hs-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -14px var(--hs-accent); }
+.hs-btn:active { transform: translateY(0); }
+
+.hs-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.hs-note strong { color: var(--navy); }
+
+/* ---------- 5. RESPONSIVE ---------- */
+/* Tablet: la ficha pasa debajo del texto pero mantiene dos columnas de datos. */
+@media (max-width: 900px) {
+  .hs-panel { padding: 28px 26px 26px; }
+  .hs-panel-body { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .hs-ficha { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+  .hs-actions { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+}
+
+/* Móvil: las píldoras pasan a carrusel con enganche, que es lo que funciona
+   con títulos largos como «Pa’i García y la Construcción». */
+@media (max-width: 680px) {
+  .hs { --hs-gap: 12px; }
+  .hs-tablist {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: 18px;
+    margin-bottom: 20px;
+  }
+  .hs-tablist::-webkit-scrollbar { display: none; }
+  .hs-tab {
+    flex: 0 0 auto;
+    width: min(78vw, 260px);
+    scroll-snap-align: start;
+    padding: 12px 14px;
+    gap: 11px;
+  }
+  .hs-tab::after { left: 14px; right: 14px; bottom: 6px; }
+  .hs-tab-ico { width: 36px; height: 36px; font-size: 17px; border-radius: 11px; }
+  .hs-tab-label { font-size: 13px; }
+
+  .hs-panel { padding: 22px 18px 20px; border-radius: 20px; }
+  .hs-panel::before { border-radius: 20px 0 0 20px; width: 3px; }
+  .hs-panel-head { margin-bottom: 20px; }
+  .hs-title { font-size: clamp(1.25rem, 6vw, 1.6rem); }
+  .hs-figure { border-radius: 15px; }
+  .hs-figure img { aspect-ratio: 3 / 2; }
+  .hs-aside { padding: 18px 16px 16px; border-radius: 16px; }
+  .hs-ficha { grid-template-columns: minmax(0, 1fr); }
+  .hs-actions { grid-auto-flow: row; }
+  .hs-btn { padding: 12px 14px; font-size: 12.5px; }
+}
+
+@media (max-width: 380px) {
+  .hs-tab { width: min(84vw, 240px); }
+  .hs-tab-num { display: none; }
+}
+
+body.high-contrast .hs-panel,
+body.high-contrast .hs-tab,
+body.high-contrast .hs-aside { border-color: currentColor; }
+body.high-contrast .hs-tab.is-active { background: var(--navy); color: var(--white); }
+body.high-contrast .hs-tab.is-active .hs-tab-label,
+body.high-contrast .hs-tab.is-active .hs-tab-num { color: var(--white); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-panel { animation: none !important; }
+  .hs-tab,
+  .hs-tab::after,
+  .hs-tab-ico,
+  .hs-btn { transition: none !important; }
+  .hs-tab:hover,
+  .hs-btn:hover { transform: none; }
+}
+
+/* ==========================================================================
+   PANEL DE ADMINISTRACIÓN - PESTAÑAS DE HISTORIA
+   --------------------------------------------------------------------------
+   La vista previa del panel reutiliza las clases `hs-*` del sitio (es el mismo
+   bloque que ve el visitante) y le agrega estas para el bloque de documento.
+   ========================================================================== */
+.hs-admin-pill {
+  --hs-accent: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: 14px;
+  background: rgba(200, 151, 58, 0.08);
+  background: color-mix(in srgb, var(--hs-accent) 9%, #fff);
+  border: 1px solid rgba(200, 151, 58, 0.26);
+  border-color: color-mix(in srgb, var(--hs-accent) 26%, transparent);
+}
+.hs-admin-pill-ico { font-size: 17px; line-height: 1; flex: 0 0 auto; }
+.hs-admin-pill-num {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+.hs-admin-pill-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hs-admin-doc {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px dashed rgba(16, 185, 129, 0.35);
+}
+.hs-admin-doc-head { display: flex; align-items: center; gap: 12px; }
+.hs-admin-doc-ico { font-size: 20px; line-height: 1; flex: 0 0 auto; }
+.hs-admin-doc-head strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  color: var(--navy);
+}
+.hs-admin-doc-head span:not(.hs-admin-doc-ico):not(.hs-admin-doc-ok) {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.hs-admin-doc-ok {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #10b981;
+}
+.hs-admin-doc-link {
+  display: inline-block;
+  margin-top: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  color: #0f7a5c;
+}
+
+/* La vista previa usa `content-visibility: auto` desde `.hs`: dentro del panel
+   siempre está visible, así que se anula para no arriesgar que el navegador
+   posicione el bloque con la altura estimada y no la real. */
+.ctx-tl-item .hs { content-visibility: visible; contain-intrinsic-size: none; }
+.ctx-tl-item .hs-panel { animation: none; box-shadow: 0 12px 28px -20px rgba(26, 39, 68, 0.4); }
+.ctx-tl-item .hs-tab { cursor: default; pointer-events: none; }
+.ctx-tl-item .hs-btn { cursor: default; }
+
+@media (max-width: 680px) {
+  .hs-admin-doc { padding: 14px; }
+  .hs-admin-pill-label { font-size: 13px; }
 }

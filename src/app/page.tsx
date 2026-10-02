@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useLayoutEffect, Suspense, type CSSPropert
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
-  store, NewsItem, Activity, FaqItem, SiteContent, DocItem, MemberProfile, Chapel, Branding, ThemePalette, TimelineEvent, HeroSlide,
+  store, NewsItem, Activity, FaqItem, SiteContent, DocItem, MemberProfile, Chapel, Branding, ThemePalette, HeroSlide,
   DEFAULT_CONTENT, DEFAULT_NEWS, DEFAULT_ACTIVITIES, DEFAULT_FAQ, DEFAULT_SOCIAL, SocialLinks, DEFAULT_BRANDING, DEFAULT_CHAPELS,
   DEFAULT_STATS, PageStat, DeviceLog, mergePageStats
 } from '@/lib/pjlStore';
@@ -17,6 +17,7 @@ import NotificationBell from '@/components/NotificationBell';
 import PushPromptBanner from '@/components/PushPromptBanner';
 import FactWidget from '@/components/FactWidget';
 import PdfViewerModal from '@/components/PdfViewerModal';
+import HistoriaTabs from '@/components/HistoriaTabs';
 import ShareButton from '@/components/ShareButton';
 import { buildIcs, IcsItem } from '@/lib/ics';
 import { evgHoyClassify, evgHoyDateLabel, EVH_BASE_URL, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
@@ -447,7 +448,6 @@ function HomeContent() {
   const [isHighContrast, setIsHighContrast] = useState(false);
   const [activeZoneTab, setActiveZoneTab] = useState<'capillas' | 'coordination' | 'mapa'>('capillas');
   const [selectedProfile, setSelectedProfile] = useState<MemberProfile | null>(null);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<TimelineEvent | null>(null);
   /* Sección Estatuto: esqueleto de carga, PDF abierto y texto de misión/visión extendido. */
   const [estatutoReady, setEstatutoReady] = useState(false);
   const [estatutoPdfOpen, setEstatutoPdfOpen] = useState(false);
@@ -743,12 +743,12 @@ const [newsSearch, setNewsSearch] = useState('');
 
   // Prevent background scrolling when modals or mobile menu is open
   useEffect(() => {
-    if (!splashDone || selectedProfile || selectedHistoryItem || selectedNews || isMobileMenuOpen) {
+    if (!splashDone || selectedProfile || selectedNews || isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-  }, [splashDone, selectedProfile, selectedHistoryItem, selectedNews, isMobileMenuOpen]);
+  }, [splashDone, selectedProfile, selectedNews, isMobileMenuOpen]);
 
   // Cierra el detalle de perfil con la tecla Escape
   useEffect(() => {
@@ -2205,48 +2205,7 @@ const [newsSearch, setNewsSearch] = useState('');
                 </div>
               )}
 
-              <div className="timeline">
-                {siteContent.historiaTimeline && siteContent.historiaTimeline.length > 0 ? (
-                  siteContent.historiaTimeline.map((item, i) => (
-                    <div 
-                      key={item.id} 
-                      className="timeline-item reveal" 
-                      style={{ animationDelay: `${i * 0.1}s`, cursor: 'pointer' }}
-                      onClick={() => setSelectedHistoryItem(item)}
-                    >
-                      <div className="timeline-dot" style={{ background: item.accentColor || 'var(--gold)' }}></div>
-                      <span className="timeline-date">{item.title}</span>
-                      <div
-                        className="timeline-premium-card"
-                        style={{ '--timeline-accent': item.accentColor || 'var(--gold)' } as any}
-                      >
-                        {item.image && (
-                          <div className="timeline-premium-media">
-                            <img src={item.image} alt={item.title} />
-                          </div>
-                        )}
-                        <div className="timeline-premium-body">
-                          <div className="timeline-premium-topline">
-                            <span>Memoria pastoral</span>
-                            <span>{String(i + 1).padStart(2, '0')}</span>
-                          </div>
-                          <p style={{ whiteSpace: 'pre-line', margin: 0 }}>{item.text}</p>
-                          <div className="timeline-premium-footer">
-                            <span>Haz clic para ampliar</span>
-                            <strong>Ver detalle</strong>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="pjl-empty-state" style={{ maxWidth: '560px', margin: '0 auto' }}>
-                    <div className="empty-icon">📜</div>
-                    <h4 className="empty-title">Nuestra historia se está escribiendo</h4>
-                    <p className="empty-desc">Muy pronto vas a conocer los hitos que marcaron el camino de la Pastoral Juvenil Luqueña, año por año.</p>
-                  </div>
-                )}
-              </div>
+              <HistoriaTabs items={siteContent.historiaTimeline} />
             </div>
           </section>
         )}
@@ -3531,57 +3490,9 @@ const [newsSearch, setNewsSearch] = useState('');
         </div>
       )}
 
-      {/* HISTORY DETAIL MODAL */}
-      {selectedHistoryItem && (
-        <div
-          onClick={() => setSelectedHistoryItem(null)}
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(14, 22, 50, 0.9)',
-            backdropFilter: 'blur(15px)',
-            zIndex: 1000000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px',
-            animation: 'fadeOverlay 0.3s ease both',
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: '#fff',
-              borderRadius: '24px',
-              maxWidth: '800px',
-              width: '100%',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.4)',
-              animation: 'slideUpModal 0.35s cubic-bezier(0.2,0.8,0.2,1) both',
-              position: 'relative',
-              padding: '60px 50px',
-            }}
-            className="modal-scroll"
-          >
-            <button
-              onClick={() => setSelectedHistoryItem(null)}
-              style={{ position: 'absolute', top: '24px', right: '24px', background: 'var(--cream)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'var(--navy)', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}
-            >×</button>
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ color: selectedHistoryItem.accentColor || 'var(--gold)', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', display: 'block', marginBottom: '15px' }}>NUESTRA HISTORIA</span>
-              <h2 className="serif" style={{ fontSize: '2.5rem', color: 'var(--navy)', marginBottom: '20px' }}>{selectedHistoryItem.title}</h2>
-              <div className="line" style={{ margin: '0 auto 30px', background: selectedHistoryItem.accentColor || 'var(--gold)' }}></div>
-              {selectedHistoryItem.image && (
-                <div style={{ borderRadius: '22px', overflow: 'hidden', marginBottom: '28px', boxShadow: '0 18px 40px rgba(0,0,0,0.12)' }}>
-                  <img src={selectedHistoryItem.image} alt={selectedHistoryItem.title} style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }} />
-                </div>
-              )}
-              <p style={{ color: 'var(--navy)', lineHeight: '1.8', fontSize: '1.1rem', textAlign: 'justify', whiteSpace: 'pre-line', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-                {selectedHistoryItem.text}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* El detalle de cada hito ya no va en un modal: vive en el desplegable de
+          las pestañas de Historia, que sí se puede enlazar, compartir y leer sin
+          perder el contexto de la página. */}
 
       {/* NEWS DETAIL MODAL */}
       {selectedNews && (
