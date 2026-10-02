@@ -131,20 +131,39 @@ export async function cleanupRemovedFiles(previous: unknown, next: unknown): Pro
 
     const huerfanos = [...antes].filter((url) => !despues.has(url));
     if (huerfanos.length === 0) return 0;
+    return await deleteStoredUrlList(huerfanos);
+  } catch (error) {
+    console.warn('[ficheros] falló la limpieza de archivos huérfanos:', error);
+    return 0;
+  }
+}
 
+/**
+ * Borra del bucket una lista concreta de archivos, en una sola petición.
+ *
+ * Es lo que usa cleanupRemovedFiles al comparar dos valores, y también el panel
+ * cuando el usuario sube un archivo en un modal y después cancela: en ese caso hay
+ * que borrar exactamente lo que se subió, porque nunca llegó a guardarse.
+ *
+ * Nunca tira. Que quede un archivo de más es un problema de espacio; que el
+ * contenido no se pueda guardar, no.
+ */
+export async function deleteStoredUrlList(urls: string[]): Promise<number> {
+  if (!urls.length) return 0;
+  try {
     const res = await adminFetch('/api/files/limpiar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ urls: huerfanos }),
+      body: JSON.stringify({ urls }),
     });
     if (!res.ok) {
-      console.warn(`[ficheros] no se pudo limpiar ${huerfanos.length} archivo(s): ${res.status}`);
+      console.warn(`[ficheros] no se pudo limpiar ${urls.length} archivo(s): ${res.status}`);
       return 0;
     }
     const json = (await res.json().catch(() => null)) as { borrados?: number } | null;
     return json?.borrados ?? 0;
   } catch (error) {
-    console.warn('[ficheros] falló la limpieza de archivos huérfanos:', error);
+    console.warn('[ficheros] falló el borrado de archivos:', error);
     return 0;
   }
 }

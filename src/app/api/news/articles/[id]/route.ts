@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseRouteConfig, missingSupabaseConfigResponse } from '@/lib/supabaseRoute';
 import { requireAdminWriter } from '@/lib/requireAdmin';
+import { deleteStoredUrls, aListaDeUrls } from '@/lib/fileServerCleanup';
 
 const supabaseConfig = getSupabaseRouteConfig();
 const supabase = supabaseConfig ? createClient(supabaseConfig.url, supabaseConfig.key) : null;
@@ -86,6 +87,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const { id } = await context.params;
     const body = await request.json();
+
+    /* Los archivos que el artículo tenía antes se leen ahora, antes de escribir,
+       porque después de guardar ya no hay forma de saber qué direcciones eran las
+       viejas. Solo hacen falta si esta edición las cambia o las quita: si el
+       artículo no se toca, no hay nada que borrar. */
+    const anterior = await supabase
+      .from('news_articles')
+      .select('featured_image_url, gallery_urls')
+      .eq('id', id)
+      .maybeSingle();
 
     // Validar datos de entrada
     const updateData: Record<string, unknown> = {};
@@ -230,6 +241,28 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
+    /* La escritura ya está hecha y no puede fallar por esto. Ahora sí se borran del
+       bucket las imágenes que quedaron afuera: la portada que se reemplazó o se
+       quitó, y las de la galería que ya no están. Sin esto, cambiar la foto de una
+       noticia dejaba la anterior ocupando espacio sin que nada la mencionara. */
+    const quedan = new Set<string>();
+    const portadaNueva = data[0].featured_image_url;
+    if (typeof portadaNueva === 'string' && portadaNueva) quedan.add(portadaNueva);
+    for (const url of aListaDeUrls(data[0].gallery_urls)) quedan.add(url);
+
+    const aBorrar: string[] = [];
+    if (anterior?.data) {
+      const vieja = aListaDeUrls(anterior.data.featured_image_url);
+      const galeriaVieja = aListaDeUrls(anterior.data.gallery_urls);
+      for (const url of [...vieja, ...galeriaVieja]) {
+        if (!quedan.has(url)) aBorrar.push(url);
+      }
+    }
+    if (aBorrar.length > 0) {
+      const r = await deleteStoredUrls(aBorrar);
+      console.log(`[noticias] artículo ${id}: ${r.borrados} archivo(s) reemplazado(s) borrado(s)`);
+    }
+
     return NextResponse.json({ success: true, data: data[0] });
   } catch (error) {
     console.error('Error updating article:', error);
@@ -245,7 +278,23 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     if (!supabase) return missingSupabaseConfigResponse();
 
+    /* Exige sesión con permiso de escritura, igual que el PATCH. Esta ruta no lo
+       pedía: cualquiera que conociera la dirección podía borrar una noticia
+       escribiendo su id, sin iniciar sesión. Se comprueba antes de tocar nada, para
+       que un intento sin permiso no pueda borrar tampoco los archivos. */
+    const auth = await requireAdminWriter(request);
+    if (!auth.ok) return auth.response;
+
     const { id } = await context.params;
+
+    /* Se leen las imágenes del artículo antes de borrar la fila. Después ya no
+       hay forma de saber qué archivos tenía, y se quedan ocupando espacio en el
+       bucket sin ninguna referencia que permita limpiarlos después. */
+    const anterior = await supabase
+      .from('news_articles')
+      .select('featured_image_url, gallery_urls')
+      .eq('id', id)
+      .maybeSingle();
 
     const { error } = await supabase
       .from('news_articles')
@@ -257,6 +306,18 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         { success: false, error: error.message },
         { status: 400 }
       );
+    }
+
+    /* La fila ya no está; el archivo se borra después y sin bloquear la respuesta.
+       Si este borrado falla, el artículo sigue eliminado igual: es mejor que sobre
+       una imagen que impedir borrar la noticia. */
+    const aBorrar = [
+      ...aListaDeUrls(anterior?.data?.featured_image_url),
+      ...aListaDeUrls(anterior?.data?.gallery_urls),
+    ];
+    if (aBorrar.length > 0) {
+      const r = await deleteStoredUrls(aBorrar);
+      console.log(`[noticias] artículo ${id} eliminado: ${r.borrados} archivo(s) borrado(s), ${r.omitidos} omitido(s)`);
     }
 
     return NextResponse.json({

@@ -20,7 +20,7 @@ import { SupabaseProfile, fetchProfileByEmail, fetchAllProfiles, fetchPendingPro
 import { siteUrlOf } from '@/lib/siteUrl';
 import { evgHoyClassify, type EvgHoyResponse } from '@/lib/vaticanEvangelio';
 import { uploadFile, uploadFileToR2 } from '@/lib/uploadFile';
-import { deleteStoredFiles, replaceStoredFile, cleanupRemovedFiles, type StoredFileRef } from '@/lib/fileCleanup';
+import { deleteStoredFiles, replaceStoredFile, cleanupRemovedFiles, deleteStoredUrlList, collectFileUrls, type StoredFileRef } from '@/lib/fileCleanup';
 import { LIT_COLORS, liturgicalColor, type LitColorKey } from '@/lib/liturgy';
 
 const ZonaMap = dynamic(() => import('@/components/ZonaMap'), { 
@@ -1598,7 +1598,34 @@ function AdminContent() {
     setSidebarOpen(false);
   };
 
-  const closeModal = () => { setModal(null); setEditId(null); setForm({}); };
+  /* Archivos subidos durante el modal que está abierto ahora.
+     Si el usuario sube una foto y después cancela sin guardar, esa foto quedó en el
+     bucket y nada la va a mencionar nunca. Se anotan acá para borrarlas al cancelar.
+     Al guardar no se borran: para eso está el borrado por comparación de useLS. */
+  const subidasDelModal = useRef<string[]>([]);
+  const anotarSubida = (url: string) => { if (url) subidasDelModal.current.push(url); };
+
+  /* Sólo se llama desde los caminos que DESHACEN el modal (cancelar, la X, click
+     fuera). Las guardas llaman a closeModal() sin argumentos, y ahí no se borra nada:
+     el archivo recién guardado ya está en la base y borrarlo dejaría la imagen rota.
+     Por eso el parámetro es explícito y no se deduce del estado. */
+  /* ¿Esta dirección la está usando algo ahora mismo?
+     Se mira lo que ya está guardado, no el formulario que se está por cerrar: un
+     archivo recién guardado ya está en la base y borrarlo dejaría la imagen rota. */
+  const estaReferenciada = (url: string) => {
+    const guardados: unknown[] = Object.values(store).map((s) => s.get());
+    guardados.push(allUsers, pendingProfiles, profiles, docs, chapels, news);
+    return guardados.some((v) => collectFileUrls(v).has(url));
+  };
+
+  const closeModal = (descartarSubidas = false) => {
+    if (descartarSubidas && subidasDelModal.current.length > 0) {
+      const huerfanas = subidasDelModal.current.filter((u) => !estaReferenciada(u));
+      if (huerfanas.length > 0) void deleteStoredUrlList(huerfanas);
+    }
+    subidasDelModal.current = [];
+    setModal(null); setEditId(null); setForm({});
+  };
   const openNew = (type: Module) => { setModal(type); setEditId(null); setForm({}); };
   const openEdit = (type: Module, item: NewsItem | Activity | FaqItem | DocItem | GalleryItem | Chapel | MemberProfile | User | Record<string, string>) => { setModal(type); setEditId((item as { id?: number | string }).id || null); setForm(item); };
 
@@ -1994,6 +2021,7 @@ function AdminContent() {
     const res = await uploadFile(file);
     if (res.ok) {
       void replaceStoredFile(previousUrl, res.url);
+      anotarSubida(res.url);
       callback(res.url);
       return;
     }
@@ -6857,7 +6885,7 @@ function AdminContent() {
 
       {/* MODALS */}
       {modal && (
-        <div className="glass-modal-overlay" onClick={closeModal}>
+        <div className="glass-modal-overlay" onClick={() => closeModal(true)}>
           <div className="pjl-card animate-reveal modal-responsive-card" style={{ maxWidth: '600px', width: '100%', padding: '50px' }} onClick={e => e.stopPropagation()}>
             <h3 className="serif" style={{ marginBottom: '30px', color: 'var(--navy)' }}>
               {editId ? 'Editar' : 'Crear'} {({
@@ -7166,7 +7194,7 @@ function AdminContent() {
                 modal === 'usuarios' ? saveUser :
                 saveDoc
               }>GUARDAR DATOS</button>
-              <button className="btn-premium btn-premium-outline" style={{ flex: 1 }} onClick={closeModal}>CANCELAR</button>
+              <button className="btn-premium btn-premium-outline" style={{ flex: 1 }} onClick={() => closeModal(true)}>CANCELAR</button>
             </div>
           </div>
         </div>

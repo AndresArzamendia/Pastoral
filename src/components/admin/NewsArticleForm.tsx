@@ -8,6 +8,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { NewsArticleWithDetails, NewsCategory } from '@/lib/newsTypes';
 import { uploadFile } from '@/lib/uploadFile';
+import { deleteStoredUrlList } from '@/lib/fileCleanup';
 import { adminFetch } from '@/lib/adminAuth';
 
 interface NewsArticleFormProps {
@@ -18,6 +19,23 @@ interface NewsArticleFormProps {
 
 export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+
+  /* Imagen subida durante esta sesión del formulario.
+     Si el usuario sube una portada y después le da a Cancelar, esa imagen queda en
+     el bucket sin que ningún artículo la use. El borrado de la imagen VIEJA no se
+     hace acá, sino al guardar: es el PATCH el que sabe con certeza que fue
+     reemplazada. */
+  const subidaEnEstaSesion = useRef<string | null>(null);
+
+  const cancelar = () => {
+    const subida = subidaEnEstaSesion.current;
+    subidaEnEstaSesion.current = null;
+    if (subida && subida !== article?.featured_image_url) {
+      void deleteStoredUrlList([subida]);
+    }
+    onCancel?.();
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<NewsCategory[]>([]);
@@ -89,13 +107,16 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
       setError(res.error);
       return;
     }
+    subidaEnEstaSesion.current = res.url;
     setFormData(prev => ({
       ...prev,
       featured_image_url: res.url,
     }));
-    setError(res.inDatabase
-      ? 'Aviso: la imagen quedó guardada dentro de la base de datos porque el almacenamiento de archivos no está activo.'
-      : null);
+    /* La imagen anterior no se borra acá: se borra cuando el artículo se guarda,
+       en el PATCH, que es el único momento en que se sabe con certeza que quedó
+       reemplazada. Si se cancela el formulario, el archivo viejo sigue en su lugar
+       y este ni se toca. */
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -504,7 +525,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
 
       <div className="naf-topbar">
         {onCancel && (
-          <button type="button" className="naf-back-btn" onClick={onCancel}>
+          <button type="button" className="naf-back-btn" onClick={cancelar}>
             ← Volver a la lista
           </button>
         )}
@@ -818,7 +839,7 @@ export function NewsArticleForm({ article, onSave, onCancel }: NewsArticleFormPr
                 </>
               )}
             </button>
-            <button type="button" className="naf-btn-cancel" onClick={onCancel}>
+            <button type="button" className="naf-btn-cancel" onClick={cancelar}>
               Cancelar
             </button>
           </div>

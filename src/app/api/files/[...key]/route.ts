@@ -14,11 +14,17 @@ import { getFileStorage } from '@/lib/uploadStorage';
  *     imagen que veía un visitante, además de sumar latencia.
  *
  *  2. Si no hay URL pública, se cae al binding de R2 del Worker o a la API S3, y
- *     el archivo se transmite por el servidor. consume más, pero es lo único que
+ *     el archivo se transmite por el servidor. Consume más, pero es lo único que
  *     hay cuando el bucket es privado, y hace que la imagen sí se vea.
  *
  * Sigue siendo la dirección guardada en las filas de la base que se escribieron
  * antes de la URL pública, por eso no hace falta migrar nada.
+ *
+ * La ruta es [...key] y no [key] a propósito: una clave puede traer carpetas
+ * ("logos/principal.png"). Con [key] Next.js no matchea la barra y la petición
+ * terminaba en la página del [...slug], que respondía 200 con la portada del
+ * sitio en lugar de la imagen. Un 200 que no es el archivo pedido hace que un
+ * enlace roto pase por imagen válida.
  */
 
 export const dynamic = 'force-dynamic';
@@ -26,13 +32,26 @@ export const dynamic = 'force-dynamic';
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 const MAX_AGE_DIA = 'public, max-age=86400, immutable';
 
+/** Une los segmentos de la ruta y descarta los que vienen vacíos o son "." / "..". */
+function juntarClave(segmentos: string[]): string {
+  return segmentos
+    .flatMap((s) => s.split('/'))
+    .filter((s) => s.length > 0 && s !== '.' && s !== '..')
+    .join('/');
+}
+
 function noEncontrado(): NextResponse {
   return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'public, max-age=300' } });
 }
 
-export async function GET(request: NextRequest, ctx: { params: Promise<{ key: string }> }): Promise<NextResponse> {
-  const { key } = await ctx.params;
-  if (!key || key.length > 300) return new NextResponse(null, { status: 400 });
+function claveInvalida(): NextResponse {
+  return new NextResponse(null, { status: 400 });
+}
+
+export async function GET(request: NextRequest, ctx: { params: Promise<{ key: string[] }> }): Promise<NextResponse> {
+  const { key: segmentos } = await ctx.params;
+  const key = juntarClave(Array.isArray(segmentos) ? segmentos : [segmentos]);
+  if (!key || key.length > 300) return claveInvalida();
 
   // 1) Redirect al bucket: sin costo de servidor ni transferencia doble.
   const target = r2PublicUrl(key);
@@ -68,9 +87,10 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ key: st
   return new NextResponse(file.stream, { headers });
 }
 
-export async function HEAD(request: NextRequest, ctx: { params: Promise<{ key: string }> }): Promise<NextResponse> {
-  const { key } = await ctx.params;
-  if (!key || key.length > 300) return new NextResponse(null, { status: 400 });
+export async function HEAD(request: NextRequest, ctx: { params: Promise<{ key: string[] }> }): Promise<NextResponse> {
+  const { key: segmentos } = await ctx.params;
+  const key = juntarClave(Array.isArray(segmentos) ? segmentos : [segmentos]);
+  if (!key || key.length > 300) return claveInvalida();
 
   // Con URL pública no hace falta consultar nada: el redirect ya dice que existe
   // un objeto con esa clave (si no, R2 responde 404 al seguirlo).

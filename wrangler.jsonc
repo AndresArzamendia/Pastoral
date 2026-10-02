@@ -12,22 +12,19 @@
     "binding": "ASSETS"
   },
   /*
-   * PENDIENTE: almacenamiento de archivos (R2).
+   * Almacenamiento de archivos (R2) habilitado.
    *
-   * R2 todavía NO está habilitado en la cuenta, por eso las subidas caen en la
-   * base de datos (ver src/lib/uploadFile.ts, que solo lo permite para
-   * imágenes muy pequeñas).
+   * El binding se llama UPLOADS_BUCKET y es el que leen src/app/api/upload,
+   * src/app/api/files/[...key] y src/lib/uploadStorage.ts. Las imágenes ya NO se
+   * guardan en la base de datos: src/lib/uploadFile.ts sube siempre al bucket y
+   * en la base queda solo la dirección, así que la base no se infla con imágenes
+   * en base64.
    *
-   * Pasos:
-   *   1) Panel de Cloudflare -> R2 -> "Enable R2" (pide método de pago; el
-   *      primer gigabyte por mes es gratis).
-   *   2) Crear un bucket, por ejemplo "pastoral-uploads".
-   *   3) Descomentar el bloque de abajo (el binding se llama UPLOADS_BUCKET y
-   *      es el que leen src/app/api/upload y src/app/api/files/[key]).
+   * R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY no hacen falta en el worker: el
+   * binding alcanza para leer, escribir y borrar. Esas dos claves solo las usa
+   * scripts/barrerar-huerfanos-r2.mjs, que tiene que LISTAR el bucket y Wrangler
+   * no puede listar (solo get, put y delete).
    */
-  // "r2_buckets": [
-  //   { "binding": "UPLOADS_BUCKET", "bucket_name": "pastoral-uploads" }
-  // ],
   "r2_buckets": [
     { "binding": "UPLOADS_BUCKET", "bucket_name": "pastoral-uploads" }
   ],
@@ -40,24 +37,28 @@
     }
   ],
   /*
-   * SERVIR ARCHIVOS: el worker sirve las imágenes desde el binding UPLOADS_BUCKET
-   * (getFileStorage usa el binding; no hace falta URL pública ni R2_ACCOUNT_ID).
+   * SERVIR ARCHIVOS: /api/files/<clave> responde con un redirect (302) al
+   * dominio público del bucket, en vez de transmitir los bytes desde el worker.
    *
-   * R2_ACCOUNT_ID se dejó apagada a propósito: con ella, /api/files/<clave> responde
-   * con un redirect a https://pub-<ACCOUNT_ID>.r2.dev/<bucket> y ese dominio no estaba
-   * sirviendo (401 "This bucket... is not publicly accessible"). Mientras el bucket no
-   * tenga un dominio público que funcione, es más confiable transmitir desde el binding.
+   * Comprobado con archivos reales del sitio: los JPG, PNG y el PDF devuelven 200
+   * con su Content-Type y su tamaño exactos. El subdominio pub-<hash> ya
+   * identifica el bucket, así que la clave va desde la raíz y sin el nombre del
+   * bucket adelante.
    *
-   * Para volver al modo redirect (menos invocaciones) hay dos opciones:
-   *   - Conseguir que un dominio público sirva de verdad (R2 → bucket → Settings →
-   *     Custom Domains / Public access probado con un archivo real) y definir aquí
-   *     R2_ACCOUNT_ID (o R2_PUBLIC_BASE_URL en las vars).
-   * R2_PUBLIC_BASE_URL (si se define) tiene prioridad sobre R2_ACCOUNT_ID.
+   * El redirect se usa en vez del binding porque el sitio tiene archivos grandes
+   * (el PDF del estatuto pesa 4 MB): Servirlos por el binding gasta CPU y ancho de
+   * banda del worker en cada visita. Con el redirect, el worker solo contesta un
+   * 302 y la transferencia va directa entre el navegador y R2, sin costo de salida.
+   *
+   * Si algún día el dominio público dejara de servir, el sitio sigue funcionando:
+   * sin R2_PUBLIC_BASE_URL, /api/files/<clave> vuelve a transmitir desde el
+   * binding UPLOADS_BUCKET, que es más lento pero no depende de ningún dominio.
    */
   "vars": {
     "SUPABASE_URL": "https://rtqzphmqnsaxirifdzvu.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_89BBzim5CKpxFWpj2qvuLQ_nVir3Jpv",
     "SITE_URL": "https://pastoral.arzamendiaandres-6d2.workers.dev",
-    "R2_BUCKET_NAME": "pastoral-uploads"
+    "R2_BUCKET_NAME": "pastoral-uploads",
+    "R2_PUBLIC_BASE_URL": "https://pub-833cb34bd1494d27b0b8ae2b177aaa35.r2.dev"
   }
 }

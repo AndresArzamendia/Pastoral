@@ -21,6 +21,138 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[12] 2026-10-02 13:07 - EL BORRADO DE ARCHIVOS ABARCA TODO EL SITIO, Y SE CIERRA UNA RUTA QUE NO PEDÍA SESIÓN
+-----------------------------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: el borrado automático de archivos funcionaba, pero solo para lo que se
+guarda en las claves del panel. Al revisarlo de punta a punta aparecieron tres
+sitios más donde un archivo se podía quedar en el bucket sin que nada lo borrara,
+y una ruta de noticias que cualquiera podía usar sin iniciar sesión.
+
+SE REVISÓ DÓNDE HAY ARCHIVOS EN TODO EL PROYECTO:
+   - Claves del panel (pjl_store), 22 en total: logos, fotos de miembros, fotos de
+     capillas, imágenes de contenido y del Evangelio, PDF del estatuto, carrusel,
+     galería, línea de tiempo, documentos y usuarios. Todas cubiertas: el borrado
+     por comparación recorre TODAS las cadenas del JSON guardado, así que da igual
+     el nombre del campo (src/lib/fileCleanup.ts, collectFileUrls).
+   - Tabla news_articles de Supabase: featured_image_url y gallery_urls. NO pasa
+     por el panel, porque las noticias se editan por su propia API.
+   - Tabla de perfiles de Supabase: revisada campo por campo, no tiene ningún campo
+     de archivo. No hay nada que limpiar.
+   - Favicon: FaviconSync no guarda nada, solo arma el ícono en memoria del
+     navegador. No hay nada que limpiar.
+   - Base D1 de estadísticas: sin archivos.
+
+src/lib/fileServerCleanup.ts  (nuevo)
+- Borrado de archivos desde el servidor, gemelo del que corre en el navegador.
+- Descarta las direcciones que no son del bucket (imágenes de otro sitio, CDN
+  externo, videos), para no pedirle a R2 que borre una clave que no le pertenece.
+- Nunca tira: que sobre un archivo no puede impedir que se borre la fila.
+
+src/app/api/news/articles/[id]/route.ts
+- CORREGIDO UN AGUJO QUE DEJABA ARCHIVOS PARA SIEMPRE. Al borrar un artículo se
+  borraba la fila pero no sus imágenes, y al cambiar o quitar la portada o una foto
+  de la galería, la anterior quedaba ahí sin que nada la mencionara. Ahora ambas
+  rutas leen los archivos del artículo antes de escribir, y borran los que quedan
+  afuera una vez guardado el cambio.
+- CORREGIDA UNA RUTA SIN CONTROL DE ACCESO. DELETE /api/news/articles/[id] no pedía
+  sesión: bastaba con conocer la dirección y el id del artículo para borrarlo. Se
+  comprobó en producción (la petición llegó a la base sin ningún token) y ahora
+  exige lo mismo que el PATCH y el POST. Es una de las cuatro cosas que estaban
+  pendientes de permisos; esta quedó arreglada, las otras tres siguen abiertas.
+
+src/app/admin/page.tsx
+- Si se subía un archivo dentro de un modal y después se cancelaba sin guardar, ese
+  archivo se quedaba en el bucket sin usarse nunca. Ahora se anotan los archivos
+  subidos durante el modal y, al cancelar, se borran los que no quedaron
+  guardados. Se comprueba contra lo que ya está en la base, no contra el formulario
+  que se está cerrando, para no borrar recién lo que el usuario acaba de guardar.
+- El borrado al cancelar es explícito (closeModal(true)) y solo se dispara desde
+  Cancelar, la X y el click fuera. Las guardas llaman a closeModal() sin argumento:
+  ahí no se borra nada, porque el archivo ya está referenciado en la base.
+
+src/components/admin/NewsArticleForm.tsx
+- Same caso: al cancelar el formulario se borraba la portada recién subida.
+- Quitado un aviso que mentía: decía que la imagen quedaba guardada dentro de la
+  base de datos. Ya no es así; se sube al bucket.
+
+VERIFICACIÓN (en producción, sobre el Worker desplegado):
+- Sin sesión: DELETE y PATCH de /api/news/articles/[id], POST de /api/news/articles,
+  DELETE de /api/files y POST de /api/files/limpiar  ->  401 en los cinco.
+- Con lectura: GET de /api/news/articles y la portada del sitio  ->  200.
+- Los archivos existentes siguen sirviendo (200).
+- Se comprobó que la tabla news_articles está vacía (total: 0), así que la prueba
+  del DELETE sin sesión no borró ningún artículo real.
+- npx tsc --noEmit  ->  0 errores.  npm run build  ->  compilación correcta.
+  eslint --quiet sobre los 5 archivos  ->  0 errores.
+
+DESPLIEGUE:
+   Cloudflare Worker "pastoral"  ->  versión f9cb6996-231e-4d71-beef-a9ac3d33d9bd
+
+================================================================================
+
+[11] 2026-10-02 12:22 - DESPLIEGUE A CLOUDFLARE: LIMPIEZA DE ARCHIVOS, SERVIR DESDE R2 Y CORRECCIÓN DE ARCHIVOS CON SUBCARPETAS
+-------------------------------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: cerrar lo pedido de que las imágenes no se guarden en la base sino en
+Cloudflare, y subir a producción la limpieza de archivos.
+
+SE CONFIRMÓ QUE EN LA BASE YA NO HAY BASE64 (antes se suponía que quedaban 3):
+   - Recorriendo las 22 filas de pjl_store de punta a punta: 0 imágenes en base64.
+   - Las 6 direcciones de archivo que quedan son /api/files/... (2 en branding,
+     1 en content, 3 en hero).
+   - Las 6 claves existen de verdad en el bucket, verificadas una por una con
+     wrangler r2 object get: 152 KB, 152 KB, 4,19 MB, 227 KB, 1,49 MB y 1,52 MB.
+   - Por qué ya no queda nada: el propio servidor lo impide. api/store/route.ts
+     quita las imágenes en base64 antes de guardar y deja aviso en el registro, así
+     que aunque el panel las mandara no se guardan. uploadFile.ts ya no tiene
+     camino alternativo a base64 y las rutas de noticias rechazan las imágenes
+     embebidas.
+
+wrangler.jsonc
+- Agregada la variable R2_PUBLIC_BASE_URL. Con ella, /api/files/<clave> responde un
+  307 al dominio público en vez de transmitir el archivo desde el worker. El sitio
+  tiene un PDF de 4 MB y fotos de 1,5 MB: servirlos por el binding gastaba CPU y
+  ancho de banda del worker en cada visita; con el redirect el worker solo contesta
+  unos bytes y la transferencia va de R2 al navegador.
+- El dominio público se comprobó con archivos reales del sitio: los JPG, PNG y el
+  PDF devuelven 200 con su Content-Type y su tamaño exactos. El 404 que se había
+  visto antes era de una clave vieja, no del dominio.
+- Corregidos los comentarios, que seguían diciendo que R2 no estaba habilitado y
+  que las subidas caían en la base de datos. Ninguna de las dos cosas era cierta.
+
+src/app/api/files/[key]/route.ts  ->  src/app/api/files/[...key]/route.ts
+- CORRECCIÓN DE UN BUG QUE DABA UN 200 ENGAÑOSO. La ruta era [key], que en Next.js
+  no matchea las barras de una ruta. Pedir un archivo guardado en una subcarpeta
+  ("logos/principal.png") no entraba en la ruta de archivos y terminaba en la página
+  [...slug], que respondía 200 con la portada del sitio. Es el peor tipo de fallo:
+  un enlace roto se veía como una imagen válida.
+- Ahora la ruta es [...key] y une los segmentos. También se descartan los segmentos
+  vacíos, "." y "..", para que no se pueda escapar del bucket por la ruta.
+
+VERIFICACIÓN (en producción, sobre el Worker desplegado):
+- / y /admin  ->  200.
+- Los 6 archivos de la base devuelven 307 al dominio público de R2 y, siguiendo el
+  redirect, 200 con el tipo y el tamaño correctos.
+- Claves con subcarpeta, con espacios, con acentos y con "+"  ->  todas 307 con la
+  URL correcta.
+- DELETE /api/files y POST /api/files/limpiar sin sesión  ->  401, o sea el borrado
+  de archivos no está disponible para cualquiera.
+- El HTML de la portada no contiene ninguna imagen en base64.
+- npx tsc --noEmit  ->  0 errores.  npm run build  ->  compilación correcta.
+
+DESPLIEGUE:
+   Cloudflare Worker "pastoral"  ->  versión 0fb71186-57da-4de5-8e8a-b5cc18cd5288
+   Hubo dos despliegues: el primero (7accfea1-7296-4ab8-b07b-5b054bfd281c) trajo
+   R2_PUBLIC_BASE_URL, y al probarlo apareció el bug de las subcarpetas. El segundo
+   lo corrige y es el que quedó activo.
+
+================================================================================
+
 [10] 2026-10-02 12:02 - LOS ARCHIVOS DEL BUCKET SE BORRAN AL REEMPLAZAR O ELIMINAR, Y BARREDOR DE HUÉRFANOS
 ----------------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
