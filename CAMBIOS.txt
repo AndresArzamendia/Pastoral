@@ -148,7 +148,14 @@ Verificacion:
 - CSS validado: llaves balanceadas (0 sin cerrar, profundidad minima 0) y
   respuesta visual pendiente de revisar en el navegador.
 
-Despliegue:   no se desplego. No hay version nueva del Worker en Cloudflare.
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: 8c604f4b-76ae-41dc-b4d6-b917aaee5e96
+              Anterior: 1987e728-3379-45e6-a590-f5d527416a75 (2026-09-30)
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+              Archivo subido: 5 assets (103 ya estaban), 7.47 MiB / 1.37 MiB gzip.
+              Verificado en linea: el HTML ya sirve el CSS 43a58b31c54a00c2.css y
+              el chunk page-39d690a17b302d8b.js, los dos con el bloque hs-*; tambien
+              /admin.
 
 ================================================================================
 
