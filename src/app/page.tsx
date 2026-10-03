@@ -2039,15 +2039,22 @@ const [newsSearch, setNewsSearch] = useState('');
           </>
         )}
 
-        {/* ESTATUTO / OBJETIVO */}
+        {/* ESTATUTO / OBJETIVO - mismo entorno `doc-*` que Historia e Institucional */}
         {currentPage === 'estatuto' && (
-          <section className="section-pjl nosotros-page estatuto-page">
+          <section className="section-pjl doc-page">
+            <div className="doc-watermark" aria-hidden="true">✦</div>
             <div className="container">
-              <div className="nosotros-hero reveal" style={{ paddingBottom: '20px' }}>
-                <div className="nosotros-hero-badge"><span>✦</span> NORMATIVA</div>
-                <h2 className="serif nosotros-hero-title">Estatuto y <i style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>Objetivos</i></h2>
-                <div className="nosotros-hero-divider"><span className="dot">†</span></div>
-              </div>
+              <div className="doc-stage">
+                <span className="doc-corner doc-corner-tl" aria-hidden="true" />
+                <span className="doc-corner doc-corner-tr" aria-hidden="true" />
+                <span className="doc-corner doc-corner-bl" aria-hidden="true" />
+                <span className="doc-corner doc-corner-br" aria-hidden="true" />
+
+                <div className="reveal doc-hero">
+                  <div className="doc-badge"><span aria-hidden="true">✦</span> NORMATIVA</div>
+                  <h2 className="serif doc-title">Estatuto y <em>Objetivos</em></h2>
+                  <div className="doc-ornament" aria-hidden="true"><span /><b>†</b><span /></div>
+                </div>
 
               {/* Esqueleto mientras llegan los textos y el PDF del panel. */}
               {!estatutoReady && (
@@ -2177,34 +2184,37 @@ const [newsSearch, setNewsSearch] = useState('');
                   )}
                 </>
               )}
+              </div>
             </div>
           </section>
         )}
 
-        {/* HISTORIA - ACORDEÓN */}
+{/* HISTORIA - ACORDEÓN. Comparte el entorno `doc-*` con Institucional y
+            Estatuto: el pergamino, el marco y el hero son los mismos tres, solo
+            cambia el contenido. */}
         {currentPage === 'historia' && (
-          <section className="section-pjl history-premium-section nosotros-page">
-                {/* Marco ornamental. Es lo que le da aire y caracter a la sección:
-                    sin esto el bloque queda suelto sobre un fondo liso y se ve
-                    vacío. Los cuatro esquinas son decorativas (aria-hidden). */}
-            <div className="historia-watermark" aria-hidden="true">✦</div>
+          <section className="section-pjl doc-page">
+            {/* Marco ornamental. Es lo que le da aire y caracter a la sección:
+                sin esto el bloque queda suelto sobre un fondo liso y se ve
+                vacío. Las cuatro esquinas son decorativas (aria-hidden). */}
+            <div className="doc-watermark" aria-hidden="true">✦</div>
             <div className="container">
-              <div className="historia-stage">
-                <span className="historia-corner historia-corner-tl" aria-hidden="true" />
-                <span className="historia-corner historia-corner-tr" aria-hidden="true" />
-                <span className="historia-corner historia-corner-bl" aria-hidden="true" />
-                <span className="historia-corner historia-corner-br" aria-hidden="true" />
+              <div className="doc-stage">
+                <span className="doc-corner doc-corner-tl" aria-hidden="true" />
+                <span className="doc-corner doc-corner-tr" aria-hidden="true" />
+                <span className="doc-corner doc-corner-bl" aria-hidden="true" />
+                <span className="doc-corner doc-corner-br" aria-hidden="true" />
 
-                <div className="nosotros-hero reveal historia-hero">
-                  <div className="historia-badge"><span aria-hidden="true">✦</span> LEGADO</div>
-                  <h2 className="serif historia-title">Nuestra <em>Historia</em></h2>
-                  <div className="historia-ornament" aria-hidden="true"><span /><b>†</b><span /></div>
-                  <p className="historia-intro">{siteContent.nosotrosHistoria || 'Selecciona una etapa para conocer más y consultar los documentos oficiales.'}</p>
+                <div className="reveal doc-hero">
+                  <div className="doc-badge"><span aria-hidden="true">✦</span> LEGADO</div>
+                  <h2 className="serif doc-title">Nuestra <em>Historia</em></h2>
+                  <div className="doc-ornament" aria-hidden="true"><span /><b>†</b><span /></div>
+                  <p className="doc-intro">{siteContent.nosotrosHistoria || 'Selecciona una etapa para conocer más y consultar los documentos oficiales.'}</p>
                 </div>
 
                 {/* CIFRAS / LOGROS */}
                 {(siteContent.logros && siteContent.logros.length > 0) && (
-                  <div className="nosotros-logros historia-logros">
+                  <div className="nosotros-logros doc-stats">
                     {siteContent.logros.map((lg, i) => (
                       <div key={lg.id} className="nosotros-logro reveal" style={{ '--ad': `${i * 0.09}s` } as CSSProperties}>
                         <span className="nl-ico">{lg.icon}</span>
@@ -2215,7 +2225,7 @@ const [newsSearch, setNewsSearch] = useState('');
                   </div>
                 )}
 
-                <HistoriaTabs items={siteContent.historiaTimeline} />
+<HistoriaTabs items={siteContent.historiaTimeline} />
               </div>
             </div>
           </section>
@@ -2223,28 +2233,35 @@ const [newsSearch, setNewsSearch] = useState('');
 
         {/* --- PAGE: INSTITUCIONAL --- */}
         {currentPage === 'institucional' && (
-          <section className="section-pjl nosotros-page">
+          <section className="section-pjl doc-page">
+            <div className="doc-watermark" aria-hidden="true">✦</div>
             <div className="container">
-              {/* HERO DE INSTITUCIONAL */}
-              <div className="nosotros-hero reveal">
-                <div className="nosotros-hero-badge"><span>✦</span> QUIÉNES SOMOS</div>
-                <h2 className="serif nosotros-hero-title">{siteContent.instiTitulo || 'Nuestra Identidad'}</h2>
-                <div className="nosotros-hero-divider"><span className="dot">†</span></div>
-                <p className="nosotros-hero-intro nosotros-intro-card">{siteContent.nosotrosIntro || 'Somos la Pastoral Juvenil Luqueña, una comunidad eclesial viva...'}</p>
-              </div>
+              <div className="doc-stage">
+                <span className="doc-corner doc-corner-tl" aria-hidden="true" />
+                <span className="doc-corner doc-corner-tr" aria-hidden="true" />
+                <span className="doc-corner doc-corner-bl" aria-hidden="true" />
+                <span className="doc-corner doc-corner-br" aria-hidden="true" />
 
-              {/* CIFRAS / LOGROS */}
-              {(siteContent.logros && siteContent.logros.length > 0) && (
-                <div className="nosotros-logros">
-                  {siteContent.logros.map((lg, i) => (
-                    <div key={lg.id} className="nosotros-logro reveal" style={{ '--ad': `${i * 0.09}s` } as CSSProperties}>
-                      <span className="nl-ico">{lg.icon}</span>
-                      <strong>{lg.valor}</strong>
-                      <small>{lg.label}</small>
-                    </div>
-                  ))}
+                {/* HERO DE INSTITUCIONAL */}
+                <div className="reveal doc-hero">
+                  <div className="doc-badge"><span aria-hidden="true">✦</span> QUIÉNES SOMOS</div>
+                  <h2 className="serif doc-title">{siteContent.instiTitulo || 'Nuestra Identidad'}</h2>
+                  <div className="doc-ornament" aria-hidden="true"><span /><b>†</b><span /></div>
+                  <p className="doc-intro">{siteContent.nosotrosIntro || 'Somos la Pastoral Juvenil Luqueña, una comunidad eclesial viva...'}</p>
                 </div>
-              )}
+
+                {/* CIFRAS / LOGROS */}
+                {(siteContent.logros && siteContent.logros.length > 0) && (
+                  <div className="nosotros-logros doc-stats">
+                    {siteContent.logros.map((lg, i) => (
+                      <div key={lg.id} className="nosotros-logro reveal" style={{ '--ad': `${i * 0.09}s` } as CSSProperties}>
+                        <span className="nl-ico">{lg.icon}</span>
+                        <strong>{lg.valor}</strong>
+                        <small>{lg.label}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
               {/* MISIÓN / VISIÓN / VALORES */}
               <div className="nosotros-identidad">
@@ -2346,6 +2363,7 @@ const [newsSearch, setNewsSearch] = useState('');
                   <p>Acercate a tu capilla zonal o escribinos por nuestras redes. ¡Todos los jóvenes son bienvenidos!</p>
                   <button type="button" className="btn-premium btn-premium-gold" onClick={() => navigate('contacto')}>HABLEMOS</button>
                 </div>
+              </div>
               </div>
             </div>
           </section>

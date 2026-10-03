@@ -21,6 +21,102 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[22] 2026-10-03 12:57 - EL PERGAMINO SE COMPARTE: INSTITUCIONAL Y ESTATUTO
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: la estetica de Nuestra Historia gusta, pero el sitio la muestra como un
+caso aislado. Se decidio llevarla a Institucional y Estatuto, que son las dos
+paginas que comparten la misma estructura de hero. El Home se decide aparte.
+
+POR QUE ESTAS DOS PRIMERO
+- Las dos son las unicas que usaban la clase .nosotros-page, igual que Historia:
+  tenian el hero, el fondo crema y el mismo esqueleto. Se sabia que mejorarlas
+  no rompia nada porque ya se habia hecho con Historia.
+- El sitio las presenta como un conjunto: en las dos tablas de tarjetas
+  (page.tsx:1338-1340 y 1493-1495) aparecen Estatuto, Historia e Institucional
+  las tres juntas, con el mismo formato. Con Historia sola, el conjunto se veia
+  descuadrado.
+
+LO IMPORTANTE: NO SE DUPLICO EL CSS
+- El entorno de Historia estaba en clases con nombre propio (.historia-stage,
+  .history-premium-section, etc.). Si se hubiera copiado para las otras dos,
+  ese bloque de unas 200 lineas estaria duplicado dos veces, y cualquier ajuste
+  habria que hacerlo en tres lugares.
+- Se renombro a clases COMPARTIDAS, con nombres que no dicen "historia":
+    .history-premium-section -> .doc-page
+    .historia-stage          -> .doc-stage
+    .historia-corner-*       -> .doc-corner-*
+    .historia-watermark      -> .doc-watermark
+    .historia-hero           -> .doc-hero
+    .historia-badge          -> .doc-badge
+    .historia-title          -> .doc-title
+    .historia-ornament       -> .doc-ornament
+    .historia-intro          -> .doc-intro
+    .historia-logros         -> .doc-stats
+- El renombrado fue SOLO de selector. Los valores de las propiedades no se
+  tocaron, asi que Historia se ve exactamente igual que antes.
+- Historia paso a usar las clases nuevas. Es la prueba de que funcionan: si la
+  primera se ve bien, las otras dos reciben lo mismo.
+
+CSS Muerto QUE SE BORRO
+- Al pasar las tres paginas a .doc-page quedaron sin uso ocho reglas: las cuatro
+  del hero (.nosotros-hero, -badge, -title, -divider, -intro), mas
+  .nosotros-intro-card, .nosotros-page y .estatuto-page. Se borraron.
+- Ojo con una: .estatuto-page .container tenía un padding inferior
+  (clamp 96px, 14vh, 160px) que Estatuto estaba usando. Ese padding NO se perdió:
+  se pasó a .doc-page .container, así que ahora las tres páginas de contenido
+  cierran con el mismo aire al pie.
+- .nosotros-hero seguía puesto en las tres, compitiendo con .doc-hero por el
+  max-width y el margin. Se quitó del marcado: .doc-hero ya traía el
+  text-align:center y el resto.
+
+PULIDO A LAS TARJETAS DE ADENTRO
+- Las tarjetas del Estatuto (est-*) y de Institucional (mvv, ns, nc, nh) seguían
+  siendo blancas sobre pergamino, y con eso el marco se veía bonito pero el
+  contenido de adentro no acompañaba. Se les dio superficie de pergamino,
+  borde dorado y sombra corta, solo como override.
+- Los iconos circulares de esas tarjetas usaban tintes frios (verde, azul,
+  morado) inyectados por JS. Sobre pergamino se veian sueltos, asi que se
+  llevaron al dorado de la casa.
+- Son overrides de superficie UNICAMENTE: no tocan grid, tipografia ni la
+  animacion reveal de cada tarjeta. El flujo de cada seccion sigue igual, y si
+  algo quedo mal se revierte en un solo bloque.
+
+Lo que NO se toco
+- El Home y sus seis tintes (azul, verde, oro, rosa, violeta). Sigue con su
+  propio lenguaje, como se decidio.
+- Las paginas de contenido cortas: zonas, consejo, agenda, noticias, documentos,
+  faq y contacto. No entran todavia.
+- El acordeon de Historia y su bloque hs-*: sin cambios.
+- El panel de administracion: sin cambios.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores. (A la primera tirada quedaron errores de JSX por
+  dos comentarios seguidos y por un cierre de div aplicado en el lugar
+  equivocado; se corrigieron.)
+- npx eslint sobre page.tsx -> 0 errores, 0 warnings.
+- npm run build -> correcto. "/" BAJO de 58 a 57.9 kB (se bacio markup muerto)
+  y First Load JS se mantiene en 235 kB.
+- Prueba local con next start: historia, institucional, estatuto y nosotros
+  devuelven 200. Las tres sirven el CSS compartido (doc-stage y doc-page
+  presentes) y la clase vieja .nosotros-page ya no esta en el archivo.
+- Comprobado que las tres secciones tienen la misma estructura: doc-page,
+  doc-watermark, doc-stage y las cuatro esquinas.
+- Llaves CSS balanceadas: 0 sin cerrar.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: f9b7fe7b-1ced-459b-9e7b-37903bbd8071
+              Anterior: bcba7331-cc19-4cf6-b9d5-b7e64e25cf09
+              Verificado en linea: historia, institucional, estatuto, nosotros y
+              zonas devuelven 200. El CSS a62bc95730ed324c.css sirve el entorno
+              compartido (doc-page, doc-stage, doc-corner) y el pulido de las
+              tarjetas internas, y ya no trae la clase vieja .nosotros-page.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [21] 2026-10-03 12:28 - "NUESTRA HISTORIA": EL RAYADO DIAGONAL DEL FONDO SE NOTA MAS
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
