@@ -21,6 +21,88 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[20] 2026-10-03 11:50 - "NUESTRA HISTORIA": SE SACAN LAS CIFRAS DE FONDO Y SE AFINA EL RESTO
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: las cifras gigantes de fondo estaban de mas. Ademas se pidió mejorarla
+un poco más con mas detalles y un fondo mejor, sin perder de vista el trabajo
+que se viene haciendo: UI/UX, responsividad, eficiencia y codigo limpio.
+
+LO QUE SE SACO
+- Las cifras fantasma de cada pilaora. Con eso se fue TODO lo que habia
+  alrededor: el counter-reset, el counter-increment, el content: counter(), el
+  decimal-leading-zero y el pseudo-elemento .hs-pill::after. No se dejo ni una
+  regla huerfana: la prueba de contrato falla si aparece cualquiera de esos
+  cinco.
+- No habia que tocar el componente para sacarlas: eran CSS puro, asi que
+  HistoriaTabs.tsx quedo igual.
+
+LO QUE LO REEMPLAZA
+- El peso visual de la pilaora activa lo pone ahora un SUBRAYADO del titulo que
+  crece desde la izquierda (scaleX de 0 a 1) en el color del hito. Se anima con
+  transform, que es lo unico que compone la GPU sin repintar, y cuando esta
+  cerrada ocupa cero ancho. En movil se sube a -5px para que no choque con el
+  chip de estado.
+
+DETALLE NUEVO
+- Las pilaoras tienen brillo superior: una capa de gradiente blanco que se
+  apaga hacia abajo, como la luz sobre una hoja. En hover y en el estado
+  abierto se intensifica.
+- La vista desplegada lleva escuadras en la esquina opuesta a su filete, para
+  que tenga el mismo aire de pagina impresa que el marco de la seccion. En
+  movil se achican.
+- El fondo de la seccion lleva filetes dorados arriba y abajo: ahora termina en
+  corte, como una lamina, en vez de disolverse en la pagina.
+- La base del pergamino se oscurecio en los extremos (#E3CFA7 al 100%), para
+  que el centro quede mas claramente como foco.
+
+FONDO, Y SU COSTO
+- Se mantienen el telón de oro, el guilloche a 45 grados cruzados y la viñeta, y se
+  subió la viñeta de 0.20 a 0.24 porque el fondo ya es más claro.
+- El fondo apila cinco capas de gradiente. Es a proposito: son estaticas, asi
+  que el navegador las rasteriza una vez y las reutiliza. No se uso
+  backdrop-filter ni filter: blur(), que si se recalculan en cada scroll y en un
+  telefono se nota. La prueba de contrato falla si alguno de los dos aparece.
+- Queda anotado en el propio CSS cual es la primera capa que se debe sacar si
+  alguna vez se nota lento en gama baja: el guilloche, que es lo que aporta
+  menos y mas cuesta.
+
+CODIGO
+- La superficie de las pilaoras se define UNA sola vez en --hs-surface, y el
+  brillo en --hs-sheen. Antes la misma tríada de colores estaba escrita tres
+  veces (base, hover, abierto) y cualquier ajuste se quebraba en tres lugares.
+  Ahora hover y abierto solo redefinen las dos variables.
+- prefers-reduced-motion cubre tambien el subrayado del titulo.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- npx eslint -> 0 errores (1 warning, el de <img> de siempre).
+- npm run build -> correcto. "/" en 58 kB y 235 kB de First Load JS: el JS no se
+  movio. Todo esto es CSS.
+- Prueba de render del acordeon con react-dom/server, 20 comprobaciones, todas
+  OK. Se agrego una que confirma que el marcado NO trae numeros inventados: el
+  indice es cosa del CSS, no del HTML.
+- Prueba de contrato del entorno, 47 comprobaciones, todas OK. Seis de ellas
+  son especificamente de que lo pedido SACAR no quedo en el archivo, y cuatro
+  son de que no se toco nada compartido.
+- responsive-fix.css sigue sin tocar ninguna clase nueva.
+- Se verifico que .history-premium-section no tenia ::before ni ::after previos,
+  asi que el filete nuevo no pisa nada existente. (Si los tuviera, el ::before
+  habria tapado al ::after de la viñeta.)
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: b2a56b2a-8567-44fd-9932-1c515d78ad70
+              Anterior: 5297ebfb-81fb-4531-bc6c-91c888187fc9
+              Verificado en linea: el CSS 4e296c81b44357a5.css ya NO trae ninguna
+              cifra de fondo (hs-hito y decimal-leading-zero ausentes) y sí trae
+              el subrayado del titulo, el brillo de superficie, las escuadras de
+              la vista y los filetes del fondo. Institucional y Nosotros en 200.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [19] 2026-10-03 11:34 - "NUESTRA HISTORIA" SUBE DE NIVEL: DETALLES DE ARCHIVO Y RELIEVE
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)

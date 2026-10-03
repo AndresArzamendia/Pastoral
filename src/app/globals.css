@@ -13702,6 +13702,9 @@ html.show-splash .splash-content { visibility: visible; }
    Notas de peso:
    - Solo se anima `opacity` y `transform`: es lo único que la GPU compone sin
      repintar el bloque entero.
+   - La superficie de las píldoras se define UNA vez en `--hs-surface` y se
+     reaprovecha en hover y en el estado abierto. Antes la misma tríada de
+     colores estaba escrita tres veces y cualquier ajuste seesquebraba.
    - `content-visibility: auto` + `contain-intrinsic-size` permiten al navegador
      saltarse el pintado si el visitante no llega hasta abajo.
    - Las píldoras usan `--hs-accent`, que cada hito define con su color de
@@ -13717,17 +13720,17 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 /* ---------- 1. PÍLDORAS APILADAS ---------- */
-.hs-list {
-  display: grid;
-  gap: 12px;
-  /* Contador para la cifra fantasma de cada píldora. Con contador de CSS no
-     hace falta pasarle el número por el marcado. */
-  counter-reset: hs-hito;
-}
-.hs-item { min-width: 0; counter-increment: hs-hito; }
+.hs-list { display: grid; gap: 12px; }
+.hs-item { min-width: 0; }
 
 .hs-pill {
   --hs-accent: var(--gold);
+  /* Superficie de pergamino: nunca blanco puro. El blanco plano es lo que hace
+     que la sección se lea como vacía. */
+  --hs-surface: linear-gradient(135deg, #FFFDF8 0%, #FBF3E2 62%, #F6EAD3 100%);
+  /* Brillo superior: da relieve al plástico, como la luz sobre una hoja. Va
+     como capa aparte para poder apagarlo sin reescribir la superficie. */
+  --hs-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 46%);
   position: relative;
   display: flex;
   align-items: center;
@@ -13737,9 +13740,7 @@ html.show-splash .splash-content { visibility: visible; }
   padding: 16px 22px 16px 26px;
   border: 1px solid rgba(200, 151, 58, 0.3);
   border-radius: 20px;
-  /* Superficie de pergamino: nunca blanco puro. El blanco plano es lo que hace
-     que la sección se lea como vacía. */
-  background: linear-gradient(135deg, #FFFDF8 0%, #FBF3E2 62%, #F6EAD3 100%);
+  background: var(--hs-sheen), var(--hs-surface);
   cursor: pointer;
   text-align: left;
   font: inherit;
@@ -13751,28 +13752,6 @@ html.show-splash .splash-content { visibility: visible; }
   transition: background 0.25s ease, border-color 0.25s ease,
               transform 0.25s ease, box-shadow 0.25s ease;
 }
-
-/* Cifra fantasma: el número del hito gigante detrás del título. Es el detalle
-   que hace que la lista parezca el índice de un archivo y no un menú. Va detrás
-   de todo y sin captura de clics. */
-.hs-pill::after {
-  content: counter(hs-hito, decimal-leading-zero);
-  position: absolute;
-  right: 26px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 0;
-  font-family: var(--font-display);
-  font-size: 5.2rem;
-  font-weight: 700;
-  line-height: 0.8;
-  letter-spacing: -0.04em;
-  color: var(--hs-accent);
-  opacity: 0.09;
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.hs-pill.is-open::after { opacity: 0.16; transform: translateY(-50%) scale(1.06); }
 
 /* Filete de acento a la izquierda: es lo que ata cada píldora con su color y
    hace que la fila se lea como una lista y no como tres cajas sueltas. */
@@ -13789,31 +13768,26 @@ html.show-splash .splash-content { visibility: visible; }
 }
 
 .hs-pill:hover {
-  background: linear-gradient(135deg, #FFFDF9 0%, #FDF7EA 62%, #F9EEDD 100%);
+  --hs-surface: linear-gradient(135deg, #FFFDF9 0%, #FDF7EA 62%, #F9EEDD 100%);
+  --hs-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 52%);
   border-color: rgba(200, 151, 58, 0.52);
   transform: translateY(-2px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 34px -22px rgba(26, 39, 68, 0.55);
 }
-.hs-pill:hover::after { opacity: 0.13; }
 .hs-pill:focus-visible {
   outline: 2px solid var(--hs-accent);
   outline-offset: 3px;
 }
 .hs-pill.is-open {
+  --hs-surface: linear-gradient(135deg, #FFFFFF 0%, #FDF6E7 58%, #F9EDD4 100%);
+  --hs-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 55%);
   border-color: rgba(200, 151, 58, 0.62);
   border-color: color-mix(in srgb, var(--hs-accent) 58%, transparent);
-  background: linear-gradient(135deg, #FFFFFF 0%, #FDF6E7 58%, #F9EDD4 100%);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.95) inset,
     0 22px 44px -26px rgba(26, 39, 68, 0.6);
 }
 .hs-pill.is-open::before { inset: 8px auto 8px 10px; opacity: 1; }
-
-/* Todo el contenido de la píldora va por encima de la cifra fantasma. */
-.hs-pill-ico,
-.hs-pill-main,
-.hs-pill-state,
-.hs-pill-chev { position: relative; z-index: 1; }
 
 /* Icono: sello con anillo dorado, como un sello de lacre. */
 .hs-pill-ico {
@@ -13850,6 +13824,7 @@ html.show-splash .splash-content { visibility: visible; }
   opacity: 0.9;
 }
 .hs-pill-label {
+  position: relative;
   font-family: var(--font-display);
   font-size: clamp(1rem, 1.5vw, 1.18rem);
   font-weight: 600;
@@ -13858,6 +13833,24 @@ html.show-splash .splash-content { visibility: visible; }
   color: var(--navy);
   overflow-wrap: anywhere;
 }
+/* Subrayado del título: crece desde la izquierda al abrir la píldora. Reemplaza
+   a la cifra fantasma que se sacó: el peso visual lo pone esta línea, y ocupa
+   cero ancho cuando está cerrada. */
+.hs-pill-label::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 25%, transparent));
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+}
+.hs-pill.is-open .hs-pill-label::after { transform: scaleX(1); opacity: 0.9; }
 
 /* Estado a la derecha: «Seleccionado» / «Ver detalle». */
 .hs-pill-state {
@@ -13918,6 +13911,21 @@ html.show-splash .splash-content { visibility: visible; }
   width: 4px;
   border-radius: 6px;
   background: linear-gradient(180deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 12%, transparent));
+}
+/* Escuadras del panel: dos en la esquina opuesta a la del filete, para que la
+   vista tenga el mismo aire de página impresa que el marco de la sección. */
+.hs-panel::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-top: 1.5px solid color-mix(in srgb, var(--hs-accent) 45%, transparent);
+  border-right: 1.5px solid color-mix(in srgb, var(--hs-accent) 45%, transparent);
+  border-radius: 0 8px 0 0;
+  opacity: 0.6;
+  pointer-events: none;
 }
 @keyframes hsPanelIn {
   from { opacity: 0; transform: translate3d(0, -10px, 0); }
@@ -14090,11 +14098,11 @@ html.show-splash .splash-content { visibility: visible; }
   text-decoration: none;
   cursor: pointer;
   overflow: hidden;
-  /* Relieve: un borde claro arriba y uno oscuro abajo. Con dos box-shadow, sin
-     imágenes ni sombras grandes. */
+  /* Relieve: un borde claro arriba y uno oscuro abajo. Con dos sombras internas,
+     sin imágenes y sin sombras grandes que repintar. */
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    0 -1px 0 rgba(0, 0, 0, 0.12) inset,
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
     0 2px 4px rgba(26, 39, 68, 0.12);
   transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
 }
@@ -14167,7 +14175,6 @@ html.show-splash .splash-content { visibility: visible; }
 @media (max-width: 900px) {
   .hs-panel { padding: 28px 22px 26px; margin-left: 10px; }
   .hs-pill { min-height: 68px; padding: 14px 16px 14px 22px; }
-  .hs-pill::after { right: 20px; font-size: 4.4rem; }
 }
 
 @media (max-width: 680px) {
@@ -14183,12 +14190,10 @@ html.show-splash .splash-content { visibility: visible; }
   }
   .hs-pill-ico { width: 46px; height: 46px; font-size: 20px; }
   .hs-pill-label { font-size: 15px; }
+  .hs-pill-label::after { bottom: -5px; }
   .hs-pill-state { padding: 5px 10px; font-size: 8.5px; letter-spacing: 0.1em; }
   /* Con el pulgar no se busca la chevron, y a 9 px ocupa ancho de más. */
   .hs-pill-chev { display: none; }
-  /* La cifra fantasma estorba en pantallas chicas: se achica y se apaga. */
-  .hs-pill::after { right: 14px; font-size: 3.4rem; opacity: 0.07; }
-  .hs-pill.is-open::after { opacity: 0.1; transform: translateY(-50%) scale(1.04); }
 
   .hs-panel {
     padding: 22px 16px 20px;
@@ -14196,6 +14201,7 @@ html.show-splash .splash-content { visibility: visible; }
     border-radius: 6px 16px 16px 16px;
   }
   .hs-panel::before { inset: 12px auto 12px 0; width: 3px; }
+  .hs-panel::after { width: 14px; height: 14px; top: 8px; right: 8px; }
   .hs-panel-head { margin-bottom: 16px; }
   .hs-title { font-size: clamp(1.25rem, 5.6vw, 1.6rem); }
   .hs-resume { padding: 18px 0 18px 15px; }
@@ -14225,8 +14231,8 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   .hs-panel { animation: none !important; }
   .hs-pill,
   .hs-pill::before,
-  .hs-pill::after,
   .hs-pill-ico,
+  .hs-pill-label::after,
   .hs-pill-chev,
   .hs-btn,
   .hs-btn::after { transition: none !important; }
@@ -14245,33 +14251,53 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 
    El fondo deja de ser un crema casi blanco y pasa a pergamino: una base de
    arena con trama de papel, telón de oro en el encabezado y viñeta en los
-   bordes. Sin eso el bloque se leía como un hueco vacío en medio de la página.
+   bordes.
 
-   El aire lo da el MARCO, no las píldoras: por eso el marco tiene tanto
-   padding y las píldoras siguen Compactas. Achicar el bloque y agrandar su
-   marco deja la página mucho más limpia que llenar todo de espacio.
+   Sobre el costo de las capas: el fondo de la sección apila cinco capas de
+   gradiente. Se eligieron así a propósito porque son estáticas: el navegador
+   las rasteriza una sola vez y las reutiliza, mientras que un `filter: blur()`
+   o un `backdrop-filter` sobre media pantalla sí se volverían a recalcular en
+   cada scroll y en un teléfono eso se nota. Si alguna vez se nota lento en gama
+   baja, lo primero que se saca es el guilloche (las dos capas a 45 grados), que
+   es lo que aporta menos y más cuesta.
+
+   El aire lo da el MARCO, no las píldoras: por eso el marco tiene tanto padding
+   y las píldoras siguen compactas.
    ========================================================================== */
 .history-premium-section {
   position: relative;
   overflow: hidden;
   isolation: isolate;
   background:
-    /* Telón de oro que baja del encabezado. Es lo primero que se ve al entrar. */
-    radial-gradient(120% 66% at 50% -6%, rgba(232, 184, 90, 0.38) 0%, rgba(232, 184, 90, 0.10) 42%, rgba(232, 184, 90, 0) 68%),
-    /* Sutil guilloche: dos tramazas cruzadas, casi imperceptibles. */
-    repeating-linear-gradient(45deg, rgba(26, 39, 68, 0.016) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(-45deg, rgba(26, 39, 68, 0.016) 0 1px, transparent 1px 9px),
-    /* Base de pergamino. */
-    linear-gradient(180deg, #F8EED9 0%, #F1E2C6 46%, #E7D4AF 100%);
+    /* Telón de oro que baja del encabezado: lo primero que se ve al entrar. */
+    radial-gradient(120% 66% at 50% -6%, rgba(232, 184, 90, 0.40) 0%, rgba(232, 184, 90, 0.11) 42%, rgba(232, 184, 90, 0) 68%),
+    /* Guilloche: dos tramazas cruzadas a 45 grados, casi imperceptibles. */
+    repeating-linear-gradient(45deg, rgba(26, 39, 68, 0.017) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(26, 39, 68, 0.017) 0 1px, transparent 1px 9px),
+    /* Base de pergamino, con los extremos más oscuros que el centro. */
+    linear-gradient(180deg, #F8EED9 0%, #F2E3C7 42%, #E3CFA7 100%);
 }
 
-/* Viñeta: oscurece los bordes para que el centro quede como foco. */
+/* Viñeta: hunde los bordes para que el centro quede como foco. Se oscurece un
+   poco más que en la versión anterior porque el fondo ya es más claro. */
 .history-premium-section::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(128% 92% at 50% 40%, rgba(255, 253, 246, 0.40) 0%, rgba(255, 253, 246, 0) 42%, rgba(88, 62, 24, 0.20) 100%);
+  background: radial-gradient(126% 90% at 50% 40%, rgba(255, 253, 246, 0.42) 0%, rgba(255, 253, 246, 0) 40%, rgba(84, 58, 22, 0.24) 100%);
+}
+
+/* Filetes dorados en los bordes superior e inferior de la sección: la hacen
+   terminar en corte, como una lámina, en vez de disolverse en la página. */
+.history-premium-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-top: 1px solid rgba(200, 151, 58, 0.35);
+  border-bottom: 1px solid rgba(200, 151, 58, 0.35);
+  box-shadow: inset 0 14px 26px -22px rgba(120, 86, 26, 0.9);
 }
 
 /* Estrellas de agua, atrás de todo. Dan profundidad sin cargar nada. */
@@ -14295,9 +14321,9 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   position: relative;
   padding: clamp(32px, 5.5vw, 68px) clamp(20px, 4.5vw, 62px) clamp(28px, 4.5vw, 56px);
   border-radius: 28px;
-  border: 1px solid rgba(200, 151, 58, 0.36);
+  border: 1px solid rgba(200, 151, 58, 0.38);
   background:
-    linear-gradient(180deg, rgba(255, 253, 247, 0.92) 0%, rgba(250, 241, 223, 0.82) 100%);
+    linear-gradient(180deg, rgba(255, 253, 247, 0.93) 0%, rgba(250, 241, 223, 0.84) 100%);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.9) inset,
     0 48px 100px -56px rgba(74, 52, 18, 0.8),
@@ -14310,7 +14336,7 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   position: absolute;
   inset: 10px;
   border-radius: 19px;
-  border: 1px solid rgba(200, 151, 58, 0.22);
+  border: 1px solid rgba(200, 151, 58, 0.24);
   pointer-events: none;
 }
 
