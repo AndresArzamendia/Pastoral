@@ -14264,6 +14264,11 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
    El aire lo da el MARCO, no las píldoras: por eso el marco tiene tanto padding
    y las píldoras siguen compactas.
    ========================================================================== */
+/* La malla del guilloche (las dos capas de 45 grados de abajo) usa una tramaza
+   en tono cálido y otra en frío, para que se lea como textura de papel y no
+   como un rayado azul. Van 1 px cada 12 px: más separadas que antes, porque con
+   menos separación y más contraste aparece muaré en pantallas de alta densidad
+   de píxeles. */
 .history-premium-section {
   position: relative;
   overflow: hidden;
@@ -14271,9 +14276,8 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   background:
     /* Telón de oro que baja del encabezado: lo primero que se ve al entrar. */
     radial-gradient(120% 66% at 50% -6%, rgba(232, 184, 90, 0.40) 0%, rgba(232, 184, 90, 0.11) 42%, rgba(232, 184, 90, 0) 68%),
-    /* Guilloche: dos tramazas cruzadas a 45 grados, casi imperceptibles. */
-    repeating-linear-gradient(45deg, rgba(26, 39, 68, 0.017) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(-45deg, rgba(26, 39, 68, 0.017) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(45deg, rgba(122, 86, 28, 0.055) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(-45deg, rgba(26, 39, 68, 0.042) 0 1px, transparent 1px 12px),
     /* Base de pergamino, con los extremos más oscuros que el centro. */
     linear-gradient(180deg, #F8EED9 0%, #F2E3C7 42%, #E3CFA7 100%);
 }

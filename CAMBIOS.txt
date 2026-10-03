@@ -21,6 +21,62 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[21] 2026-10-03 12:28 - "NUESTRA HISTORIA": EL RAYADO DIAGONAL DEL FONDO SE NOTA MAS
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: las rayas diagonales del fondo existian pero casi no se veian. Se pidió
+subirlas para ver como queda antes de decidir si se lleva esta estetica al resto
+de la pagina.
+
+QUE CAMBIO (solo el fondo, nada mas)
+- Las dos tramazas del guilloche pasaron de rgba(26,39,68,0.017) a 0.055 la
+  calida y 0.042 la fria. O sea, unas tres veces mas contraste.
+- Y de 1 px cada 9 px a 1 px cada 12 px. Fijar la separacion tambien la hacia
+  notar: con la misma tinta pero mas separada, la malla se lee como textura y no
+  como un velo.
+- La tramaza calida paso a tono papel (rgb 122,86,28) en vez de azul. Antes las
+  dos eran azulinos, lo que hacia que el rayado se leyera como algo impreso
+  encima y no como la propia trama del papel. Con una calida y una fria, la malla
+  se lee como textura.
+
+POR QUE SE SEPARO MAS Y NO SE SUBIO SOLO LA TINTA
+- Con menos de 1 px de separación y más contraste, la trama produce muaré en
+  pantallas de alta densidad de píxeles: las líneas cruzan por la suma de todos
+  los píxeles, y aparece un rayado que no existe en el diseño. Separarla a 12 px
+  evita eso y además la hace más visible. Es el mismo criterio que se usó con el
+  guilloche cuando se creó.
+
+EFICIENCIA
+- Se sigue sin usar backdrop-filter ni filter: blur(). Son cinco capas estaticas
+  en total (telon, dos tramazas, base y la viñeta del ::after): el navegador las
+  rasteriza una vez y las reutiliza. Solo dos trampazas mas visibles.
+
+LIMPIEZA
+- El comentario de cuatro lineas que estaba metido entre los valores del
+  background (una cosa valida en CSS pero ilegible) se movio arriba de la regla.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- Prueba de contrato del entorno: 47 comprobaciones, todas OK (incluye que el
+  fondo no vuelva al crema casi-blanco y que no se toque nada compartido).
+- npm run build -> correcto. "/" en 58 kB y 235 kB de First Load JS: el JS no se
+  movio, este cambio es solo CSS.
+- El diff son 7 lineas de comentario y 2 de gradiente. Nada mas.
+- Institucional y Nosotros siguen sin tocarse.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: bcba7331-cc19-4cf6-b9d5-b7e64e25cf09
+              Anterior: b2a56b2a-8567-44fd-9932-1c515d78ad70
+              Verificado en linea: el CSS 9077a28763962733.css sirve las dos
+              tramazas ya con la tinta nueva (rgb 122,86,28 al 5.5% cada 12 px, y
+              rgb 26,39,68 al 4.2% cada 12 px) y el fondo sigue siendo pergamino.
+              Institucional y Nosotros en 200.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [20] 2026-10-03 11:50 - "NUESTRA HISTORIA": SE SACAN LAS CIFRAS DE FONDO Y SE AFINA EL RESTO
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)
