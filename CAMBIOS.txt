@@ -21,6 +21,90 @@ FORMATO DE CADA ENTRADA (a partir de ahora):
 
 ================================================================================
 
+[19] 2026-10-03 11:34 - "NUESTRA HISTORIA" SUBE DE NIVEL: DETALLES DE ARCHIVO Y RELIEVE
+---------------------------------------------------------------------------------------------------------
+Realizado por: Andres Arzamendia(Cambios)
+Solicitado por: Andres Arzamendia(Cambios)
+
+Motivo: la estetica del cambio anterior ya gustaba, pero se queria mejorarla
+todavia mas antes de decidir si se lleva al resto de la pagina. Esta entrada es
+solo esa mejora: mas cuerpo en las pilaoras, mas detalle en la ficha, botones con
+relieve y un fondo con mas profundidad. Sigue siendo SOLO la seccion Historia.
+
+DONDE FUE EL AIRE
+- El cambio anterior metio mucho aire metiendo padding en las pilaoras, y eso
+  dejaba la seccion rada. Ahora el aire lo aporta el MARCO (padding de 68px en
+  escritorio) y las pilaoras quedan compactas (74px de alto, 12px de separacion).
+  Achicar el bloque y agrandar su marco deja la pagina mucho mas limpia.
+
+CIFRA FANTASMA (lo que mas cambia el caracter)
+- Cada pilaora lleva su numero gigante detrás del titulo, en el color del hito,
+  al 9% de opacidad, y al 16% cuando esta abierta.
+- Se hace con un CONTADOR de CSS (counter-reset en .hs-list, counter-increment
+  en .hs-item), asi que no hubo que tocar el componente ni pasar el numero por
+  el marcado. El numero sale solo, y si mañana se agrega un cuarto hito, el
+  cuarto numero aparece solo tambien.
+- En movil baja a 3.4rem y a 7% porque a 360 px tapaba el titulo.
+
+CAPITULAR
+- La primera letra del resumen se levanta a 3.1em, en el color del hito. Es lo
+  que da el aire de documento impreso. En movil baja a 2.4em.
+
+MAS DETALLE
+- El icono de la pilaora paso de cuadrado redondeado a SELLO: circulo con anillo
+  dorado de 4 px y relieve. Cuando la pilaora esta abierta se llena del color del
+  hito y el anillo se refuerza.
+- El cintillo del antetitulo paso de texto suelto a etiqueta con fondo del color
+  del hito y filete a la izquierda.
+- La ficha del documento ahora parece un CUPON: banda con borde punteado y
+  perforacion real (los puntitos son un radial-gradient repetido cada 10 px, ni
+  una imagen ni una peticion).
+- Los botones tienen relieve de verdad: borde claro arriba y oscuro abajo con
+  dos sombras internas. Al apretar, el boton baja 1 px y el relieve se invierte.
+- El icono de cada boton va en su circulito.
+- Titulo principal mas grande y con sombra de pagina (hasta 4rem).
+- El ornamento del encabezado ahora lleva un rombo entre la cruz y la linea.
+- Los iconos de las cifras (logros) van en circulo, y la tarjeta tiene hover.
+- Fondo con guilloche: las dos tramazas ahora van a 45 grados cruzados en vez de
+  horizontales, y el telon de oro se intensifico.
+- Margenes del marco un poco mas amplios en escritorio (68px vs 54px).
+
+ACCESIBILIDAD (se mantuvo)
+- prefers-reduced-motion sigue sacando la transicion de la cifra fantasma y del
+  barrido de los botones, y oculta la estrella de agua.
+- La cifra es decorativa: va en un pseudo-elemento, no en el marcado, asi que un
+  lector de pantalla no la anuncia. El numero real sigue siendo el que escribe
+  el administrador en el titulo.
+- La capítular es puramente visual (::first-letter): no cambia el texto que se
+  copia ni lo que lee el lector de pantalla.
+
+Verificacion:
+- npx tsc --noEmit -> 0 errores.
+- npx eslint -> 0 errores (1 warning, el de <img> de siempre).
+- npm run build -> correcto. "/" quedo en 58 kB y 235 kB de First Load JS: el
+  JS no se movio ni un byte, todo esto es CSS.
+- Prueba de render del acordeon con react-dom/server, 19 comprobaciones, todas
+  OK. Se comprobo que la funcionalidad NO se rompio: teclado, aria, descarga,
+  estados y que el hito cerrado no se dibuja.
+- Prueba de contrato del entorno, 30 comprobaciones, todas OK. Incluye que el
+  numero salga del contador, que la cifra este en la zona de apilado correcta
+  (encima del texto), que la perforacion este presente, que el relieve del boton
+  exista y que en movil la cifra se atenue.
+- responsive-fix.css sigue sin tocar ninguna de las clases nuevas.
+- Ojo: el CSS servido por el minificador escribe ".hs-btn:after" y "::first-
+  letter" aparece igual. Buscar "::after" en el archivo servido da falso
+  negativo.
+
+Despliegue:   Worker "pastoral" en Cloudflare.
+              Version: 5297ebfb-81fb-4531-bc6c-91c888187fc9
+              Anterior: 47e31d01-57d4-4364-9670-941baee68ac6
+              Verificado en linea: el CSS 96b6d72a786cd18d.css ya trae la cifra
+              fantasma, la capitular, la perforacion, el relieve de los botones
+              y el guilloche a 45 grados. Institucional y Nosotros siguen en 200.
+              Sitio: https://pastoral.arzamendiaandres-6d2.workers.dev
+
+================================================================================
+
 [18] 2026-10-02 19:46 - REDISEÑO VISUAL DE "NUESTRA HISTORIA": FONDO, MARCO, PILDORAS Y BOTONES
 ---------------------------------------------------------------------------------------------------------
 Realizado por: Andres Arzamendia(Cambios)

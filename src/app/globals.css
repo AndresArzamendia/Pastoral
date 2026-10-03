@@ -13695,6 +13695,10 @@ html.show-splash .splash-content { visibility: visible; }
    visitante. El fondo, el marco y los ornamentos de la sección viven aparte,
    más abajo, porque son cosa de la página y no del bloque.
 
+   El aire lo aporta el marco de la sección, no el bloque: por eso las píldoras
+   usan 12 px de separación y no 40. Achicar el bloque y agrandar su marco deja
+   la página mucho más limpia que llenar todo de aire.
+
    Notas de peso:
    - Solo se anima `opacity` y `transform`: es lo único que la GPU compone sin
      repintar el bloque entero.
@@ -13707,14 +13711,20 @@ html.show-splash .splash-content { visibility: visible; }
    ========================================================================== */
 .hs {
   --hs-gap: 14px;
-  --hs-line: rgba(26, 39, 68, 0.12);
+  --hs-line: rgba(26, 39, 68, 0.13);
   content-visibility: auto;
   contain-intrinsic-size: auto 620px;
 }
 
 /* ---------- 1. PÍLDORAS APILADAS ---------- */
-.hs-list { display: grid; gap: 12px; }
-.hs-item { min-width: 0; }
+.hs-list {
+  display: grid;
+  gap: 12px;
+  /* Contador para la cifra fantasma de cada píldora. Con contador de CSS no
+     hace falta pasarle el número por el marcado. */
+  counter-reset: hs-hito;
+}
+.hs-item { min-width: 0; counter-increment: hs-hito; }
 
 .hs-pill {
   --hs-accent: var(--gold);
@@ -13725,7 +13735,7 @@ html.show-splash .splash-content { visibility: visible; }
   width: 100%;
   min-height: 74px;
   padding: 16px 22px 16px 26px;
-  border: 1px solid rgba(200, 151, 58, 0.28);
+  border: 1px solid rgba(200, 151, 58, 0.3);
   border-radius: 20px;
   /* Superficie de pergamino: nunca blanco puro. El blanco plano es lo que hace
      que la sección se lea como vacía. */
@@ -13734,12 +13744,35 @@ html.show-splash .splash-content { visibility: visible; }
   text-align: left;
   font: inherit;
   color: var(--navy);
+  overflow: hidden;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.9) inset,
     0 10px 24px -18px rgba(26, 39, 68, 0.55);
   transition: background 0.25s ease, border-color 0.25s ease,
               transform 0.25s ease, box-shadow 0.25s ease;
 }
+
+/* Cifra fantasma: el número del hito gigante detrás del título. Es el detalle
+   que hace que la lista parezca el índice de un archivo y no un menú. Va detrás
+   de todo y sin captura de clics. */
+.hs-pill::after {
+  content: counter(hs-hito, decimal-leading-zero);
+  position: absolute;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 0;
+  font-family: var(--font-display);
+  font-size: 5.2rem;
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  color: var(--hs-accent);
+  opacity: 0.09;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.hs-pill.is-open::after { opacity: 0.16; transform: translateY(-50%) scale(1.06); }
 
 /* Filete de acento a la izquierda: es lo que ata cada píldora con su color y
    hace que la fila se lea como una lista y no como tres cajas sueltas. */
@@ -13748,18 +13781,20 @@ html.show-splash .splash-content { visibility: visible; }
   position: absolute;
   inset: 12px auto 12px 10px;
   width: 5px;
+  z-index: 1;
   border-radius: 6px;
   background: linear-gradient(180deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 45%, transparent));
-  opacity: 0.55;
+  opacity: 0.6;
   transition: opacity 0.25s ease, inset 0.25s ease;
 }
 
 .hs-pill:hover {
   background: linear-gradient(135deg, #FFFDF9 0%, #FDF7EA 62%, #F9EEDD 100%);
-  border-color: rgba(200, 151, 58, 0.5);
+  border-color: rgba(200, 151, 58, 0.52);
   transform: translateY(-2px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 34px -22px rgba(26, 39, 68, 0.55);
 }
+.hs-pill:hover::after { opacity: 0.13; }
 .hs-pill:focus-visible {
   outline: 2px solid var(--hs-accent);
   outline-offset: 3px;
@@ -13774,26 +13809,34 @@ html.show-splash .splash-content { visibility: visible; }
 }
 .hs-pill.is-open::before { inset: 8px auto 8px 10px; opacity: 1; }
 
-/* Icono: cuadrado redondeado, con relieve cuando la píldora está abierta. */
+/* Todo el contenido de la píldora va por encima de la cifra fantasma. */
+.hs-pill-ico,
+.hs-pill-main,
+.hs-pill-state,
+.hs-pill-chev { position: relative; z-index: 1; }
+
+/* Icono: sello con anillo dorado, como un sello de lacre. */
 .hs-pill-ico {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 15px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   font-size: 22px;
   line-height: 1;
-  background: color-mix(in srgb, var(--hs-accent) 14%, #FFF);
-  border: 1px solid color-mix(in srgb, var(--hs-accent) 30%, transparent);
-  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.85) inset;
+  background: color-mix(in srgb, var(--hs-accent) 13%, #FFF);
+  border: 1.5px solid color-mix(in srgb, var(--hs-accent) 34%, transparent);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--hs-accent) 8%, transparent),
+    0 1px 0 rgba(255, 255, 255, 0.85) inset;
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, background 0.3s ease;
 }
 .hs-pill:hover .hs-pill-ico { transform: scale(1.07) rotate(-4deg); }
 .hs-pill.is-open .hs-pill-ico {
   background: var(--hs-accent);
   border-color: color-mix(in srgb, var(--hs-accent) 70%, #000);
-  box-shadow: 0 10px 20px -10px var(--hs-accent), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hs-accent) 14%, transparent), 0 10px 20px -10px var(--hs-accent);
 }
 
 /* Título: número (si el título no lo trae) + etiqueta. */
@@ -13815,7 +13858,6 @@ html.show-splash .splash-content { visibility: visible; }
   color: var(--navy);
   overflow-wrap: anywhere;
 }
-.hs-pill.is-open .hs-pill-label { color: var(--navy); }
 
 /* Estado a la derecha: «Seleccionado» / «Ver detalle». */
 .hs-pill-state {
@@ -13823,7 +13865,7 @@ html.show-splash .splash-content { visibility: visible; }
   padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid rgba(26, 39, 68, 0.16);
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.6);
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -13860,11 +13902,11 @@ html.show-splash .splash-content { visibility: visible; }
   --hs-accent: var(--gold);
   position: relative;
   margin: -4px 0 4px 14px;
-  padding: 32px 34px 30px;
-  border-radius: 6px 22px 22px 22px;
+  padding: 34px 36px 32px;
+  border-radius: 6px 24px 24px 24px;
   border: 1px solid color-mix(in srgb, var(--hs-accent) 26%, rgba(26, 39, 68, 0.12));
   background:
-    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--hs-accent) 8%, transparent) 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--hs-accent) 9%, transparent) 0%, transparent 60%),
     linear-gradient(180deg, #FFFDF8 0%, #FBF4E4 100%);
   box-shadow: 0 24px 50px -34px rgba(26, 39, 68, 0.55);
   animation: hsPanelIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -13882,19 +13924,26 @@ html.show-splash .splash-content { visibility: visible; }
   to { opacity: 1; transform: none; }
 }
 
-.hs-panel-head { display: grid; gap: 8px; margin-bottom: 20px; }
+.hs-panel-head { display: grid; gap: 8px; margin-bottom: 22px; }
+/* Cintillo del antetítulo: en vez de texto suelto, una etiqueta con fondo del
+   color del hito. */
 .hs-kicker {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  justify-self: start;
+  padding: 6px 14px 6px 11px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--hs-accent) 12%, #FFF);
+  border-left: 3px solid var(--hs-accent);
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.26em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--hs-accent);
+  color: color-mix(in srgb, var(--hs-accent) 78%, var(--navy));
 }
 .hs-title {
-  margin: 0;
+  margin: 4px 0 0;
   font-family: var(--font-display);
   font-size: clamp(1.55rem, 3.4vw, 2.25rem);
   font-weight: 600;
@@ -13905,7 +13954,7 @@ html.show-splash .splash-content { visibility: visible; }
 }
 .hs-period {
   justify-self: start;
-  margin-top: 8px;
+  margin-top: 6px;
   padding: 6px 15px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--hs-accent) 12%, #FFF);
@@ -13966,6 +14015,17 @@ html.show-splash .splash-content { visibility: visible; }
   line-height: 1.66;
   color: var(--navy);
 }
+/* Capítular: la primera letra del resumen, grande y del color del hito. Es lo
+   que le da el aire de documento impreso. */
+.hs-summary::first-letter {
+  float: left;
+  margin: 6px 10px 0 0;
+  font-family: var(--font-display);
+  font-size: 3.1em;
+  font-weight: 600;
+  line-height: 0.78;
+  color: var(--hs-accent);
+}
 .hs-text {
   margin: 14px 0 0;
   font-size: 14.5px;
@@ -13975,19 +14035,25 @@ html.show-splash .splash-content { visibility: visible; }
   overflow-wrap: break-word;
 }
 
-/* ---------- 4. FICHA EN LÍNEA ---------- */
-/* `📄 Documento oficial • 8 págs. • 2.8 MB`, sobre una banda de papel con
-   puntos de corte a los lados: parece un documento, no texto suelto. */
+/* ---------- 4. FICHA DEL DOCUMENTO ---------- */
+/* `📄 Documento oficial • 8 págs. • 2.8 MB` sobre una banda con perforación, como
+   el borde rasgado de un cupón. Los puntitos vienen de un radial-gradient
+   repetido: ni una imagen, ni una petición extra. */
 .hs-docmeta {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 9px;
-  margin: 20px 0 0;
-  padding: 12px 16px;
+  margin: 22px 0 0;
+  padding: 13px 16px;
   border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--hs-accent) 34%, transparent);
-  background: color-mix(in srgb, var(--hs-accent) 6%, #FFF);
+  border: 1px dashed color-mix(in srgb, var(--hs-accent) 38%, transparent);
+  background-color: color-mix(in srgb, var(--hs-accent) 7%, #FFF);
+  background-image: radial-gradient(circle at 4px 50%, color-mix(in srgb, var(--hs-accent) 45%, transparent) 1.4px, transparent 1.6px);
+  background-size: 10px 100%;
+  background-repeat: repeat-x;
+  background-position: left center;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--navy);
@@ -14012,8 +14078,8 @@ html.show-splash .splash-content { visibility: visible; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  min-height: 52px;
+  gap: 10px;
+  min-height: 54px;
   padding: 13px 20px;
   border-radius: 14px;
   font-size: 12.5px;
@@ -14024,9 +14090,24 @@ html.show-splash .splash-content { visibility: visible; }
   text-decoration: none;
   cursor: pointer;
   overflow: hidden;
+  /* Relieve: un borde claro arriba y uno oscuro abajo. Con dos box-shadow, sin
+     imágenes ni sombras grandes. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 -1px 0 rgba(0, 0, 0, 0.12) inset,
+    0 2px 4px rgba(26, 39, 68, 0.12);
   transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
 }
-.hs-btn > span { font-size: 15px; line-height: 1; text-transform: none; }
+.hs-btn > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(26, 39, 68, 0.07);
+  font-size: 13px;
+  text-transform: none;
+}
 .hs-btn:focus-visible { outline: 2px solid var(--hs-accent); outline-offset: 3px; }
 
 /* Barrido de luz que cruza el botón al pasar el mouse. Se hace con un
@@ -14036,7 +14117,7 @@ html.show-splash .splash-content { visibility: visible; }
   position: absolute;
   inset: 0;
   transform: translateX(-120%);
-  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.42) 50%, transparent 80%);
   transition: transform 0.6s ease;
 }
 .hs-btn:hover::after { transform: translateX(120%); }
@@ -14046,26 +14127,32 @@ html.show-splash .splash-content { visibility: visible; }
   background: #fff;
   border: 1.5px solid rgba(26, 39, 68, 0.2);
 }
+.hs-btn-ghost > span { background: rgba(200, 151, 58, 0.16); }
 .hs-btn-ghost:hover {
   border-color: var(--hs-accent);
   color: var(--hs-accent);
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -14px rgba(26, 39, 68, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 24px -14px rgba(26, 39, 68, 0.55);
 }
 .hs-btn-primary {
   color: #fff;
   background: linear-gradient(135deg, var(--hs-accent), color-mix(in srgb, var(--hs-accent) 62%, #000));
   border: 1px solid color-mix(in srgb, var(--hs-accent) 55%, #000);
-  box-shadow: 0 12px 26px -14px var(--hs-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 12px 26px -14px var(--hs-accent);
 }
+.hs-btn-primary > span { background: rgba(255, 255, 255, 0.22); }
 .hs-btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 32px -14px var(--hs-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 18px 32px -14px var(--hs-accent);
 }
-.hs-btn:active { transform: translateY(0); }
+/* Al apretar, el botón baja: el relieve se invierte. */
+.hs-btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(26, 39, 68, 0.28);
+}
 
 .hs-note {
-  margin: 20px 0 0;
+  margin: 22px 0 0;
   padding: 14px 16px;
   border-radius: 12px;
   border: 1px dashed rgba(26, 39, 68, 0.18);
@@ -14078,8 +14165,9 @@ html.show-splash .splash-content { visibility: visible; }
 
 /* ---------- 6. RESPONSIVE ---------- */
 @media (max-width: 900px) {
-  .hs-panel { padding: 26px 22px 24px; margin-left: 10px; }
+  .hs-panel { padding: 28px 22px 26px; margin-left: 10px; }
   .hs-pill { min-height: 68px; padding: 14px 16px 14px 22px; }
+  .hs-pill::after { right: 20px; font-size: 4.4rem; }
 }
 
 @media (max-width: 680px) {
@@ -14093,11 +14181,14 @@ html.show-splash .splash-content { visibility: visible; }
     border-radius: 18px;
     -webkit-tap-highlight-color: transparent;
   }
-  .hs-pill-ico { width: 44px; height: 44px; font-size: 20px; border-radius: 13px; }
+  .hs-pill-ico { width: 46px; height: 46px; font-size: 20px; }
   .hs-pill-label { font-size: 15px; }
   .hs-pill-state { padding: 5px 10px; font-size: 8.5px; letter-spacing: 0.1em; }
   /* Con el pulgar no se busca la chevron, y a 9 px ocupa ancho de más. */
   .hs-pill-chev { display: none; }
+  /* La cifra fantasma estorba en pantallas chicas: se achica y se apaga. */
+  .hs-pill::after { right: 14px; font-size: 3.4rem; opacity: 0.07; }
+  .hs-pill.is-open::after { opacity: 0.1; transform: translateY(-50%) scale(1.04); }
 
   .hs-panel {
     padding: 22px 16px 20px;
@@ -14110,6 +14201,7 @@ html.show-splash .splash-content { visibility: visible; }
   .hs-resume { padding: 18px 0 18px 15px; }
   .hs-figure { border-radius: 13px; margin-bottom: 16px; }
   .hs-figure img { aspect-ratio: 3 / 2; }
+  .hs-summary::first-letter { font-size: 2.4em; margin: 4px 8px 0 0; }
   .hs-docmeta { margin-top: 16px; padding: 11px 13px; }
 
   /* En una columna los botones se apilan: a 360 px con icono y texto en fila
@@ -14133,6 +14225,7 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   .hs-panel { animation: none !important; }
   .hs-pill,
   .hs-pill::before,
+  .hs-pill::after,
   .hs-pill-ico,
   .hs-pill-chev,
   .hs-btn,
@@ -14145,27 +14238,31 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 /* ==========================================================================
    ENTORNO DE LA SECCIÓN "NUESTRA HISTORIA"
    --------------------------------------------------------------------------
-   Todo lo de abajo está.scopeado a `.history-premium-section` a propósito: es
+   Todo lo de abajo está scopeado a `.history-premium-section` a propósito: es
    el fondo, el marco y los ornamentos de UNA página. Las otras páginas del
    sitio que usan `.nosotros-page` (Institucional, Nosotros) comparten ese
    selector y no deben heredar nada de esto.
 
    El fondo deja de ser un crema casi blanco y pasa a pergamino: una base de
-   arena con trama de papel, una luz cálida arriba y viñeta en los bordes. Sin
-   eso el bloque se leía como un hueco vacío en medio de la página.
+   arena con trama de papel, telón de oro en el encabezado y viñeta en los
+   bordes. Sin eso el bloque se leía como un hueco vacío en medio de la página.
+
+   El aire lo da el MARCO, no las píldoras: por eso el marco tiene tanto
+   padding y las píldoras siguen Compactas. Achicar el bloque y agrandar su
+   marco deja la página mucho más limpia que llenar todo de espacio.
    ========================================================================== */
 .history-premium-section {
   position: relative;
   overflow: hidden;
   isolation: isolate;
   background:
-    /* Luz cálida que baja desde el encabezado. */
-    radial-gradient(115% 62% at 50% -4%, rgba(232, 184, 90, 0.30) 0%, rgba(232, 184, 90, 0) 62%),
-    /* Trama de papel: dos tramazas cruzadas, casi imperceptibles. */
-    repeating-linear-gradient(0deg, rgba(26, 39, 68, 0.020) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(90deg, rgba(26, 39, 68, 0.020) 0 1px, transparent 1px 4px),
+    /* Telón de oro que baja del encabezado. Es lo primero que se ve al entrar. */
+    radial-gradient(120% 66% at 50% -6%, rgba(232, 184, 90, 0.38) 0%, rgba(232, 184, 90, 0.10) 42%, rgba(232, 184, 90, 0) 68%),
+    /* Sutil guilloche: dos tramazas cruzadas, casi imperceptibles. */
+    repeating-linear-gradient(45deg, rgba(26, 39, 68, 0.016) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(26, 39, 68, 0.016) 0 1px, transparent 1px 9px),
     /* Base de pergamino. */
-    linear-gradient(180deg, #F7ECD7 0%, #F1E2C6 48%, #EAD8B6 100%);
+    linear-gradient(180deg, #F8EED9 0%, #F1E2C6 46%, #E7D4AF 100%);
 }
 
 /* Viñeta: oscurece los bordes para que el centro quede como foco. */
@@ -14174,19 +14271,19 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(135% 96% at 50% 42%, rgba(255, 252, 244, 0.42) 0%, rgba(255, 252, 244, 0) 46%, rgba(92, 66, 26, 0.16) 100%);
+  background: radial-gradient(128% 92% at 50% 40%, rgba(255, 253, 246, 0.40) 0%, rgba(255, 253, 246, 0) 42%, rgba(88, 62, 24, 0.20) 100%);
 }
 
-/* Estrella de agua, atrás de todo. Da profundidad sin cargar nada. */
+/* Estrellas de agua, atrás de todo. Dan profundidad sin cargar nada. */
 .history-premium-section .historia-watermark {
   position: absolute;
-  top: 4%;
+  top: 2%;
   left: 50%;
   transform: translateX(-50%);
   font-size: clamp(14rem, 34vw, 30rem);
   line-height: 1;
   color: var(--gold);
-  opacity: 0.055;
+  opacity: 0.07;
   pointer-events: none;
   user-select: none;
   z-index: 0;
@@ -14196,14 +14293,14 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 /* ---------- MARCO ---------- */
 .historia-stage {
   position: relative;
-  padding: clamp(26px, 4.5vw, 54px) clamp(16px, 3.5vw, 48px) clamp(24px, 4vw, 46px);
-  border-radius: 26px;
-  border: 1px solid rgba(200, 151, 58, 0.34);
+  padding: clamp(32px, 5.5vw, 68px) clamp(20px, 4.5vw, 62px) clamp(28px, 4.5vw, 56px);
+  border-radius: 28px;
+  border: 1px solid rgba(200, 151, 58, 0.36);
   background:
-    linear-gradient(180deg, rgba(255, 253, 247, 0.90) 0%, rgba(250, 241, 223, 0.80) 100%);
+    linear-gradient(180deg, rgba(255, 253, 247, 0.92) 0%, rgba(250, 241, 223, 0.82) 100%);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.85) inset,
-    0 40px 90px -52px rgba(74, 52, 18, 0.75),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 48px 100px -56px rgba(74, 52, 18, 0.8),
     0 2px 0 rgba(200, 151, 58, 0.10);
 }
 /* Filete interior: el doble borde es lo que hace que parezca una página de
@@ -14211,38 +14308,39 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 .historia-stage::before {
   content: '';
   position: absolute;
-  inset: 9px;
-  border-radius: 18px;
-  border: 1px solid rgba(200, 151, 58, 0.20);
+  inset: 10px;
+  border-radius: 19px;
+  border: 1px solid rgba(200, 151, 58, 0.22);
   pointer-events: none;
 }
 
+/* Escuadras de esquina, como las de una página vieja encuadernada. */
 .historia-corner {
   position: absolute;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border: 2px solid var(--gold);
-  opacity: 0.7;
+  opacity: 0.75;
   pointer-events: none;
 }
-.historia-corner-tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
-.historia-corner-tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
-.historia-corner-bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
-.historia-corner-br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
+.historia-corner-tl { top: 16px; left: 16px; border-right: 0; border-bottom: 0; border-radius: 11px 0 0 0; }
+.historia-corner-tr { top: 16px; right: 16px; border-left: 0; border-bottom: 0; border-radius: 0 11px 0 0; }
+.historia-corner-bl { bottom: 16px; left: 16px; border-right: 0; border-top: 0; border-radius: 0 0 0 11px; }
+.historia-corner-br { bottom: 16px; right: 16px; border-left: 0; border-top: 0; border-radius: 0 0 11px 0; }
 
 /* ---------- ENCABEZADO ---------- */
-.historia-hero { text-align: center; max-width: 820px; margin: 0 auto 34px; }
+.historia-hero { text-align: center; max-width: 860px; margin: 0 auto 40px; }
 
 .historia-badge {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 16px;
-  padding: 8px 20px;
+  margin-bottom: 18px;
+  padding: 9px 22px;
   border-radius: 999px;
-  border: 1px solid rgba(200, 151, 58, 0.5);
-  background: linear-gradient(135deg, #F3DFB4 0%, #E8C87E 100%);
-  box-shadow: 0 8px 18px -12px rgba(139, 96, 16, 0.7), 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  border: 1px solid rgba(200, 151, 58, 0.55);
+  background: linear-gradient(135deg, #F6E3BA 0%, #E8C87E 100%);
+  box-shadow: 0 10px 22px -14px rgba(139, 96, 16, 0.8), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.3em;
@@ -14252,48 +14350,61 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 
 .historia-title {
   margin: 0 0 6px;
-  font-size: clamp(2.3rem, 6vw, 3.7rem);
+  font-size: clamp(2.4rem, 6.4vw, 4rem);
   font-weight: 600;
-  line-height: 1.04;
-  letter-spacing: -0.02em;
+  line-height: 1.02;
+  letter-spacing: -0.022em;
   color: var(--navy);
-  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.6), 0 14px 34px rgba(74, 52, 18, 0.16);
 }
 .historia-title em {
   font-style: italic;
   font-family: var(--font-display);
-  background: linear-gradient(135deg, #B8862B 0%, var(--gold-light) 45%, #A8761F 100%);
+  background: linear-gradient(135deg, #B8862B 0%, #EFCE86 42%, #A8761F 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* Oramento: línea — † — línea. */
+/* Ornamento: línea — † — rombo — línea. */
 .historia-ornament {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin: 20px 0 18px;
+  gap: 14px;
+  margin: 22px 0 20px;
 }
 .historia-ornament span {
   height: 1px;
-  width: clamp(40px, 14vw, 96px);
-  background: linear-gradient(90deg, transparent, rgba(200, 151, 58, 0.75));
+  width: clamp(36px, 13vw, 92px);
+  background: linear-gradient(90deg, transparent, rgba(200, 151, 58, 0.8));
 }
-.historia-ornament span:last-child { background: linear-gradient(270deg, transparent, rgba(200, 151, 58, 0.75)); }
+.historia-ornament span:last-child { background: linear-gradient(270deg, transparent, rgba(200, 151, 58, 0.8)); }
 .historia-ornament b {
-  font-size: 15px;
+  position: relative;
+  font-size: 16px;
   font-weight: 400;
   color: var(--gold);
-  opacity: 0.9;
+  opacity: 0.95;
+}
+/* Rombo entre la cruz y la línea. */
+.historia-ornament b::after {
+  content: '';
+  position: absolute;
+  right: -11px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--gold);
+  transform: translateY(-50%) rotate(45deg);
+  opacity: 0.7;
 }
 
 .historia-intro {
   margin: 0 auto;
-  max-width: 680px;
+  max-width: 700px;
   font-family: var(--font-accent);
-  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  font-size: clamp(1rem, 1.5vw, 1.14rem);
   font-style: italic;
   line-height: 1.85;
   color: var(--text-muted);
@@ -14304,25 +14415,36 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
-  margin: 0 0 34px;
+  margin: 0 0 40px;
 }
 .history-premium-section .historia-logros .nosotros-logro {
   display: grid;
   gap: 5px;
   justify-items: center;
-  padding: 20px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(200, 151, 58, 0.28);
-  background: linear-gradient(180deg, rgba(255, 253, 247, 0.92), rgba(247, 237, 217, 0.82));
-  box-shadow: 0 12px 26px -22px rgba(74, 52, 18, 0.8);
+  padding: 22px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(200, 151, 58, 0.3);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.94), rgba(247, 237, 217, 0.84));
+  box-shadow: 0 14px 30px -24px rgba(74, 52, 18, 0.85);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.history-premium-section .historia-logros .nosotros-logro:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 38px -24px rgba(74, 52, 18, 0.9);
 }
 .history-premium-section .historia-logros .nl-ico {
-  font-size: 20px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(200, 151, 58, 0.14);
+  font-size: 19px;
   line-height: 1;
 }
 .history-premium-section .historia-logros strong {
   font-family: var(--font-display);
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   line-height: 1.1;
   color: var(--gold);
 }
@@ -14337,9 +14459,9 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 
 /* ---------- RESPONSIVE DEL ENTORNO ---------- */
 @media (max-width: 680px) {
-  .history-premium-section { padding-bottom: 72px; }
+  .history-premium-section { padding-bottom: 76px; }
   .historia-stage {
-    padding: 22px 14px 20px;
+    padding: 24px 14px 22px;
     border-radius: 20px;
   }
   .historia-stage::before { inset: 6px; border-radius: 14px; }
@@ -14348,8 +14470,8 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
   .historia-corner-bl, .historia-corner-br { bottom: 10px; }
   .historia-corner-tl, .historia-corner-bl { left: 10px; }
   .historia-corner-tr, .historia-corner-br { right: 10px; }
-  .history-premium-section .historia-logros { gap: 10px; margin-bottom: 26px; }
-  .history-premium-section .historia-logros .nosotros-logro { padding: 15px 10px; }
+  .history-premium-section .historia-logros { gap: 10px; margin-bottom: 30px; }
+  .history-premium-section .historia-logros .nosotros-logro { padding: 16px 10px; }
 }
 
 @media (max-width: 420px) {
@@ -14359,8 +14481,9 @@ body.high-contrast .hs-pill-state { border-color: currentColor; }
 /* ---------- ACCESIBILIDAD DEL ENTORNO ---------- */
 @media (prefers-reduced-motion: reduce) {
   .history-premium-section .historia-watermark { display: none; }
+  .history-premium-section .historia-logros .nosotros-logro { transition: none; }
+  .history-premium-section .historia-logros .nosotros-logro:hover { transform: none; }
 }
-
 /* ==========================================================================
    PANEL DE ADMINISTRACIÓN - PESTAÑAS DE HISTORIA
    --------------------------------------------------------------------------
