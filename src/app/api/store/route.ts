@@ -27,6 +27,9 @@ const ALLOWED_KEYS = new Set([
   'news', 'gallery',
 ]);
 
+const SECRET_KEYS_CONTENT = new Set(['aiKey', 'googleCalendarClientSecret', 'googleCalendarClientId', 'push_vapid', 'push_subscriptions', 'push_admin_token']);
+const SENSITIVE_USER_FIELDS = new Set(['password', 'pass', 'secret', 'token']);
+
 /* Los archivos grandes van a R2; en el contenido no debería haber nada enorme. */
 const MAX_VALUE_BYTES = 2 * 1024 * 1024;
 
@@ -82,9 +85,37 @@ export async function POST(request: NextRequest) {
   // Las imágenes embebidas en base64 no se guardan: se borran (los archivos
   // de verdad viven en R2 y se guardan sus direcciones, no su contenido).
   const removidas = { n: 0 };
-  const limpio = stripDataUrls(body.value, removidas);
+  let limpio = stripDataUrls(body.value, removidas);
   if (removidas.n > 0) {
     console.warn(`api/store: se quitaron ${removidas.n} imagen(es) en base64 de "${key}" (no se guardan en la base).`);
+  }
+
+  // Sanitizar contenido sensible si se guarda en 'content'
+  if (key === 'content' && limpio && typeof limpio === 'object') {
+    const c = limpio as Record<string, unknown>;
+    // Remove secrets from client-exposed content
+    for (const k of Object.keys(c)) {
+      if (SECRET_KEYS_CONTENT.has(k)) {
+        delete c[k];
+      }
+    }
+    limpio = c;
+  }
+
+  // Sanitizar usuarios
+  if (key === 'users' && Array.isArray(limpio)) {
+    limpio = (limpio as any[]).map((u) => {
+      if (u && typeof u === 'object') {
+        const out = { ...u };
+        for (const k of Object.keys(out)) {
+          if (SENSITIVE_USER_FIELDS.has(k.toLowerCase())) {
+            delete out[k];
+          }
+        }
+        return out;
+      }
+      return u;
+    });
   }
 
   let serialized: string;

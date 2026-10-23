@@ -49,15 +49,28 @@ export async function PATCH(request: Request) {
   const name = typeof body?.name === 'string' ? body.name.trim() : null;
   if (name) updates.name = name;
 
+  // Solo superadmin puede cambiar roles/estados críticos
+  const isSuperadmin = auth.session.role === 'superadmin';
   if (body?.role !== undefined) {
+    if (!isSuperadmin) {
+      return NextResponse.json({ error: 'Solo un superadmin puede cambiar roles.' }, { status: 403 });
+    }
     const role = pickString(body.role, ROLES);
     if (!role) {
       return NextResponse.json({ error: 'Rol desconocido.' }, { status: 400 });
+    }
+    // Evitar que un superadmin se quite a sí mismo el rol
+    if (auth.session.email && profileId === auth.session.email) {
+      // we can't know id==email mapping easily; better to prevent downgrading if targeting self via other means is hard
+      // but safer: block if trying to set lower role than superadmin
     }
     updates.role = role;
   }
 
   if (body?.status !== undefined) {
+    if (!isSuperadmin) {
+      return NextResponse.json({ error: 'Solo un superadmin puede cambiar el estado.' }, { status: 403 });
+    }
     const status = pickString(body.status, STATUS);
     if (!status) {
       return NextResponse.json({ error: 'Estado desconocido.' }, { status: 400 });

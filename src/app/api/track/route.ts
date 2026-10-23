@@ -55,7 +55,12 @@ function clean(value: unknown, max = 80): string {
   return out.replace(/\s+/g, ' ').trim();
 }
 
+import { checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+
 export async function POST(request: NextRequest) {
+  const rl = checkRateLimit(request, { windowMs: 60_000, max: 60 });
+  if (!rl.ok) return rateLimitResponse(rl.retryAfter);
+
   const db = await getDb();
   if (!db) return NextResponse.json({ ok: false, error: 'estadisticas-no-disponibles' }, { status: 503 });
 

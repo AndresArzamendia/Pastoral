@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFileStorage } from '@/lib/uploadStorage';
 import { r2PublicUrl } from '@/lib/r2';
 import { requireAdminWriter } from '@/lib/requireAdmin';
+import { sniffMagicBytes, sanitizeSvg } from '@/lib/fileValidation';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 

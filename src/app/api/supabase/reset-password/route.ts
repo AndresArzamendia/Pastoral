@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { siteOrigin } from '@/lib/siteUrlServer';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
+  const rl = checkRateLimit(request, { windowMs: 60_000, max: 5 });
+  if (!rl.ok) return rateLimitResponse(rl.retryAfter);
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

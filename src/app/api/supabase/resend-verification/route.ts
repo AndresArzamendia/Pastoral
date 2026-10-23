@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { siteOrigin } from '@/lib/siteUrlServer';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rateLimit';
+import { requireAdminWriter } from '@/lib/requireAdmin';
 
 export async function POST(request: Request) {
+  // Restringido a usuarios administradores para evitar abuso/enum
+  const auth = await requireAdminWriter(request);
+  if (!auth.ok) return auth.response;
+
+  const rl = checkRateLimit(request, { windowMs: 60_000, max: 5 });
+  if (!rl.ok) return rateLimitResponse(rl.retryAfter);
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
