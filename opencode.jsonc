@@ -1,0 +1,134 @@
+﻿{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "plugin": [
+    "./.opencode/plugins"
+  ],
+  "instructions": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    ".opencode/instructions/INSTRUCTIONS.md",
+    ".opencode/skills/tdd-workflow/SKILL.md",
+    ".opencode/skills/security-review/SKILL.md",
+    ".opencode/skills/coding-standards/SKILL.md",
+    ".opencode/skills/frontend-patterns/SKILL.md",
+    ".opencode/skills/frontend-slides/SKILL.md",
+    ".opencode/skills/backend-patterns/SKILL.md",
+    ".opencode/skills/e2e-testing/SKILL.md",
+    ".opencode/skills/verification-loop/SKILL.md",
+    ".opencode/skills/api-design/SKILL.md",
+    ".opencode/skills/strategic-compact/SKILL.md",
+    ".opencode/skills/eval-harness/SKILL.md"
+  ],
+  "skills": {
+    "paths": [
+      ".opencode/skills",
+      ".opencode/agents"
+    ]
+  },
+  "agent": {
+    "build": {
+      "description": "Primary coding agent for development work",
+      "mode": "primary",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "changed-files": true
+      }
+    },
+    "planner": {
+      "description": "Expert planning specialist for complex features and refactoring.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/planner.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": false,
+        "edit": false
+      }
+    },
+    "architect": {
+      "description": "Software architecture specialist for system design, scalability, and technical decision-making.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/architect.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": false,
+        "edit": false
+      }
+    },
+    "tdd-guide": {
+      "description": "Test-Driven Development specialist who writes tests first and ensures 80%+ coverage.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/tdd-guide.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": true,
+        "edit": true
+      }
+    },
+    "code-reviewer": {
+      "description": "Code quality and maintainability review specialist. Review for bugs, security issues, and style.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/code-reviewer.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": false,
+        "edit": false
+      }
+    },
+    "security-reviewer": {
+      "description": "Security specialist for vulnerability detection and remediation.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/security-reviewer.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": false,
+        "edit": false
+      }
+    },
+    "build-error-resolver": {
+      "description": "Build and type error specialist. Fixes compile errors and type errors with minimal changes.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/build-error-resolver.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": true,
+        "edit": true
+      }
+    },
+    "e2e-runner": {
+      "description": "E2E testing specialist using Playwright. Creates, runs, and fixes E2E tests.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/e2e-runner.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": true,
+        "edit": true
+      }
+    },
+    "refactor-cleaner": {
+      "description": "Dead code cleanup specialist. Identifies and removes unused code safely.",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/prompts/agents/refactor-cleaner.txt}",
+      "tools": {
+        "read": true,
+        "bash": true,
+        "write": true,
+        "edit": true
+      }
+    },
+    "doc-updater": {
+      "description": "Documentation specialist. Updates codemaps, README, and documentation.",
+      "mode": "subcode": 0
+    }
+  }
+}
