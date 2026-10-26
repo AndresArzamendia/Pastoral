@@ -13,10 +13,28 @@ const nextConfig: NextConfig = {
       process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL,
   },
 
+  /* Ocultar header X-Powered-By */
+  poweredByHeader: false,
+
   /* config options here */
 
   async headers() {
     return [
+      {
+        // Cabeceras de seguridad globales
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=()" },
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.vaticannews.va https://va.ec.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://pub-833cb34bd1494d27b0b8ae2b177aaa35.r2.dev https://rtqzphmqnsaxirifdzvu.supabase.co; connect-src 'self' https://rtqzphmqnsaxirifdzvu.supabase.co; frame-src https://www.vaticannews.va; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests",
+          },
+        ],
+      },
       {
         // Manifest PWA: tipo MIME correcto y sin caché agresiva para que
         // Chrome siempre valide una web instalable actualizada.

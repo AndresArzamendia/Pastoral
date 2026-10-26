@@ -1772,3 +1772,15 @@ EFECTO PARA EL USUARIO:
 FIN DEL REGISTRO
 ================================================================================
 \n\n[2]\nFecha y hora: 2026-10-23 15:48:46\nTítulo: Seguridad y rendimiento: rate limiting, protección de endpoints, saneamiento de store\nRealizado por: Andres Arzamendia(Cambios)\n\nQué se hizo, archivo por archivo:\n- src/lib/rateLimit.ts (nuevo): rate limiting en memoria por IP+UA.\n- src/lib/fileValidation.ts (nuevo): sniffing de magic bytes y saneamiento SVG.\n- src/lib/storeSanitizer.ts (nuevo): utilidades para sanear contenido/usuarios.\n- src/app/api/supabase/status/route.ts: sin fuga de errores BD.\n- src/app/api/supabase/resend-verification/route.ts: requiere admin + rate limit 5/min.\n- src/app/api/supabase/reset-password/route.ts: rate limit 5/min.\n- src/app/api/profiles/route.ts: solo superadmin cambia role/status.\n- src/app/api/track/route.ts: rate limit 60/min.\n- src/app/api/upload/route.ts: rate limit 20/min.\n- src/app/api/store/route.ts: saneamiento secretos/usuarios.\n\nVerificación realizada: revisión de rutas modificadas.\nVersión del Worker en Cloudflare: pendiente de deploy (npm run deploy).\n
+[3]
+Fecha y hora: 2026-10-26 19:28:38
+Título: Seguridad HTTP: cabeceras HSTS/CSP/X-Frame-Options/Permissions-Policy + poweredByHeader false
+Realizado por: Andres Arzamendia(Cambios)
+
+Qué se hizo, archivo por archivo:
+- next.config.ts: Agregadas cabeceras de seguridad globales para todos los paths, HSTS, X-Content-Type-Options, X-Frame-Options SAMEORIGIN, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy restrictiva, Content-Security-Policy con dominios permitidos. Configurado poweredByHeader: false.
+
+Verificación realizada:
+- Revisión de cabeceras en next.config.ts.
+
+Versión del Worker en Cloudflare: pendiente de deploy (npm run deploy).
