@@ -25,7 +25,14 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@/ui/*": ["./src/ui/*"],
+      "@/features/*": ["./src/features/*"],
+      "@/server/*": ["./src/server/*"],
+      "@/shared/*": ["./src/shared/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/data/*": ["./src/data/*"]
     }
   },
   "include": [

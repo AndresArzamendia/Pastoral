@@ -1,0 +1,42 @@
+﻿# ORDEN DEL PROYECTO - Pastoral Juvenil Luqueña
+# Creado: 2026-10-26 20:48:26
+# Regla: No mover rutas de app/ ni app/api. Separar lógica por lotes sin romper el build.
+
+## Estructura objetivo (sin cambios drásticos)
+src/
+├── app/        # RUTAS Y API (NO TOCAR) - Páginas, layouts, route handlers en app/api/
+├── ui/         # FRONTEND PURO - Componentes genéricos/reutilizables (botones, inputs, modales, navbar, footer)
+├── features/   # FRONTEND POR DOMINIO - Componentes agrupados por funcionalidad (noticias, equipo, galería, tienda, calendario)
+├── server/     # BACKEND PURO - Lógica server-only (auth, supabase server/admin, r2, rateLimit, validaciones server)
+├── shared/     # COMPARTIDO - Tipos, schemas zod, constantes, helpers seguros para cliente+servidor
+├── data/       # DATOS ESTÁTICOS - Se mantiene tal como está
+└── middleware.ts
+
+## ¿Qué va dónde?
+- ui/        -> Solo presentación. NO usar cookies(), headers(), process.env secretos, ni cliente Supabase admin/server
+- features/  -> UI + lógica de cliente ligada a un dominio específico
+- server/    -> ÚNICAMENTE server-only. Si usa cookies/headers o claves privadas -> server/
+- shared/    -> Tipos/constantes/validaciones seguras compartidas
+- app/       -> SIEMPRE intacto. Las rutas no se mueven
+
+## Reglas para seguir desde hoy
+1. Antes de mover algo: clasificar (frontend/backend/compartido)
+2. Mover por LOTES pequeños (1-5 archivos) y actualizar imports inmediatamente
+3. Después de cada lote: npx tsc --noEmit (o npm run build si hay dudas)
+4. Nunca mover archivos dentro de app/ o app/api/
+5. Mantener compatibilidad con imports existentes (@/components/*, @/lib/*) hasta migrar
+6. Registrar TODO en CAMBIOS.txt con fecha/hora, archivos, verificación y resultado
+
+## Estado actual (src/)
+app/ (rutas + api) - SIN TOCAR
+components/ (mezcla actual) - En proceso de migración gradual
+data/ (estático) - OK
+lib/ (mezcla actual) - En proceso de migración a server/ o shared/ por lotes
+middleware.ts - OK
+
+## Plan de lotes
+LOTE 1: Crear carpetas ui/, features/, server/, shared/ + actualizar tsconfig.json con paths
+LOTE 2: Mover lib/server-only a server/ (supabase/server.ts, supabase/admin.ts, r2.ts, rateLimit.ts, fileValidation.ts...)
+LOTE 3: Mover utilidades compartidas seguras a shared/ (tipos, schemas, helpers sin server-only)
+LOTE 4: Mover componentes reutilizables a ui/ (botones, modales, navbar, footer)
+LOTE 5: Agrupar componentes por dominio en features/ (noticias, equipo, tienda, calendario...)

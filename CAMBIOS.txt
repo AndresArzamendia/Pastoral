@@ -1784,3 +1784,61 @@ VerificaciÃ³n realizada:
 - RevisiÃ³n de cabeceras en next.config.ts.
 
 VersiÃ³n del Worker en Cloudflare: pendiente de deploy (npm run deploy).
+
+[5]
+Fecha y hora: 2026-10-26 20:48:32
+Título: Estructura ordenada: creado src/ORDEN_PROYECTO.txt con reglas frontend/backend
+Realizado por: Andres Arzamendia(Cambios)
+
+Qué se hizo, archivo por archivo:
+- src/ORDEN_PROYECTO.txt (nuevo): Documento explicativo con estructura objetivo, reglas, lotes y estado actual. Se acuerda no mover app/ ni app/api.
+
+Verificación realizada:
+- Creación exitosa del archivo.
+
+Versión del Worker en Cloudflare: pendiente de deploy (npm run deploy).
+
+
+[6]
+Fecha y hora: 2026-10-26 20:49:00
+Título: LOTE 1 - Creación de estructura ui/features/server/shared + paths tsconfig
+Realizado por: Andres Arzamendia(Cambios)
+
+Qué se hizo, archivo por archivo:
+- src/ui/, src/features/, src/server/, src/shared/ (nuevos): Carpetas para separar frontend/backend/compartido
+- tsconfig.json: Agregados paths @/ui/*, @/features/*, @/server/*, @/shared/*, @/components/*, @/lib/*, @/data/*
+
+Verificación realizada:
+- Carpetas creadas correctamente. tsconfig.json actualizado sin romper rutas existentes.
+
+Versión del Worker en Cloudflare: pendiente de deploy (npm run deploy).
+
+
+[7]
+Fecha y hora: 2026-10-26 20:49:39
+Título: LOTE 2 - Copia de módulos server-only a src/server/ (sin mover originales)
+Realizado por: Andres Arzamendia(Cambios)
+
+Qué se hizo, archivo por archivo:
+- src/server/ (nuevos copias): r2.ts, rateLimit.ts, fileValidation.ts, requireAdmin.ts, adminAuth.ts, pushServer.ts, googleCalendarServer.ts, siteUrlServer.ts, uploadStorage.ts, fileCleanup.ts, fileServerCleanup.ts, storeSanitizer.ts
+- src/shared/ (nuevas copias): newsTypes.ts, newsValidation.ts, siteUrl.ts
+
+Verificación realizada:
+- Copias creadas. Los archivos originales en src/lib/ se mantienen intactos para no romper imports.
+
+Versión del Worker en Cloudflare: pendiente de deploy (npm run deploy).
+
+
+[8]
+Fecha y hora: 2026-10-26 20:51:09
+Título: Corrección LOTE 1 - Eliminadas copias incorrectas, solo estructura
+Realizado por: Andres Arzamendia(Cambios)
+
+Qué se hizo, archivo por archivo:
+- src/server/*, src/shared/*: Eliminadas copias con imports relativos rotos. Solo se mantienen las carpetas vacías.
+
+Verificación realizada:
+- npx tsc --noEmit (errores solo en opencode/tools/ ajenos al src de la app).
+
+Versión del Worker en Cloudflare: pendiente de deploy (npm run deploy).
+
